@@ -89,7 +89,7 @@ class MultiUnitCluster(nn.Module):
         self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
         
         # randomly scatter
-        # self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
+        self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
         
         # # cluster positions as trainable parameters
         # self.clusters = torch.nn.Parameter(
@@ -424,14 +424,14 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
-n_units = 100
+n_units = 200
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
 # c_recruit = 'feedback'  # feedback or loss_thresh
 
 # top k%. so .05 = top 5%
-k = .05
+k = .1
 
 # spatial / unsupervised
 
@@ -446,54 +446,75 @@ k = .05
 
 
 # next: try with SHJ
-# - got it at least to work sensibly for type I now... ++ 
+# - got it at least to work sensibly now
+# - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 
+# - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
+# looks like less later on though. maybe ok?
 
 
 
 # trials, etc.
-n_epochs = 100
-
-model = MultiUnitCluster(n_units, n_dims, attn_type, k)
-
-model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs)
-
-print(epoch_acc)
-print(epoch_ptarget)
-plt.plot(1 - epoch_ptarget.detach())
-plt.show()
-
-print(np.around(model.units_pos.detach().numpy(), decimals=2))
-print(model.attn)
-
-
-# # # % unsupervised
-# n_dims = 2
-# n_epochs = 1
-# n_trials = 1000
-# inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
-
+# n_epochs = 100
 
 # model = MultiUnitCluster(n_units, n_dims, attn_type, k)
 
-# model = train_unsupervised(model, inputs, n_epochs)
+# model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+#     model, inputs, output, n_epochs)
 
-# # print(np.around(model.units_pos.detach().numpy(), decimals=3))
+# print(epoch_acc)
+# print(epoch_ptarget)
+# plt.plot(1 - epoch_ptarget.detach())
+# plt.show()
+
+# print(np.around(model.units_pos.detach().numpy(), decimals=2))
+# print(model.attn)
+
+
+# % unsupervised
+n_dims = 2
+n_epochs = 1
+n_trials = 2000
+inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
+
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k)
+
+model = train_unsupervised(model, inputs, n_epochs)
+
+# print(np.around(model.units_pos.detach().numpy(), decimals=3))
 
 # for iclus in range(5):
 #     plt.plot(torch.stack(model.units_pos_trace, dim=0)[:, iclus, :])
 #     plt.ylim([0, 1])
 #     plt.show()
 
-# results = torch.stack(model.units_pos_trace, dim=0)
+
+# %% plot
+
+
+results = torch.stack(model.units_pos_trace, dim=0)
+
+# # group
 # plt.scatter(results[-1, :, 0], results[-1, :, 1])
+# # plt.scatter(results[-1, :, 0], results[-1, :, 2])
 # plt.xlim([0, 1])
 # plt.ylim([0, 1])
 # plt.show()
 
+# over time
+plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 50),
+                           dtype=torch.long)
 
 
+for i in plot_trials[0:-1]:
+    plt.scatter(results[i, :, 0], results[i, :, 1])
+    # plt.scatter(results[-1, :, 0], results[-1, :, 2])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
+    
+# # plt.show()
 
 
