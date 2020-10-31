@@ -40,7 +40,7 @@ Learning rule updates
 Parameters summary:
 - 4 learning rates (lr_pos, lr_group, lr_attn, lr_assoc_W)
 - dispersion c parameter
-- softmax decision d
+- softmax decision d. i think this is phi (here and alcove)
 - k percent winners
 - pattern separation (default=1) - not sure where this is? CHECK
 - unsupervised recruitment parameter (only for unsupervised learning)
@@ -89,7 +89,7 @@ class MultiUnitCluster(nn.Module):
         self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
         
         # randomly scatter
-        self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
+        # self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
         
         # # cluster positions as trainable parameters
         # self.clusters = torch.nn.Parameter(
@@ -264,11 +264,12 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                     torch.randint(len(inactive_ind),
                                   (int(model.n_units * model.params['k']), ))
                     )
-                active_ws[inactive_ind[rand_k_units]] = True
+                win_ind = inactive_ind[rand_k_units]
+                active_ws[win_ind] = True
                 
                 # recruit units
-                model.winning_units[active_ws] = True
-                model.units_pos[active_ws] = x  # place at curr stim
+                model.winning_units[win_ind] = True
+                model.units_pos[win_ind] = x  # place at curr stim
                 # model.mask[:, active_ws] = True  # new clus weights
                 model.recruit_units_trl.append(itrl)
 
@@ -423,7 +424,7 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
-n_units = 50
+n_units = 100
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
