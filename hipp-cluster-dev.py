@@ -53,6 +53,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import itertools as it
 
 
 class MultiUnitCluster(nn.Module):
@@ -495,7 +496,7 @@ n_epochs = 1
 n_trials = 2000
 inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
 
-k = .05
+k = .1
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -509,13 +510,48 @@ params = {
     'k': k
     }
 
-model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+# train_unsupervised(model, inputs, n_epochs)
 
-train_unsupervised(model, inputs, n_epochs)
+# results = torch.stack(model.units_pos_trace, dim=0)
+# plt.scatter(results[-1, :, 0], results[-1, :, 1])
+# plt.xlim([0, 1])
+# plt.ylim([0, 1])    
+# plt.show()
 
 
+# run for different learning rates for lr_clusters and lr_group
+lr_clusters = torch.linspace(.1, 1.9, 10)
+lr_group = torch.linspace(.1, 2.9, 10)
+
+results = torch.zeros(n_units, n_dims, len(lr_clusters), len(lr_group))
+for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
+    params['lr_clusters'] = lr_group[i]
+    params['lr_clusters_group'] = lr_group[j]
+    model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+    train_unsupervised(model, inputs, n_epochs)
+    results[:, :, i, j] = torch.stack(model.units_pos_trace, dim=0)[-1]
 
 
+# fig, ax = plt.subplots(len(lr_clusters), len(lr_group))
+# for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
+#     ax[i, j].scatter(results[:, 0, i, j], results[:, 1, i, j], s=.005)
+#     ax[i, j].set_xlim([0, 1])
+#     ax[i, j].set_ylim([0, 1])
+
+# j = torch.nonzero(lr_group==.9)
+# for i in range(len(lr_clusters)):
+#     plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
+#     plt.xlim([0, 1])
+#     plt.ylim([0, 1])
+#     plt.show()
+
+i = torch.nonzero(lr_clusters==.1)
+for j in range(len(lr_group)):
+    plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.show()
 
 # %% plot
 
