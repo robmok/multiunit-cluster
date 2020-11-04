@@ -56,12 +56,11 @@ import matplotlib.pyplot as plt
 
 
 class MultiUnitCluster(nn.Module):
-    def __init__(self, n_units, n_dims, attn_type, k):
+    def __init__(self, n_units, n_dims, attn_type, k, params=None):
         super(MultiUnitCluster, self).__init__()
         self.attn_type = attn_type
         self.n_units = n_units
         self.n_dims = n_dims
-        # self.nn_sizes = nn_sizes
         self.softmax = nn.Softmax(dim=0)
         # history
         self.attn_trace = []
@@ -73,24 +72,27 @@ class MultiUnitCluster(nn.Module):
 
         # free params
         # - can estimate all, but probably don't need to include some (e.g. r)
-        self.params = {
-            'r': 1,  # 1=city-block, 2=euclid - no need to estimate?
-            'c': 2,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
-            'p': 1,  # alcove: p=1 exp, p=2 gauss
-            'phi': 3.5,  # response parameter, non-negative
-            'lr_attn': .05,
-            'lr_nn': .25,
-            'lr_clusters': .1,
-            'lr_clusters_group': .75,
-            'k': k
-            }
+        if params:
+            self.params = params
+        else:
+            self.params = {
+                'r': 1,  # 1=city-block, 2=euclid - no need to estimate?
+                'c': 2,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
+                'p': 1,  # alcove: p=1 exp, p=2 gauss
+                'phi': 1,  # response parameter, non-negative
+                'lr_attn': .25,
+                'lr_nn': .25,
+                'lr_clusters': .15,
+                'lr_clusters_group': .95,
+                'k': k
+                }
 
         # units
         self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
-        
+
         # randomly scatter
         self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
-        
+
         # # cluster positions as trainable parameters
         # self.clusters = torch.nn.Parameter(
         #     torch.zeros([n_units, n_dims], dtype=torch.float))
@@ -102,7 +104,7 @@ class MultiUnitCluster(nn.Module):
         elif self.attn_type == 'unit':
             self.attn = (
                 torch.nn.Parameter(torch.ones([n_units, n_dims],
-                                              dtype=torch.float) * .5))
+                                              dtype=torch.float) * .33))
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
@@ -243,12 +245,11 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                 model.units_pos[win_ind] += update
 
                 # - step 2 - winners update towards self
-                winner_mean = torch.mean(model.units_pos[win_ind], axis=0)  # check axis correct
+                winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
                 update = (
                     (winner_mean - model.units_pos[win_ind]) *
                     model.params['lr_clusters_group'])
                 model.units_pos[win_ind] += update
-
 
             # save acc per trial
             trial_acc[itrl] = torch.argmax(out.data) == target
@@ -341,8 +342,6 @@ def train_unsupervised(model, inputs, n_epochs):
             # store positions over time
             model.units_pos_trace.append(model.units_pos.detach().clone())
 
-    return model
-
 
 def _compute_dist(dim_dist, attn_w, r):
     return torch.sum((attn_w * dim_dist)**r, axis=1)**(1/r)
@@ -416,7 +415,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 
 # set problem
-problem = 0
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -424,14 +423,14 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
-n_units = 200
+n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
 # c_recruit = 'feedback'  # feedback or loss_thresh
 
 # top k%. so .05 = top 5%
-k = .1
+k = .01
 
 # spatial / unsupervised
 
@@ -443,22 +442,38 @@ k = .1
 # - i think the learning rates might lead to more/less grid like patterns - check which matters more (can use banino's grid code)
 # - need reduction of lr over time?
 
-
-
-# next: try with SHJ
-# - got it at least to work sensibly now
+# SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
+# - most problems seem fine. type V is funny. 7 clusters? need play around with attn and other learning rates?
+# if i do WTA, now gets 6 clusters (lr_atten=0.05, lr_nn=.25), but with larger k, becomes 8.
+# looks like k=.01 still 6 clus. k>=.05 then 8.
+# ?? - interact with n_units. if 100, k=.05 gives 6 clus. 500/1000 units, give 8 (if k=.01, then 6 again).
+
+# NOT just proportion, but n_units too? CHECK
+
+ 
 
 # - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
 # looks like less later on though. maybe ok?
 
 
-
 # trials, etc.
 # n_epochs = 100
 
-# model = MultiUnitCluster(n_units, n_dims, attn_type, k)
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 3,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
+#     'p': 1,  # alcove: p=1 exp, p=2 gauss
+#     'phi': 1,  # response parameter, non-negative
+#     'lr_attn': .005,
+#     'lr_nn': .25,
+#     'lr_clusters': .15,
+#     'lr_clusters_group': .95,
+#     'k': k
+#     }
+
+# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 # model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 #     model, inputs, output, n_epochs)
@@ -468,45 +483,55 @@ k = .1
 # plt.plot(1 - epoch_ptarget.detach())
 # plt.show()
 
-# print(np.around(model.units_pos.detach().numpy(), decimals=2))
-# print(model.attn)
+# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+# # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
+# # print(model.attn)
 
+# print(len(model.recruit_units_trl))
 
-# % unsupervised
+# unsupervised
 n_dims = 2
 n_epochs = 1
 n_trials = 2000
 inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
 
+k = .05
 
-model = MultiUnitCluster(n_units, n_dims, attn_type, k)
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 2,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
+    'p': 1,  # alcove: p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .25,
+    'lr_nn': .25,
+    'lr_clusters': .15,
+    'lr_clusters_group': .95,
+    'k': k
+    }
 
-model = train_unsupervised(model, inputs, n_epochs)
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
-# print(np.around(model.units_pos.detach().numpy(), decimals=3))
+train_unsupervised(model, inputs, n_epochs)
 
-# for iclus in range(5):
-#     plt.plot(torch.stack(model.units_pos_trace, dim=0)[:, iclus, :])
-#     plt.ylim([0, 1])
-#     plt.show()
+
+
 
 
 # %% plot
 
-
 results = torch.stack(model.units_pos_trace, dim=0)
 
-# # group
-# plt.scatter(results[-1, :, 0], results[-1, :, 1])
-# # plt.scatter(results[-1, :, 0], results[-1, :, 2])
+# group
+plt.scatter(results[-1, :, 0], results[-1, :, 1])
+# plt.scatter(results[-1, :, 0], results[-1, :, 2])
 # plt.xlim([0, 1])
-# plt.ylim([0, 1])
-# plt.show()
+# plt.ylim([0, 1])    
+plt.show()
 
 # over time
+# TODO - add colour to each dot so can follow it
 plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 50),
-                           dtype=torch.long)
-
+                            dtype=torch.long)
 
 for i in plot_trials[0:-1]:
     plt.scatter(results[i, :, 0], results[i, :, 1])
@@ -514,7 +539,36 @@ for i in plot_trials[0:-1]:
     plt.xlim([-.05, 1.05])
     plt.ylim([-.05, 1.05])
     plt.pause(.5)
-    
-# # plt.show()
 
+
+# supervised
+# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+
+
+# # group
+# plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 1])
+# # plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 2])
+# plt.xlim([-.1, 1.1])
+# plt.ylim([-.1, 1.1])    
+# plt.show()
+
+# # over time
+# plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
+#                             dtype=torch.long)
+
+# for i in plot_trials[0:-1]:
+#     plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
+#     # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
+#     plt.xlim([-.05, 1.05])
+#     plt.ylim([-.05, 1.05])
+#     plt.pause(.5)
+
+
+# # unit-based attn
+# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+# active_ws_ind = torch.nonzero(active_ws)
+
+# for i in active_ws_ind:
+#     plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
+#     plt.show()
 
