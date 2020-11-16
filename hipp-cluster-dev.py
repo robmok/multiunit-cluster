@@ -461,37 +461,37 @@ k = .01
 
 
 # trials, etc.
-# n_epochs = 100
+n_epochs = 100
 
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 3,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
-#     'p': 1,  # alcove: p=1 exp, p=2 gauss
-#     'phi': 1,  # response parameter, non-negative
-#     'lr_attn': .005,
-#     'lr_nn': .25,
-#     'lr_clusters': .15,
-#     'lr_clusters_group': .95,
-#     'k': k
-#     }
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 3,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
+    'p': 1,  # alcove: p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .005,
+    'lr_nn': .25,
+    'lr_clusters': .15,
+    'lr_clusters_group': .95,
+    'k': k
+    }
 
-# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
-# model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-#     model, inputs, output, n_epochs)
+model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+    model, inputs, output, n_epochs)
 
-# print(epoch_acc)
-# print(epoch_ptarget)
-# plt.plot(1 - epoch_ptarget.detach())
-# plt.show()
+print(epoch_acc)
+print(epoch_ptarget)
+plt.plot(1 - epoch_ptarget.detach())
+plt.show()
 
-# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-# # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
-# # print(model.attn)
+active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+# print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
+# print(model.attn)
 
-# print(len(model.recruit_units_trl))
+print(len(model.recruit_units_trl))
 
-# unsupervised
+# %% unsupervised
 n_dims = 2
 n_epochs = 1
 n_trials = 2000
