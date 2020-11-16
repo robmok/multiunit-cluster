@@ -48,6 +48,7 @@ Parameters summary:
 @author: robert.mok
 """
 
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -505,7 +506,7 @@ params = {
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .25,
     'lr_nn': .25,
-    'lr_clusters': .15,
+    'lr_clusters': .05,
     'lr_clusters_group': .95,
     'k': k
     }
@@ -521,12 +522,15 @@ params = {
 
 
 # run for different learning rates for lr_clusters and lr_group
-lr_clusters = torch.linspace(.1, 1.9, 10)
-lr_group = torch.linspace(.1, 2.9, 10)
+# lr_clusters = torch.linspace(.001, .5, 10)
+# lr_group = torch.linspace(.1, 2, 10)
+
+lr_clusters = torch.arange(.001, .5, .05)
+lr_group = torch.arange(.1, 2, .2)
 
 results = torch.zeros(n_units, n_dims, len(lr_clusters), len(lr_group))
 for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
-    params['lr_clusters'] = lr_group[i]
+    params['lr_clusters'] = lr_clusters[i]
     params['lr_clusters_group'] = lr_group[j]
     model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
     train_unsupervised(model, inputs, n_epochs)
@@ -539,19 +543,42 @@ for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
 #     ax[i, j].set_xlim([0, 1])
 #     ax[i, j].set_ylim([0, 1])
 
-# j = torch.nonzero(lr_group==.9)
-# for i in range(len(lr_clusters)):
-#     plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
-#     plt.xlim([0, 1])
-#     plt.ylim([0, 1])
-#     plt.show()
 
-i = torch.nonzero(lr_clusters==.1)
+wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
+
+lr = lr_group[3]
+j = torch.nonzero(lr_group == lr)
+for i in range(len(lr_clusters)):
+    plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.show()
+
+    # figname = os.path.join(wd,
+    #                         'hipp_cluster_across_lrclus' +
+    #                         str(round(lr_clusters[i].tolist(), 3)) +
+    #                         '_lrgroup' + str(round(lr.tolist(), 3)) + '.png')
+    # plt.savefig(figname)
+    # plt.show()
+
+
+lr = lr_clusters[5]  # >.1 [3/4/5]
+i = torch.nonzero(lr_clusters == lr)
 for j in range(len(lr_group)):
     plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
     plt.xlim([0, 1])
     plt.ylim([0, 1])
     plt.show()
+
+    # figname = os.path.join(wd,
+    #                        'hipp_cluster_across_lrgroup' +
+    #                        str(round(lr_group[j].tolist(), 3)) +
+    #                        '_lrclus' +
+    #                        str(round(lr.tolist(), 3)) + '.png')
+    # plt.savefig(figname)
+    # plt.show()
+
+
 
 # %% plot
 
