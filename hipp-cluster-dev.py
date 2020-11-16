@@ -137,6 +137,14 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
+        norm_units = True
+        if norm_units:
+            # beta = self.params['beta']
+            beta = 1
+            act.data[self.winning_units] = (
+                (act.data[self.winning_units]**beta) /
+                (torch.sum(act.data[self.winning_units]**beta))) 
+
         units_output = act * self.winning_units
 
         # save cluster positions and activations
@@ -447,15 +455,47 @@ k = .01
 # SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
-# - most problems seem fine. type V is funny. 7 clusters? need play around with attn and other learning rates?
-# if i do WTA, now gets 6 clusters (lr_atten=0.05, lr_nn=.25), but with larger k, becomes 8.
-# looks like k=.01 still 6 clus. k>=.05 then 8.
-# ?? - interact with n_units. if 100, k=.05 gives 6 clus. 500/1000 units, give 8 (if k=.01, then 6 again).
 
-# NOT just proportion, but n_units too? CHECK
+# - most problems seem fine. type V is funny. 
+# - INTERACTION WITH N_UNITS - NOT just proportion, but n_units too? CHECK
+
+# attn = 0.005, c=3
+# n_units = 100, k=.01/.05/ -> 6 clus. [k=.07 then 8]; k>.08 then 7; k>.14 then 8
+# n_units = 500/1000, k=.01 -> 6 clus. k>=.05 then 8.
+# n_units = 2000, k=.005, then 6. k=.006 then 7, k=.008 then 8.
+# - so to get 6 clus: n_units=100, k=1/5 units. n_units=500/1000, k=5 or 10
+# work, not more. n_units=2000, k=10 units. so must be ~10 units?
+
+# c param - seems to help? attn = 0.005; c=6
+# n_units = 100, k=.01 does weird things; k=.05 -> 6 clus. k=.1 then 7
+# n_units = 500, k=.01 -> 6 clus. k>=.05 then 7.
+# n_units = 1000, k=.01 -> 6 clus. k>=.025 then 7.  k>=.05 then 8.
+# n_units = 2000, k=.01 then 6; k=.015, then 7. - 20 units works. but not over 22 (k>0.011..)
+# - so to get 6 clus: n_units=100, k=5 units. n_units=500/1000, k=5..
+#  n_units=2000, k=20 units.
+# - OK, good that it can recruit more units and solve the problems, but more units for this to work?
+# hmmm... n_units=5000, also few units (k=.004, 20 units. k.005 already 7 clusters)
+
+# - it seems the number of units does matter, not just proportion...?
+
+
+
+# normalization of units
+# c=3, beta=1, lr_attn = .001 then looks OK. faster lr_attn screws up
+# - n_units = 1000 k=.01 then 6. k=.05 then 8 (c=3/6 same - quick check seems c doesn't matter)
+
+# - quick check - seems similar...
+
+# pr plots - this is different
+# - without norm, pr plots with c=3 were too fast. c=8+ then more sensible
+# - with norm, pr plots look sensible with fewer n_units, then too slow when n_units becomes large (too much inhibition)
+
+
+
+
 
  
-
+# To check
 # - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
 # looks like less later on though. maybe ok?
 
@@ -465,10 +505,10 @@ n_epochs = 100
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 3,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
+    'c': 8,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
     'p': 1,  # alcove: p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .005,
+    'lr_attn': .001,  # .005 for 6 clus, when start with .5 attn w. .05 works ok (7) but need inspect other things. interaction with n_units. If starting attn w = .3, need adjust again.
     'lr_nn': .25,
     'lr_clusters': .15,
     'lr_clusters_group': .95,
@@ -580,7 +620,7 @@ for j in range(len(lr_group)):
 
 
 
-# %% plot
+# %% plot unspuervised
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -603,28 +643,31 @@ for i in plot_trials[0:-1]:
     plt.ylim([-.05, 1.05])
     plt.pause(.5)
 
+# %% plot supervised
 
-# supervised
-# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 
+# group
+plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 1])
+# plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 2])
+plt.xlim([-.1, 1.1])
+plt.ylim([-.1, 1.1])    
+plt.show()
 
-# # group
-# plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 1])
-# # plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 2])
-# plt.xlim([-.1, 1.1])
-# plt.ylim([-.1, 1.1])    
-# plt.show()
+# over time
+plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
+                            dtype=torch.long)
 
-# # over time
-# plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
-#                             dtype=torch.long)
+for i in plot_trials[0:-1]:
+    plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
+    # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
 
-# for i in plot_trials[0:-1]:
-#     plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
-#     # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
+# attn
+plt.plot(torch.stack(model.attn_trace, dim=0))
+plt.show()
 
 
 # # unit-based attn
