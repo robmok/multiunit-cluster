@@ -45,6 +45,19 @@ Parameters summary:
 - pattern separation (default=1) - not sure where this is? CHECK
 - unsupervised recruitment parameter (only for unsupervised learning)
 
+
+--
+
+Gradient ascent from Brad:
+" it’s completely focused on the winners just like SUSTAIN’s attention learning
+rule, but less hackish. It would be the derivative that relates changes in
+unit’sactivation to its attention weight with the sign positive instead of
+flipped negatively for gradient descent. It’s how to change the attention
+weights to maximise these units’ sum of activity. Instead of an error term,
+you have the sum of activity of the winning units and the parameter that
+changes is the attention weights. In that sense, it’s just like the normal
+gradient descent except that the measure is maximised, not minimised. "
+
 @author: robert.mok
 """
 
@@ -78,8 +91,8 @@ class MultiUnitCluster(nn.Module):
             self.params = params
         else:
             self.params = {
-                'r': 1,  # 1=city-block, 2=euclid - no need to estimate?
-                'c': 2,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
+                'r': 1,  # 1=city-block, 2=euclid
+                'c': 2,  # node specificity
                 'p': 1,  # alcove: p=1 exp, p=2 gauss
                 'phi': 1,  # response parameter, non-negative
                 'lr_attn': .25,
@@ -102,11 +115,11 @@ class MultiUnitCluster(nn.Module):
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type == 'dimensional':
             self.attn = (
-                torch.nn.Parameter(torch.ones(n_dims, dtype=torch.float) * .5))
+                torch.nn.Parameter(torch.ones(n_dims, dtype=torch.float) * .33))
         elif self.attn_type == 'unit':
             self.attn = (
                 torch.nn.Parameter(torch.ones([n_units, n_dims],
-                                              dtype=torch.float) * .33))
+                                              dtype=torch.float) * .1))
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
@@ -137,13 +150,13 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
-        norm_units = True
+        norm_units = False
         if norm_units:
             # beta = self.params['beta']
             beta = 1
             act.data[self.winning_units] = (
                 (act.data[self.winning_units]**beta) /
-                (torch.sum(act.data[self.winning_units]**beta))) 
+                (torch.sum(act.data[self.winning_units]**beta)))
 
         units_output = act * self.winning_units
 
@@ -177,7 +190,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
     p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
     params = [p_fc1, p_attn]
 
-    # model.params['lr_clusters'], model.params['lr_clusters_group'], 
+    # model.params['lr_clusters'], model.params['lr_clusters_group'],
 
     optimizer = optim.SGD(params, lr=model.params['lr_nn'])  # , momentum=0.)
 
@@ -210,7 +223,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
             _, ind_dist = torch.sort(act)
             # get top k winners
             _, win_ind = torch.topk(act,
-                        int(model.n_units * model.params['k']))
+                                    int(model.n_units * model.params['k']))
             # since topk takes top even if all 0s, remove the 0 acts
             if torch.any(act[win_ind] == 0):
                 win_ind = win_ind[act[win_ind] != 0]
@@ -251,7 +264,10 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
-                update = (x - model.units_pos[win_ind]) * model.params['lr_clusters']
+                update = (
+                    (x - model.units_pos[win_ind]) *
+                    model.params['lr_clusters']
+                    )
                 model.units_pos[win_ind] += update
 
                 # - step 2 - winners update towards self
@@ -277,7 +293,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                     )
                 win_ind = inactive_ind[rand_k_units]
                 active_ws[win_ind] = True
-                
+
                 # recruit units
                 model.winning_units[win_ind] = True
                 model.units_pos[win_ind] = x  # place at curr stim
@@ -339,11 +355,12 @@ def train_unsupervised(model, inputs, n_epochs):
             # learn
             # update units - double update rule
             # - step 1 - winners update towards input
-            update = (x - model.units_pos[win_ind]) * model.params['lr_clusters']
+            update = (
+                (x - model.units_pos[win_ind]) * model.params['lr_clusters'])
             model.units_pos[win_ind] += update
 
             # - step 2 - winners update towards self
-            winner_mean = torch.mean(model.units_pos[win_ind], axis=0)  # check axis correct
+            winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
             update = (
                 (winner_mean - model.units_pos[win_ind]) *
                 model.params['lr_clusters_group'])
@@ -433,14 +450,14 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
-n_units = 1000
+n_units = 2000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
 # c_recruit = 'feedback'  # feedback or loss_thresh
 
 # top k%. so .05 = top 5%
-k = .01
+k = .05
 
 # spatial / unsupervised
 
@@ -456,7 +473,7 @@ k = .01
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 
-# - most problems seem fine. type V is funny. 
+# - most problems seem fine. type V is funny. (abd other rulex)
 # - INTERACTION WITH N_UNITS - NOT just proportion, but n_units too? CHECK
 
 # attn = 0.005, c=3
@@ -505,10 +522,10 @@ n_epochs = 100
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 8,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
-    'p': 1,  # alcove: p=1 exp, p=2 gauss
+    'c': 12,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6
+    'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .001,  # .005 for 6 clus, when start with .5 attn w. .05 works ok (7) but need inspect other things. interaction with n_units. If starting attn w = .3, need adjust again.
+    'lr_attn': .005,  # .005 for 6 clus, when start with .5 attn w. .05 works ok (7) but need inspect other things. interaction with n_units. If starting attn w = .3, need adjust again.
     'lr_nn': .25,
     'lr_clusters': .15,
     'lr_clusters_group': .95,
@@ -527,6 +544,7 @@ plt.show()
 
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
+# print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
 # print(model.attn)
 
 print(len(model.recruit_units_trl))
@@ -645,6 +663,8 @@ for i in plot_trials[0:-1]:
 
 # %% plot supervised
 
+results = torch.stack(model.units_pos_trace, dim=0)
+
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 
 # group
@@ -670,11 +690,11 @@ plt.plot(torch.stack(model.attn_trace, dim=0))
 plt.show()
 
 
-# # unit-based attn
-# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-# active_ws_ind = torch.nonzero(active_ws)
+# unit-based attn
+active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+active_ws_ind = torch.nonzero(active_ws)
 
-# for i in active_ws_ind:
-#     plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
-#     plt.show()
+for i in active_ws_ind:
+    plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
+    plt.show()
 
