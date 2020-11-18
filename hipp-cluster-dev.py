@@ -203,9 +203,9 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
 
     model.train()
     for epoch in range(n_epochs):
-        shuffle_ind = torch.randperm(len(inputs))
-        inputs_ = inputs[shuffle_ind]
-        labels_ = labels[shuffle_ind]
+        # shuffle_ind = torch.randperm(len(inputs))
+        # inputs_ = inputs[shuffle_ind]
+        # labels_ = labels[shuffle_ind]
         inputs_ = inputs
         labels_ = labels
         for x, target in zip(inputs_, labels_):
@@ -261,6 +261,8 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                 optimizer.step()
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
+                # sum attention weights to 1
+                model.attn.data = model.attn.data / torch.sum(model.attn.data)
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
@@ -286,6 +288,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
 
             if recruit:
                 # select k unconnected units to be recruited
+                # TODO - OR closest if randomly initialized/scattered
                 inactive_ind = torch.nonzero(active_ws == False)
                 rand_k_units = (
                     torch.randint(len(inactive_ind),
@@ -314,6 +317,8 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                         model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
                 optimizer.step()
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
+                # sum attention weights to 1
+                model.attn.data = model.attn.data / torch.sum(model.attn.data)
 
                 # update units - double update rule
                 # - no need this, since already placed at the stim?
@@ -332,7 +337,7 @@ def train_unsupervised(model, inputs, n_epochs):
     for epoch in range(n_epochs):
         shuffle_ind = torch.randperm(len(inputs))
         inputs_ = inputs[shuffle_ind]
-        inputs_ = inputs
+        # inputs_ = inputs
         for x in inputs_:
             # find winners
             # find units with largest activation - all connected
@@ -450,7 +455,7 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
-n_units = 2000
+n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -476,7 +481,7 @@ k = .05
 # - most problems seem fine. type V is funny. (abd other rulex)
 # - INTERACTION WITH N_UNITS - NOT just proportion, but n_units too? CHECK
 
-# attn = 0.005, c=3
+# attn = 0.005, c=3, starting lr_attn = .5
 # n_units = 100, k=.01/.05/ -> 6 clus. [k=.07 then 8]; k>.08 then 7; k>.14 then 8
 # n_units = 500/1000, k=.01 -> 6 clus. k>=.05 then 8.
 # n_units = 2000, k=.005, then 6. k=.006 then 7, k=.008 then 8.
@@ -520,15 +525,20 @@ k = .05
 # trials, etc.
 n_epochs = 100
 
+# attn
+# - w attn ws starting at .5: lr_attn.005 for 6 clus
+# - w attn w = .33 - not as good?
+# - w attn w = .1  - lr_attn = .05, c=6. type V - bump in pr, looks like attn weights all go up, THEN irr go down
+
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 12,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6
+    'c': 12,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6?
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .005,  # .005 for 6 clus, when start with .5 attn w. .05 works ok (7) but need inspect other things. interaction with n_units. If starting attn w = .3, need adjust again.
-    'lr_nn': .25,
+    'lr_attn': .001,  # .005 / .05
+    'lr_nn': .05,
     'lr_clusters': .15,
-    'lr_clusters_group': .95,
+    'lr_clusters_group': .75,
     'k': k
     }
 
@@ -553,8 +563,10 @@ print(len(model.recruit_units_trl))
 n_dims = 2
 n_epochs = 1
 n_trials = 2000
-inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
+attn_type = 'dimensional'
 
+inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
+n_units = 1000
 k = .1
 
 params = {
@@ -564,7 +576,7 @@ params = {
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .25,
     'lr_nn': .25,
-    'lr_clusters': .05,
+    'lr_clusters': .15,
     'lr_clusters_group': .95,
     'k': k
     }
@@ -638,16 +650,15 @@ for j in range(len(lr_group)):
 
 
 
-# %% plot unspuervised
+# %% plot unsupervised
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
-# group
-plt.scatter(results[-1, :, 0], results[-1, :, 1])
-# plt.scatter(results[-1, :, 0], results[-1, :, 2])
+# # group
+# plt.scatter(results[-1, :, 0], results[-1, :, 1])
 # plt.xlim([0, 1])
-# plt.ylim([0, 1])    
-plt.show()
+# plt.ylim([0, 1])
+# plt.show()
 
 # over time
 # TODO - add colour to each dot so can follow it
