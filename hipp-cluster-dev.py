@@ -209,6 +209,11 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
         inputs_ = inputs
         labels_ = labels
         for x, target in zip(inputs_, labels_):
+            
+            # # TMP - testing
+            # x=inputs_[itrl]
+            # target=labels_[itrl]
+            
             # find winners
             # first: only connected units (assoc ws ~0) can be winners
             # - any weight > 0 = connected/active unit (so sum over out dim)
@@ -220,7 +225,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
             act[~active_ws] = 0  # not connected, no act
-            _, ind_dist = torch.sort(act)
+            # _, ind_dist = torch.sort(act)
             # get top k winners
             _, win_ind = torch.topk(act,
                                     int(model.n_units * model.params['k']))
@@ -287,19 +292,37 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
             # - here, recruitment means get a subset of units with nn_weights=0, place it at curr stim
 
             if recruit:
-                # select k unconnected units to be recruited
-                # TODO - OR closest if randomly initialized/scattered
-                inactive_ind = torch.nonzero(active_ws == False)
-                rand_k_units = (
-                    torch.randint(len(inactive_ind),
-                                  (int(model.n_units * model.params['k']), ))
-                    )
-                win_ind = inactive_ind[rand_k_units]
-                active_ws[win_ind] = True
+                # select random/closest k unconnected units to be recruited
+
+                # select random k units
+                # inactive_ind = torch.nonzero(active_ws == False)
+                # rand_k_units = (
+                #     torch.randint(len(inactive_ind),
+                #                   (int(model.n_units * model.params['k']), ))
+                #     )
+                # recruit_ind = inactive_ind[rand_k_units]
+
+                # select closest k inactive units
+                act = _compute_act(dist, model.params['c'], model.params['p'])
+                act[active_ws] = 0  # REMOVE ACTIVE units
+                _, recruit_ind = (
+                    torch.topk(act, int(model.n_units * model.params['k'])))
+                # since topk takes top even if all 0s, remove the 0 acts
+                if torch.any(act[recruit_ind] == 0):
+                    recruit_ind = recruit_ind[act[win_ind] != 0]
+
+                # recruit and REPLACE k units that mispredicted
+                # - TODO - this does not work for rulex, since it replaces all
+                # the units, since all mispredict.
+                # mispred_units = torch.argmax(
+                #     model.fc1.weight[:, win_ind], dim=0) != target
+                # # replace the mispredicted units
+                # recruit_ind = win_ind[mispred_units]
 
                 # recruit units
-                model.winning_units[win_ind] = True
-                model.units_pos[win_ind] = x  # place at curr stim
+                active_ws[recruit_ind] = True  # set ws to active
+                model.winning_units[recruit_ind] = True
+                model.units_pos[recruit_ind] = x  # place at curr stim
                 # model.mask[:, active_ws] = True  # new clus weights
                 model.recruit_units_trl.append(itrl)
 
@@ -309,7 +332,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                 loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
                 loss.backward()
                 with torch.no_grad():
-                    # model.fc1.weight.grad.mul_(model.mask)  # win_mask enough?
+                    # model.fc1.weight.grad.mul_(model.mask)  # win_mask enuf?
                     win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
                     win_mask[:, active_ws] = True  # update new clus
                     model.fc1.weight.grad.mul_(win_mask)
@@ -345,7 +368,7 @@ def train_unsupervised(model, inputs, n_epochs):
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
 
-            _, ind_dist = torch.sort(act)
+            # _, ind_dist = torch.sort(act)
             # get top k winners
             _, win_ind = torch.topk(act,
                                     int(model.n_units * model.params['k']))
@@ -455,7 +478,7 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
-n_units = 1000
+n_units = 2000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -532,13 +555,13 @@ n_epochs = 100
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 12,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6?
+    'c': 8,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .001,  # .005 / .05
-    'lr_nn': .05,
-    'lr_clusters': .15,
-    'lr_clusters_group': .75,
+    'lr_attn': .001,  # .005 / .05 / .001
+    'lr_nn': .01,  # .15. .01 actually better, c=6 fine already (rather than 11)
+    'lr_clusters': .25,
+    'lr_clusters_group': .95,
     'k': k
     }
 
