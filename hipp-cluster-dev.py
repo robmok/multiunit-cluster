@@ -119,15 +119,19 @@ class MultiUnitCluster(nn.Module):
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type == 'dimensional':
-            self.attn = (
-                torch.nn.Parameter(torch.ones(n_dims, dtype=torch.float) * .33))
+            self.attn = (torch.nn.Parameter(
+                torch.ones(n_dims, dtype=torch.float) * .33))
+            # normalize attn to 1, in case not set correctly above
+            self.attn.data = (
+                        self.attn.data / torch.sum(self.attn.data))
         elif self.attn_type == 'unit':
             self.attn = (
                 torch.nn.Parameter(torch.ones([n_units, n_dims],
                                               dtype=torch.float) * .33))
-        # normalize attn to 1, in case not set correclty above
-        self.attn.data = (
-            self.attn.data / torch.sum(self.attn.data, dim=1, keepdim=True))
+            # normalize attn to 1, in case not set correctly above
+            self.attn.data = (
+                self.attn.data /
+                torch.sum(self.attn.data, dim=1, keepdim=True))
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
@@ -523,8 +527,8 @@ inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
 # model details
-attn_type = 'unit'  # dimensional, unit (n_dims x nclusters)
-n_units = 2000
+attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
+n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
