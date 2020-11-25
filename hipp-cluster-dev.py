@@ -292,8 +292,6 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
             # - here, recruitment means get a subset of units with nn_weights=0, place it at curr stim
 
             if recruit:
-                # select random/closest k unconnected units to be recruited
-
                 # select random k units
                 # inactive_ind = torch.nonzero(active_ws == False)
                 # rand_k_units = (
@@ -302,24 +300,42 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                 #     )
                 # recruit_ind = inactive_ind[rand_k_units]
 
-                # select closest k inactive units
-                act = _compute_act(dist, model.params['c'], model.params['p'])
-                act[active_ws] = 0  # REMOVE ACTIVE units
-                _, recruit_ind = (
-                    torch.topk(act, int(model.n_units * model.params['k'])))
-                # since topk takes top even if all 0s, remove the 0 acts
-                if torch.any(act[recruit_ind] == 0):
-                    recruit_ind = recruit_ind[act[win_ind] != 0]
+                # 1st trial: select closest k inactive units
+                if torch.all(~active_ws):  # no active weights / 1st trial
+                    act = _compute_act(
+                        dist, model.params['c'], model.params['p'])
+                    _, recruit_ind = (
+                        torch.topk(act,
+                                   int(model.n_units * model.params['k'])))
+                    # since topk takes top even if all 0s, remove the 0 acts
+                    if torch.any(act[recruit_ind] == 0):
+                        recruit_ind = recruit_ind[act[win_ind] != 0]
 
                 # recruit and REPLACE k units that mispredicted
                 # - TODO - this does not work for rulex, since it replaces all
                 # the units, since all mispredict.
-                # mispred_units = torch.argmax(
-                #     model.fc1.weight[:, win_ind], dim=0) != target
-                # # replace the mispredicted units
-                # recruit_ind = win_ind[mispred_units]
+                # - I got it - don't 'replace', just set the act to zero
+                # and recruit n units. normall this will just be k units.
+                # - *BUT* what is set to 0? by having new units, those will be on
+                # the stim, but the old units might also be.. i guess since the
+                # weight's connected to the new units should point in the right
+                # directions since i update them below, those should be the winners?
+                else:
+                    mispred_units = torch.argmax(
+                        model.fc1.weight[:, win_ind].detach(), dim=0) != target
 
-                # recruit units
+                    # select closest n_mispredicted inactive units
+                    n_mispred_units = len(mispred_units)
+                    act = _compute_act(
+                        dist, model.params['c'], model.params['p'])
+                    act[active_ws] = 0  # REMOVE active units
+                    _, recruit_ind = (
+                        torch.topk(act, n_mispred_units))
+                    # since topk takes top even if all 0s, remove the 0 acts
+                    if torch.any(act[recruit_ind] == 0):
+                        recruit_ind = recruit_ind[act[win_ind] != 0]
+
+                # recruit n_mispredicted units
                 active_ws[recruit_ind] = True  # set ws to active
                 model.winning_units[recruit_ind] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
