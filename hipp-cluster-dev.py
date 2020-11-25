@@ -85,6 +85,11 @@ class MultiUnitCluster(nn.Module):
         self.fc1_w_trace = []
         self.fc1_act_trace = []
 
+        # checking stuff
+        self.winners_trace = []
+        self.dist_trace = []
+        self.act_trace = []
+
         # free params
         # - can estimate all, but probably don't need to include some (e.g. r)
         if params:
@@ -119,7 +124,10 @@ class MultiUnitCluster(nn.Module):
         elif self.attn_type == 'unit':
             self.attn = (
                 torch.nn.Parameter(torch.ones([n_units, n_dims],
-                                              dtype=torch.float) * .1))
+                                              dtype=torch.float) * .33))
+        # normalize attn to 1, in case not set correclty above
+        self.attn.data = (
+            self.attn.data / torch.sum(self.attn.data, dim=1, keepdim=True))
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
@@ -210,9 +218,9 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
         labels_ = labels
         for x, target in zip(inputs_, labels_):
             
-            # # TMP - testing
-            # x=inputs_[itrl]
-            # target=labels_[itrl]
+            # TMP - testing
+            x=inputs_[np.mod(itrl-8, 8)]
+            target=labels_[np.mod(itrl-8, 8)]
             
             # find winners
             # first: only connected units (assoc ws ~0) can be winners
@@ -232,6 +240,10 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
             # since topk takes top even if all 0s, remove the 0 acts
             if torch.any(act[win_ind] == 0):
                 win_ind = win_ind[act[win_ind] != 0]
+
+            if itrl > 0:
+                model.dist_trace.append(dist[win_ind][0].detach().clone())
+                model.act_trace.append(act[win_ind][0].detach().clone())
 
             # define winner mask
             winners_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
@@ -267,7 +279,14 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
-                model.attn.data = model.attn.data / torch.sum(model.attn.data)
+                if model.attn_type == 'dimensional':
+                    model.attn.data = (
+                        model.attn.data / torch.sum(model.attn.data))
+                elif model.attn_type == 'unit':
+                    model.attn.data = (
+                        model.attn.data /
+                        torch.sum(model.attn.data, dim=1, keepdim=True)
+                        )
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
@@ -309,7 +328,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                                    int(model.n_units * model.params['k'])))
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
-                        recruit_ind = recruit_ind[act[win_ind] != 0]
+                        recruit_ind = recruit_ind[act[recruit_ind] != 0]
 
                 # recruit and REPLACE k units that mispredicted
                 # - TODO - this does not work for rulex, since it replaces all
@@ -333,10 +352,11 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                         torch.topk(act, n_mispred_units))
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
-                        recruit_ind = recruit_ind[act[win_ind] != 0]
+                        recruit_ind = recruit_ind[act[recruit_ind] != 0]
 
                 # recruit n_mispredicted units
                 active_ws[recruit_ind] = True  # set ws to active
+                model.winning_units = torch.zeros(n_units, dtype=torch.bool)
                 model.winning_units[recruit_ind] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
                 # model.mask[:, active_ws] = True  # new clus weights
@@ -357,10 +377,20 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
                 optimizer.step()
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
-                model.attn.data = model.attn.data / torch.sum(model.attn.data)
+                if model.attn_type == 'dimensional':
+                    model.attn.data = (
+                        model.attn.data / torch.sum(model.attn.data))
+                elif model.attn_type == 'unit':
+                    model.attn.data = (
+                        model.attn.data /
+                        torch.sum(model.attn.data, dim=1, keepdim=True)
+                        )
 
                 # update units - double update rule
                 # - no need this, since already placed at the stim?
+                
+            # tmp
+            model.winners_trace.append(model.units_pos[model.winning_units][0])
 
             itrl += 1
 
@@ -493,7 +523,7 @@ inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
 # model details
-attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
+attn_type = 'unit'  # dimensional, unit (n_dims x nclusters)
 n_units = 2000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
@@ -571,11 +601,11 @@ n_epochs = 100
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 8,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
+    'c': 6,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .001,  # .005 / .05 / .001
-    'lr_nn': .01,  # .15. .01 actually better, c=6 fine already (rather than 11)
+    'lr_nn': .1,  # .15. .01 actually better, c=6 fine already (rather than 11)
     'lr_clusters': .25,
     'lr_clusters_group': .95,
     'k': k
@@ -724,21 +754,28 @@ plt.xlim([-.1, 1.1])
 plt.ylim([-.1, 1.1])    
 plt.show()
 
-# over time
-plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
-                            dtype=torch.long)
+# # over time
+# plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
+#                             dtype=torch.long)
 
-for i in plot_trials[0:-1]:
-    plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
-    # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.pause(.5)
+# for i in plot_trials[0:-1]:
+#     plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
+#     # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
+#     plt.xlim([-.05, 1.05])
+#     plt.ylim([-.05, 1.05])
+#     plt.pause(.5)
 
 # attn
-plt.plot(torch.stack(model.attn_trace, dim=0))
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# plt.show()
+
+plt.plot(torch.stack(model.attn_trace[0:20], dim=0))
 plt.show()
 
+plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 0, :])
+plt.show()
+plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 1, :])
+plt.show()
 
 # unit-based attn
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
@@ -747,4 +784,19 @@ active_ws_ind = torch.nonzero(active_ws)
 for i in active_ws_ind:
     plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
     plt.show()
+
+
+
+
+# torch.stack(model.attn_trace[0:20], dim=0)
+
+# torch.stack(model.winners_trace[0:20], dim=0)
+
+
+# # xx1=torch.stack(model.dist_trace, dim=0)
+# # yy1=torch.stack(model.act_trace, dim=0)
+
+
+# plt.plot(xx-xx1)
+# plt.plot(yy-yy1)
 
