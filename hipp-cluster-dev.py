@@ -605,7 +605,7 @@ n_epochs = 100
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 6,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
+    'c': 12,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .001,  # .005 / .05 / .001
@@ -773,7 +773,10 @@ plt.show()
 # plt.plot(torch.stack(model.attn_trace, dim=0))
 # plt.show()
 
-plt.plot(torch.stack(model.attn_trace[0:20], dim=0))
+plt.plot(torch.stack(model.attn_trace[0:40], dim=0))
+plt.show()
+
+plt.plot(torch.stack(model.attn_trace, dim=0))
 plt.show()
 
 plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 0, :])
@@ -781,13 +784,13 @@ plt.show()
 plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 1, :])
 plt.show()
 
-# unit-based attn
-active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-active_ws_ind = torch.nonzero(active_ws)
+# # unit-based attn
+# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+# active_ws_ind = torch.nonzero(active_ws)
 
-for i in active_ws_ind:
-    plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
-    plt.show()
+# for i in active_ws_ind:
+#     plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
+#     plt.show()
 
 
 
