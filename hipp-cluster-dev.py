@@ -543,34 +543,56 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 7
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
-# continuous
-mu1 = [-.5, .25]
-var1 = [.0185, .065]
-cov1 = -.005
+# # continuous
+# mu1 = [-.5, .25]
+# var1 = [.0185, .065]
+# cov1 = -.005
+# mu2 = [-.25, -.6]
+# var2 = [.0125, .005]
+# cov2 = .005
 
-mu2 = [-.25, -.6]
-var2 = [.0125, .005]
-cov2 = .005
+# # same/similar on first dim - attn not learning the right one...?
+# mu1 = [-.5, .25]
+# var1 = [.0185, .065]
+# cov1 = -.005
+# mu2 = [-.5, -.7]
+# var2 = [.015, .005]
+# cov2 = .005
 
-npoints = 100
-x1 = np.random.multivariate_normal(
-    [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
-x2 = np.random.multivariate_normal(
-    [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
+# # simple diagonal covariance
+# mu1 = [-.5, .25]
+# var1 = [.02, .02]
+# cov1 = 0
+# mu2 = [-.25, -.6]
+# var2 = [.02, .02]
+# cov2 = 0
 
-# x1 = np.append(x1, np.zeros([npoints, 1]), axis=1)
-# x2 = np.append(x2, np.zeros([npoints, 1]), axis=1)
+# # mu1 = [-.5, .25]
+# # var1 = [.0185, .065]
+# # cov1 = 0
+# # mu2 = [-.25, -.6]
+# # var2 = [.0125, .005]
+# # cov2 = 0
 
-inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
-                    torch.tensor(x2, dtype=torch.float32)])
-output = torch.cat([torch.zeros(npoints, dtype=torch.long),
-                    torch.ones(npoints, dtype=torch.long)])
+# npoints = 100
+# x1 = np.random.multivariate_normal(
+#     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
+# x2 = np.random.multivariate_normal(
+#     [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
+
+# # x1 = np.append(x1, np.zeros([npoints, 1]), axis=1)
+# # x2 = np.append(x2, np.zeros([npoints, 1]), axis=1)
+
+# inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
+#                     torch.tensor(x2, dtype=torch.float32)])
+# output = torch.cat([torch.zeros(npoints, dtype=torch.long),
+#                     torch.ones(npoints, dtype=torch.long)])
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
@@ -642,7 +664,7 @@ k = .05
 
 
 # trials, etc.
-n_epochs = 10
+n_epochs = 100
 
 # attn
 # - w attn ws starting at .5: lr_attn.005 for 6 clus
@@ -651,15 +673,28 @@ n_epochs = 10
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 6,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
+    'c': 10,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .05,  # .005 / .05 / .001. # continuous - .01
-    'lr_nn': .1,  # .15. .01 actually better, c=6 fine already (rather than 11)
-    'lr_clusters': .25,
-    'lr_clusters_group': .95,
+    'lr_attn': .005,  # .005 / .05 / .001
+    'lr_nn': .1,  # .1. .01 actually better, c=6. cont - .15
+    'lr_clusters': .25,  # .25
+    'lr_clusters_group': .95,  # .95
     'k': k
     }
+
+# # continuous
+# params = {
+#     'r': 1,
+#     'c': 10,
+#     'p': 1,
+#     'phi': 1,
+#     'lr_attn': .025,  # cont+unit- .25 - needs to be fast..?
+#     'lr_nn': .015,  # cont - .15
+#     'lr_clusters': .125,
+#     'lr_clusters_group': .95,
+#     'k': k
+#     }
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -674,6 +709,7 @@ plt.show()
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
 print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
+# print(np.unique(np.around(model.attn.detach().numpy()[active_ws], decimals=2), axis=0))
 # print(model.attn)
 
 print(len(model.recruit_units_trl))
