@@ -190,7 +190,8 @@ class MultiUnitCluster(nn.Module):
         return out, pr
 
 
-def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
+def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
+          shuffle=False):
 
     if loss_type == 'humble_teacher':
         criterion = humble_teacher
@@ -215,11 +216,13 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy'):
 
     model.train()
     for epoch in range(n_epochs):
-        # shuffle_ind = torch.randperm(len(inputs))
-        # inputs_ = inputs[shuffle_ind]
-        # labels_ = labels[shuffle_ind]
-        inputs_ = inputs
-        labels_ = labels
+        if shuffle:
+            shuffle_ind = torch.randperm(len(inputs))
+            inputs_ = inputs[shuffle_ind]
+            labels_ = labels[shuffle_ind]
+        else:
+            inputs_ = inputs
+            labels_ = labels
         for x, target in zip(inputs_, labels_):
             
             # TMP - testing
@@ -516,15 +519,58 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 0]],
 
                 [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 1, 0],
-                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]]]
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]],
 
+                # type 1 continuous - 2D
+                [[.75,   0,   .75,   0.,  0],
+                 [.5,   .25,  .5,   .25,  0],
+                 [.25,  .5,   .25,  .5,   1],
+                 [0.,   .75,   0.,  .75,  1],
+                 [.75,   0.,   0.,  .75,  0],
+                 [.5,   .25,  .25,  .5,   0],
+                 [.25,  .5,   .5,   .25,  1],
+                 [0.,   .75,  .75,  .0,   1]],
+
+                # type 1 continuous - 3D
+                [[.75,   0,   .75,   0., .75,  0,  0],
+                 [.5,   .25,  .5,   .25, .25, .5,  0],
+                 [.25,  .5,   .25,  .5,  .5,  .25, 1],
+                 [0.,   .75,   0.,  .75,  0., .75, 1],
+                 [.75,   0.,   0.,  .75,  0., .75, 0],
+                 [.5,   .25,  .25,  .5,  .5,  .25, 0],
+                 [.25,  .5,   .5,   .25, .25, .5,  1],
+                 [0.,   .75,  .75,  .0,  .75,  0., 1]],
+                ]
 
 # set problem
-problem = 4
+problem = 7
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
+
+# continuous
+mu1 = [-.5, .25]
+var1 = [.0185, .065]
+cov1 = -.005
+
+mu2 = [-.25, -.6]
+var2 = [.0125, .005]
+cov2 = .005
+
+npoints = 100
+x1 = np.random.multivariate_normal(
+    [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
+x2 = np.random.multivariate_normal(
+    [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
+
+# x1 = np.append(x1, np.zeros([npoints, 1]), axis=1)
+# x2 = np.append(x2, np.zeros([npoints, 1]), axis=1)
+
+inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
+                    torch.tensor(x2, dtype=torch.float32)])
+output = torch.cat([torch.zeros(npoints, dtype=torch.long),
+                    torch.ones(npoints, dtype=torch.long)])
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
@@ -596,7 +642,7 @@ k = .05
 
 
 # trials, etc.
-n_epochs = 100
+n_epochs = 10
 
 # attn
 # - w attn ws starting at .5: lr_attn.005 for 6 clus
@@ -605,10 +651,10 @@ n_epochs = 100
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 12,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
+    'c': 6,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .001,  # .005 / .05 / .001
+    'lr_attn': .05,  # .005 / .05 / .001. # continuous - .01
     'lr_nn': .1,  # .15. .01 actually better, c=6 fine already (rather than 11)
     'lr_clusters': .25,
     'lr_clusters_group': .95,
@@ -618,7 +664,7 @@ params = {
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs)
+    model, inputs, output, n_epochs, shuffle=True)
 
 print(epoch_acc)
 print(epoch_ptarget)
@@ -627,7 +673,7 @@ plt.show()
 
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
-# print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
+print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
 # print(model.attn)
 
 print(len(model.recruit_units_trl))
@@ -758,16 +804,16 @@ plt.xlim([-.1, 1.1])
 plt.ylim([-.1, 1.1])    
 plt.show()
 
-# # over time
-# plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
-#                             dtype=torch.long)
+# over time
+plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
+                            dtype=torch.long)
 
-# for i in plot_trials[0:-1]:
-#     plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
-#     # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
+for i in plot_trials[0:-1]:
+    plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
+    # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
 
 # attn
 # plt.plot(torch.stack(model.attn_trace, dim=0))
