@@ -610,7 +610,6 @@ k = .05
 # looks like k is key for number of virtual clusters that come up. smaller k = more; larger k = fewer clusters 
 # lr_group has to be large-ish, else virtual clusters don't form (scattered).
 # lr_group has to be > lr_clusters, else virtual cluster don't form. but not too high else clusters go toward centre
-# 
 
 # - i think the learning rates might lead to more/less grid like patterns - check which matters more (can use banino's grid code)
 # - need reduction of lr over time?
@@ -619,49 +618,13 @@ k = .05
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 
-# - most problems seem fine. type V is funny. (abd other rulex)
-# - INTERACTION WITH N_UNITS - NOT just proportion, but n_units too? CHECK
-
-# attn = 0.005, c=3, starting lr_attn = .5
-# n_units = 100, k=.01/.05/ -> 6 clus. [k=.07 then 8]; k>.08 then 7; k>.14 then 8
-# n_units = 500/1000, k=.01 -> 6 clus. k>=.05 then 8.
-# n_units = 2000, k=.005, then 6. k=.006 then 7, k=.008 then 8.
-# - so to get 6 clus: n_units=100, k=1/5 units. n_units=500/1000, k=5 or 10
-# work, not more. n_units=2000, k=10 units. so must be ~10 units?
-
-# c param - seems to help? attn = 0.005; c=6
-# n_units = 100, k=.01 does weird things; k=.05 -> 6 clus. k=.1 then 7
-# n_units = 500, k=.01 -> 6 clus. k>=.05 then 7.
-# n_units = 1000, k=.01 -> 6 clus. k>=.025 then 7.  k>=.05 then 8.
-# n_units = 2000, k=.01 then 6; k=.015, then 7. - 20 units works. but not over 22 (k>0.011..)
-# - so to get 6 clus: n_units=100, k=5 units. n_units=500/1000, k=5..
-#  n_units=2000, k=20 units.
-# - OK, good that it can recruit more units and solve the problems, but more units for this to work?
-# hmmm... n_units=5000, also few units (k=.004, 20 units. k.005 already 7 clusters)
-
-# - it seems the number of units does matter, not just proportion...?
-
-
-
 # normalization of units
 # c=3, beta=1, lr_attn = .001 then looks OK. faster lr_attn screws up
 # - n_units = 1000 k=.01 then 6. k=.05 then 8 (c=3/6 same - quick check seems c doesn't matter)
 
-# - quick check - seems similar...
-
-# pr plots - this is different
-# - without norm, pr plots with c=3 were too fast. c=8+ then more sensible
-# - with norm, pr plots look sensible with fewer n_units, then too slow when n_units becomes large (too much inhibition)
-
-
-
-
-
- 
 # To check
 # - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
 # looks like less later on though. maybe ok?
-
 
 # trials, etc.
 n_epochs = 100
