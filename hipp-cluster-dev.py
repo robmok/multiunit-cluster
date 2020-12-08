@@ -162,6 +162,22 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
+        # # compute gradient from act
+        # act = torch.exp(-self.params['c'] * (
+        #     (torch.sum((self.attn * abs(x - self.units_pos))
+        #                ** self.params['r'], axis=1)**(1/self.params['r']))
+        #     ** self.params['p']))
+
+# def _compute_dist(dim_dist, attn_w, r):
+#     return torch.sum((attn_w * dim_dist)**r, axis=1)**(1/r)
+
+
+# def _compute_act(dist, c, p):
+#     """ c = 1  # ALCOVE - specificity of the node - free param
+#         p = 2  # p=1 exp, p=2 gauss
+#     """
+#     return torch.exp(-c * (dist**p))
+
         norm_units = False
         if norm_units:
             # beta = self.params['beta']
@@ -200,8 +216,11 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
-    p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
-    params = [p_fc1, p_attn]
+    if model.attn[0:5] != 'local':
+        p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
+        params = [p_fc1, p_attn]
+    else:
+        params = [p_fc1]
 
     # model.params['lr_clusters'], model.params['lr_clusters_group'],
 
@@ -258,6 +277,34 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
             # this goes into forward. if ~active, no out
             model.winning_units = torch.zeros(n_units, dtype=torch.bool)
             model.winning_units[win_ind] = True
+
+
+            # # testing getting the gradient locally
+            # atten = (torch.nn.Parameter(
+            #     torch.ones(n_dims, dtype=torch.float) * .33))
+            # # spell out the function to compute gradient
+            # # - note here i index the winners; else the values just adde up, including
+            # # the non-winnners
+            # act_1 = torch.exp(-model.params['c'] * (
+            #     (torch.sum((atten * abs(x - model.units_pos[win_ind]))
+            #                 ** model.params['r'], axis=1)**(1/model.params['r']))
+            #     ** model.params['p']))
+            # # compute gradient
+            # for i in range(len(act_1)):
+            #     act_1[i].backward(retain_graph=True)
+            # # then divide by number of units so it's the mean (ends up similar to the model.attn)
+            # atten.grad = -atten.grad/len(act_1) # negative of the gradient
+            # atten.data += atten.grad  # update
+            # atten.data = atten.data / torch.sum(atten.data)  # norm
+            
+            # think - how to put this into the code?
+            # - have it in forward?
+            # - should be negative of the gradient - gradient ascent
+            # - fine to be a torch parameter. however, it shouldn't be a param for SGD - edited
+            # - to add: "if model.attn[0:5] == 'local':"
+                # for these, think how to merge with standard attention stuff
+                # maybe check - only include active units, see if model.attn updates (if so, need to mask this out in Cluster.py)
+
 
             # learn
             optimizer.zero_grad()
@@ -595,7 +642,7 @@ output = stim[:, -1].long()  # integer
 #                     torch.ones(npoints, dtype=torch.long)])
 
 # model details
-attn_type = 'dimensional'  # dimensional, unit (n_dims x nclusters)
+attn_type = 'local_dimensional'  # dimensional, unit, local_dimensional
 n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
