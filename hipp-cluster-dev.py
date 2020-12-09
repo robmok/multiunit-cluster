@@ -118,13 +118,13 @@ class MultiUnitCluster(nn.Module):
         #     torch.zeros([n_units, n_dims], dtype=torch.float))
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
-        if self.attn_type == 'dimensional':
+        if self.attn_type[0:4] == 'dime':
             self.attn = (torch.nn.Parameter(
                 torch.ones(n_dims, dtype=torch.float) * .33))
             # normalize attn to 1, in case not set correctly above
             self.attn.data = (
                         self.attn.data / torch.sum(self.attn.data))
-        elif self.attn_type == 'unit':
+        elif self.attn_type[0:4] == 'unit':
             self.attn = (
                 torch.nn.Parameter(torch.ones([n_units, n_dims],
                                               dtype=torch.float) * .33))
@@ -161,12 +161,6 @@ class MultiUnitCluster(nn.Module):
 
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
-
-        # # compute gradient from act
-        # act = torch.exp(-self.params['c'] * (
-        #     (torch.sum((self.attn * abs(x - self.units_pos))
-        #                ** self.params['r'], axis=1)**(1/self.params['r']))
-        #     ** self.params['p']))
 
         norm_units = False
         if norm_units:
@@ -206,7 +200,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
-    if model.attn[0:5] != 'local':
+    if model.attn_type[-5:] != 'local':
         p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
         params = [p_fc1, p_attn]
     else:
@@ -249,7 +243,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
             act[~active_ws] = 0  # not connected, no act
-            # _, ind_dist = torch.sort(act)
+
             # get top k winners
             _, win_ind = torch.topk(act,
                                     int(model.n_units * model.params['k']))
@@ -267,46 +261,6 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
             # this goes into forward. if ~active, no out
             model.winning_units = torch.zeros(n_units, dtype=torch.bool)
             model.winning_units[win_ind] = True
-
-
-            # # testing getting the gradient locally
-            # atten = (torch.nn.Parameter(
-            #     torch.ones(n_dims, dtype=torch.float) * .33))
-
-            # # spell out the function to compute gradient
-            # # - spells out _compute_dist and _compute_act
-            # # - note here win_ind index the winners; else values just add up,
-            # # including non-winnners
-            # act_1 = (
-            #     torch.exp(-model.params['c'] * (
-            #         (torch.sum((atten * abs(x - model.units_pos[win_ind]))
-            #                    ** model.params['r'], axis=1) **
-            #          (1/model.params['r'])) ** model.params['p'])))
-
-            # # cleaner? - spelling out _compute_dist only
-            # act_1 = (
-            #     _compute_act((torch.sum(
-            #         (atten * abs(x - model.units_pos[win_ind]))
-            #         ** model.params['r'], axis=1)**(1/model.params['r'])),
-            #         model.params['c'], model.params['p']))
-
-            # # compute gradient
-            # for i in range(len(act_1)):
-            #     act_1[i].backward(retain_graph=True)
-            # # then divide by number of units so it's the mean (ends up similar to the model.attn)
-            # atten.grad = -atten.grad/len(act_1) # negative of the gradient
-            # atten.data += model.params['lr_attn'] * atten.grad  # update
-            # atten.data = atten.data / torch.sum(atten.data)  # norm
-            
-            # think - how to put this into the code?
-            # - have it in forward? - maybe not, since might not update if error.
-            # instead, do forward, then separately compute the gradient. then update
-            # with optimizer.step() - if recruit then only at the below bit.
-            # - fine to be a torch parameter. however, it shouldn't be a param for SGD - edited
-            # I think this is fine already? if no a trainable param, then I can update it myself.
-            # - to add: "if model.attn[0:5] == 'local':"
-                # for these, think how to merge with standard attention stuff
-                # maybe check - only include active units, see if model.attn updates (if so, need to mask this out in Cluster.py)
 
             # learn
             optimizer.zero_grad()
@@ -332,13 +286,32 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                 pass
             else:
                 optimizer.step()
+
+                # if use local attention update - gradient ascent to unit acts
+                if model.attn_type[-5:] == 'local':
+                    # compute act of winners and compute gradient for attn ws
+                    # spell out _compute_dist to compute gradient
+                    # - note win_ind indexes winners; else non-winners added
+                    act_1 = _compute_act((torch.sum(
+                        (model.attn * abs(x - model.units_pos[win_ind]))
+                        ** model.params['r'], axis=1)**(1/model.params['r'])),
+                        model.params['c'], model.params['p'])
+                    # compute gradient -  # sums over iterations
+                    for i in range(len(act_1)):
+                        act_1[i].backward(retain_graph=True)
+                    # grad ascent & divide by n_units so its mean
+                    # model.attn.grad = -model.attn.grad / len(act_1)
+                    model.attn.grad = model.attn.grad / len(act_1) # results looks right with this...
+                    model.attn.data += (
+                        model.params['lr_attn'] * model.attn.grad)
+
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
-                if model.attn_type == 'dimensional':
+                if model.attn_type[0:4] == 'dime':
                     model.attn.data = (
                         model.attn.data / torch.sum(model.attn.data))
-                elif model.attn_type == 'unit':
+                elif model.attn_type[0:4] == 'unit':
                     model.attn.data = (
                         model.attn.data /
                         torch.sum(model.attn.data, dim=1, keepdim=True)
@@ -387,14 +360,6 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
 
                 # recruit and REPLACE k units that mispredicted
-                # - TODO - this does not work for rulex, since it replaces all
-                # the units, since all mispredict.
-                # - I got it - don't 'replace', just set the act to zero
-                # and recruit n units. normall this will just be k units.
-                # - *BUT* what is set to 0? by having new units, those will be on
-                # the stim, but the old units might also be.. i guess since the
-                # weight's connected to the new units should point in the right
-                # directions since i update them below, those should be the winners?
                 else:
                     mispred_units = torch.argmax(
                         model.fc1.weight[:, win_ind].detach(), dim=0) != target
@@ -431,12 +396,26 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                     if model.attn_type == 'unit':
                         model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
                 optimizer.step()
+
+                # if use local attention update - gradient ascent to unit acts
+                if model.attn_type[-5:] == 'local':
+                    # compute act of winners and compute gradient for attn ws
+                    act_1 = _compute_act((torch.sum(
+                        (model.attn * abs(x - model.units_pos[recruit_ind]))
+                        ** model.params['r'], axis=1)**(1/model.params['r'])),
+                        model.params['c'], model.params['p'])
+                    for i in range(len(act_1)):
+                        act_1[i].backward(retain_graph=True)
+                    # model.attn.grad = -model.attn.grad / len(act_1)
+                    model.attn.grad = model.attn.grad / len(act_1)
+                    model.attn.data += (
+                        model.params['lr_attn'] * model.attn.grad)
+
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
-                # sum attention weights to 1
-                if model.attn_type == 'dimensional':
+                if model.attn_type[0:4] == 'dime':
                     model.attn.data = (
                         model.attn.data / torch.sum(model.attn.data))
-                elif model.attn_type == 'unit':
+                elif model.attn_type[0:4] == 'unit':
                     model.attn.data = (
                         model.attn.data /
                         torch.sum(model.attn.data, dim=1, keepdim=True)
@@ -444,7 +423,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
 
                 # update units - double update rule
                 # - no need this, since already placed at the stim?
-                
+
             # tmp
             model.winners_trace.append(model.units_pos[model.winning_units][0])
 
@@ -598,21 +577,21 @@ stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
-# # continuous
-# mu1 = [-.5, .25]
-# var1 = [.0185, .065]
-# cov1 = -.005
-# mu2 = [-.25, -.6]
-# var2 = [.0125, .005]
-# cov2 = .005
+# continuous
+mu1 = [-.5, .25]
+var1 = [.0185, .065]
+cov1 = -.005
+mu2 = [-.25, -.6]
+var2 = [.0125, .005]
+cov2 = .005
 
-# # same/similar on first dim - attn not learning the right one...?
-# mu1 = [-.5, .25]
-# var1 = [.0185, .065]
-# cov1 = -.005
-# mu2 = [-.5, -.7]
-# var2 = [.015, .005]
-# cov2 = .005
+# same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
+mu1 = [-.5, .25]
+var1 = [.0185, .065]
+cov1 = -.005
+mu2 = [-.5, -.7]
+var2 = [.015, .005]
+cov2 = .005
 
 # # simple diagonal covariance
 # mu1 = [-.5, .25]
@@ -629,22 +608,22 @@ output = stim[:, -1].long()  # integer
 # # var2 = [.0125, .005]
 # # cov2 = 0
 
-# npoints = 100
-# x1 = np.random.multivariate_normal(
-#     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
-# x2 = np.random.multivariate_normal(
-#     [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
+npoints = 100
+x1 = np.random.multivariate_normal(
+    [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
+x2 = np.random.multivariate_normal(
+    [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
 
-# # x1 = np.append(x1, np.zeros([npoints, 1]), axis=1)
-# # x2 = np.append(x2, np.zeros([npoints, 1]), axis=1)
+# x1 = np.append(x1, np.zeros([npoints, 1]), axis=1)
+# x2 = np.append(x2, np.zeros([npoints, 1]), axis=1)
 
-# inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
-#                     torch.tensor(x2, dtype=torch.float32)])
-# output = torch.cat([torch.zeros(npoints, dtype=torch.long),
-#                     torch.ones(npoints, dtype=torch.long)])
+inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
+                    torch.tensor(x2, dtype=torch.float32)])
+output = torch.cat([torch.zeros(npoints, dtype=torch.long),
+                    torch.ones(npoints, dtype=torch.long)])
 
 # model details
-attn_type = 'local_dimensional'  # dimensional, unit, local_dimensional
+attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
 n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
@@ -676,24 +655,24 @@ k = .05
 # looks like less later on though. maybe ok?
 
 # trials, etc.
-n_epochs = 100
+n_epochs = 1 # 40
 
 # attn
 # - w attn ws starting at .5: lr_attn.005 for 6 clus
 # - w attn w = .33 - not as good?
 # - w attn w = .1  - lr_attn = .05, c=6. type V - bump in pr, looks like attn weights all go up, THEN irr go down
 
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 10,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1,  # response parameter, non-negative
-    'lr_attn': .005,  # .005 / .05 / .001
-    'lr_nn': .1,  # .1. .01 actually better, c=6. cont - .15
-    'lr_clusters': .25,  # .25
-    'lr_clusters_group': .95,  # .95
-    'k': k
-    }
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 10,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 1,  # response parameter, non-negative
+#     'lr_attn': .005,  # .005 / .05 / .001
+#     'lr_nn': .1,  # .1. .01 actually better, c=6. cont - .15
+#     'lr_clusters': .25,  # .25
+#     'lr_clusters_group': .95,  # .95
+#     'k': k
+#     }
 
 # # continuous
 # params = {
@@ -708,6 +687,19 @@ params = {
 #     'k': k
 #     }
 
+# local attn
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 6,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .0015,  # .0015/.0005
+    'lr_nn': .05,  # .005, .05
+    'lr_clusters': .15,  # .15. cont - .05 also works
+    'lr_clusters_group': .5,  # .5, .25. cont - 
+    'k': k
+    }
+
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -716,14 +708,19 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 print(epoch_acc)
 print(epoch_ptarget)
 plt.plot(1 - epoch_ptarget.detach())
+plt.ylim([0, .5])
+plt.show()
+
+plt.plot(torch.stack(model.attn_trace, dim=0))
 plt.show()
 
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
 print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
 # print(np.unique(np.around(model.attn.detach().numpy()[active_ws], decimals=2), axis=0))
-# print(model.attn)
+print(model.attn)
 
+print(model.recruit_units_trl)
 print(len(model.recruit_units_trl))
 
 # %% unsupervised
