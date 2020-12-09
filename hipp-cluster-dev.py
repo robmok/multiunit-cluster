@@ -272,13 +272,24 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
             # # testing getting the gradient locally
             # atten = (torch.nn.Parameter(
             #     torch.ones(n_dims, dtype=torch.float) * .33))
+
             # # spell out the function to compute gradient
-            # # - note here i index the winners; else the values just adde up, including
-            # # the non-winnners
-            # act_1 = torch.exp(-model.params['c'] * (
-            #     (torch.sum((atten * abs(x - model.units_pos[win_ind]))
-            #                 ** model.params['r'], axis=1)**(1/model.params['r']))
-            #     ** model.params['p']))
+            # # - spells out _compute_dist and _compute_act
+            # # - note here win_ind index the winners; else values just add up,
+            # # including non-winnners
+            # act_1 = (
+            #     torch.exp(-model.params['c'] * (
+            #         (torch.sum((atten * abs(x - model.units_pos[win_ind]))
+            #                    ** model.params['r'], axis=1) **
+            #          (1/model.params['r'])) ** model.params['p'])))
+
+            # # cleaner? - spelling out _compute_dist only
+            # act_1 = (
+            #     _compute_act((torch.sum(
+            #         (atten * abs(x - model.units_pos[win_ind]))
+            #         ** model.params['r'], axis=1)**(1/model.params['r'])),
+            #         model.params['c'], model.params['p']))
+
             # # compute gradient
             # for i in range(len(act_1)):
             #     act_1[i].backward(retain_graph=True)
