@@ -168,16 +168,6 @@ class MultiUnitCluster(nn.Module):
         #                ** self.params['r'], axis=1)**(1/self.params['r']))
         #     ** self.params['p']))
 
-# def _compute_dist(dim_dist, attn_w, r):
-#     return torch.sum((attn_w * dim_dist)**r, axis=1)**(1/r)
-
-
-# def _compute_act(dist, c, p):
-#     """ c = 1  # ALCOVE - specificity of the node - free param
-#         p = 2  # p=1 exp, p=2 gauss
-#     """
-#     return torch.exp(-c * (dist**p))
-
         norm_units = False
         if norm_units:
             # beta = self.params['beta']
@@ -294,17 +284,18 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
             #     act_1[i].backward(retain_graph=True)
             # # then divide by number of units so it's the mean (ends up similar to the model.attn)
             # atten.grad = -atten.grad/len(act_1) # negative of the gradient
-            # atten.data += atten.grad  # update
+            # atten.data += model.params['lr_attn'] * atten.grad  # update
             # atten.data = atten.data / torch.sum(atten.data)  # norm
             
             # think - how to put this into the code?
-            # - have it in forward?
-            # - should be negative of the gradient - gradient ascent
+            # - have it in forward? - maybe not, since might not update if error.
+            # instead, do forward, then separately compute the gradient. then update
+            # with optimizer.step() - if recruit then only at the below bit.
             # - fine to be a torch parameter. however, it shouldn't be a param for SGD - edited
+            # I think this is fine already? if no a trainable param, then I can update it myself.
             # - to add: "if model.attn[0:5] == 'local':"
                 # for these, think how to merge with standard attention stuff
                 # maybe check - only include active units, see if model.attn updates (if so, need to mask this out in Cluster.py)
-
 
             # learn
             optimizer.zero_grad()
