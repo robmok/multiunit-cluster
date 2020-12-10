@@ -275,7 +275,7 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                 if model.attn_type == 'unit':  # mask other clusters' attn
                     model.attn.grad.mul_(winners_mask[0].unsqueeze(0).T)
 
-            # local attn - remove grad computed. avoidable?
+            # if local attn - clear attn grad computed above
             if model.attn_type[-5:] == 'local':
                 model.attn.grad[:] = 0
 
@@ -292,10 +292,6 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                 pass
             else:
                 optimizer.step()
-                # - above computes a gradient for model.attn even though it shouldn't!
-                # actually contributes to attn
-                # - TODO so find a way it doesn't update (not a torch param in forward?)
-                # e.g. if local_atten, then just use a copy of the attn values...
 
                 # if use local attention update - gradient ascent to unit acts
                 if model.attn_type[-5:] == 'local':
@@ -303,31 +299,26 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                     # spell out _compute_dist to compute gradient
                     # - note win_ind indexes winners; else non-winners added
 
-                    # act_1 = _compute_act((torch.sum(
-                    #     model.attn * (abs(x - model.units_pos[win_ind])
-                    #     ** model.params['r']), axis=1)**(1/model.params['r'])),
-                    #     model.params['c'], model.params['p'])
-
                     if model.params['r'] > 1:
-                        ind = torch.nonzero(torch.sum(
-                            abs(x - model.units_pos[win_ind]), axis=1) > 0)
+                        ind = torch.sum(
+                            abs(x - model.units_pos[win_ind]), axis=1) > 0
                     else:
                         ind = range(len(win_ind))
 
-                    # actually if half above are on the stim and half not, can't just selectively update it
-                    # - index the winners with dist > 0 to be updated
-                    win_ind_1 = win_ind[(torch.sum(
-                            abs(x - model.units_pos[win_ind]), axis=1) > 0)]
+                    # index the winners with dist > 0 to be updated
+                    # - if 1/2 winners on stim and 1/2 not, can't selective upd
+                    win_ind_1 = win_ind[ind]
 
-                    act_1 = _compute_act((torch.sum(
-                        model.attn * (abs(x - model.units_pos[win_ind_1])
-                        ** model.params['r']), axis=1)**(1/model.params['r'])),
+                    act_1 = _compute_act(
+                        (torch.sum(model.attn *
+                                   (abs(x - model.units_pos[win_ind_1])
+                                    ** model.params['r']), axis=1) **
+                         (1/model.params['r'])),
                         model.params['c'], model.params['p'])
-                    
+
                     # compute gradient
                     for i in range(len(act_1)):
                         act_1[i].backward(retain_graph=True)
-                        # print(model.attn.grad)
                     # model.attn.grad = -model.attn.grad / len(win_ind)  #len(act_1)
                     model.attn.grad = model.attn.grad / len(win_ind)  # len(act_1) - still take the win_ind len?
                     model.attn.data += (
@@ -365,8 +356,6 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
             trial_ptarget[itrl] = pr[target]
 
             # Recruit cluster, and update model
-            # - here, recruitment means get a subset of units with nn_weights=0, place it at curr stim
-
             if recruit:
                 # select random k units
                 # inactive_ind = torch.nonzero(active_ws == False)
@@ -412,8 +401,6 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
                 model.recruit_units_trl.append(itrl)
 
                 # go through update again after cluster added
-                # - looks like model.attn.grad --> to nan here
-                # - could just change this back.. but why does it change for euclidean only?
                 optimizer.zero_grad()
                 out, pr = model.forward(x)
                 loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
@@ -432,48 +419,27 @@ def train(model, inputs, labels, n_epochs, loss_type='cross_entropy',
 
                 # if use local attention update - gradient ascent to unit acts
                 if model.attn_type[-5:] == 'local':
-                    # compute act of winners and compute gradient for attn ws       
+                    # compute act of winners and compute gradient for attn ws
                     # - might always be zero since it's on the stimulus?
-                    # act_1 = _compute_act((torch.sum(
-                    #     model.attn * (abs(x - model.units_pos[recruit_ind])
-                    #     ** model.params['r']), axis=1)**(1/model.params['r'])),
-                    #     model.params['c'], model.params['p'])
-
-                    # if model.params['r'] > 1:
-                    #     ind = torch.nonzero(torch.sum(
-                    #         abs(x - model.units_pos[recruit_ind]), axis=1) > 0)
-                    # else:
-                    #     ind = range(len(recruit_ind))
-
-                    # # compute gradient
-                    # if len(ind) > 0:  # if any to update
-                    #     for i in ind:
-                    #         act_1[i].backward(retain_graph=True)
-                    #     # model.attn.grad = -model.attn.grad / len(act_1)
-                    #     model.attn.grad = model.attn.grad / len(act_1)
-                    #     model.attn.data += (
-                    #         model.params['lr_attn'] * model.attn.grad)
-
                     if model.params['r'] > 1:
-                        ind = torch.nonzero(torch.sum(
-                            abs(x - model.units_pos[recruit_ind]), axis=1) > 0)
+                        ind = torch.sum(
+                            abs(x - model.units_pos[recruit_ind]), axis=1) > 0
                     else:
                         ind = range(len(recruit_ind))
 
-                    # actually if half above are on the stim and half not, can't just selectively update it
-                    # - index the winners with dist > 0 to be updated
-                    win_ind_1 = recruit_ind[(torch.sum(
-                            abs(x - model.units_pos[recruit_ind]), axis=1) > 0)]
+                    # index the winners with dist > 0 to be updated
+                    win_ind_1 = recruit_ind[ind]
 
-                    act_1 = _compute_act((torch.sum(
-                        model.attn * (abs(x - model.units_pos[win_ind_1])
-                        ** model.params['r']), axis=1)**(1/model.params['r'])),
-                        model.params['c'], model.params['p'])
-                    
+                    act_1 = _compute_act(
+                        (torch.sum(model.attn *
+                                   (abs(x - model.units_pos[win_ind_1])
+                                    ** model.params['r']), axis=1) **
+                         (1/model.params['r'])),
+                        model.params['c'], model.params['p']) 
+
                     # compute gradient
                     for i in range(len(act_1)):
                         act_1[i].backward(retain_graph=True)
-                        print(model.attn.grad)
                     # model.attn.grad = -model.attn.grad / len(win_ind)  #len(act_1)
                     model.attn.grad = model.attn.grad / len(recruit_ind)  # len(act_1) - still take the recruit_ind len?
                     model.attn.data += (
@@ -654,7 +620,7 @@ stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
-# # continuous
+# # continuous - note: need shuffle else it solves it with 1 clus
 mu1 = [-.5, .25]
 var1 = [.0185, .065]
 cov1 = -.005
@@ -662,13 +628,13 @@ mu2 = [-.25, -.6]
 var2 = [.0125, .005]
 cov2 = .005
 
-# # same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
-# mu1 = [-.5, .25]
-# var1 = [.0185, .065]
-# cov1 = -.005
-# mu2 = [-.5, -.7]
-# var2 = [.015, .005]
-# cov2 = .005
+# same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
+mu1 = [-.5, .25]
+var1 = [.0185, .065]
+cov1 = -.005
+mu2 = [-.5, -.7]
+var2 = [.015, .005]
+cov2 = .005
 
 # # simple diagonal covariance
 # mu1 = [-.5, .25]
@@ -767,8 +733,8 @@ params = {
     'c': 6,  # node specificity
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .0015,  # .0015, .015
-    'lr_nn': .005,  # .005, .05
+    'lr_attn': .025,  # .0015, .015
+    'lr_nn': .015,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it)
     'lr_clusters': .05,  # .15. cont - .05 also works
     'lr_clusters_group': .25,  # .5, .25. cont -
     'k': k
