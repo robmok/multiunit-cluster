@@ -221,7 +221,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
     model.train()
     for epoch in range(n_epochs):
-        torch.manual_seed(2)
+        torch.manual_seed(5)
         if shuffle:
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
@@ -644,27 +644,27 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 2
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
 # # continuous - note: need shuffle else it solves it with 1 clus
-# mu1 = [-.5, .25]
-# var1 = [.0185, .065]
-# cov1 = -.005
-# mu2 = [-.25, -.6]
-# var2 = [.0125, .005]
-# cov2 = .005
+mu1 = [-.5, .25]
+var1 = [.0185, .065]
+cov1 = -.005
+mu2 = [-.25, -.6]
+var2 = [.0125, .005]
+cov2 = .005
 
 # # same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
-# mu1 = [-.5, .25]
-# var1 = [.0185, .065]
-# cov1 = -.005
-# mu2 = [-.5, -.7]
-# var2 = [.015, .005]
-# cov2 = .005
+mu1 = [-.5, .25]
+var1 = [.0185, .065]
+cov1 = -.005
+mu2 = [-.5, -.7]
+var2 = [.015, .005]
+cov2 = .005
 
 # # simple diagonal covariance
 # mu1 = [-.5, .25]
@@ -681,20 +681,28 @@ output = stim[:, -1].long()  # integer
 # var2 = [.0185, .065]
 # cov2 = 0
 
-# # fix same points
-# np.random.seed(2)
-# torch.random.manual_seed(2)
+# closer together
+mu1 = [-.5, .25]
+var1 = [.02, .02]
+cov1 = 0
+mu2 = [-.25, -.25]
+var2 = [.02, .02]
+cov2 = 0
 
-# npoints = 100
-# x1 = np.random.multivariate_normal(
-#     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
-# x2 = np.random.multivariate_normal(
-#     [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
+# fix same points
+np.random.seed(5)
+# torch.random.manual_seed(5)
 
-# inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
-#                     torch.tensor(x2, dtype=torch.float32)])
-# output = torch.cat([torch.zeros(npoints, dtype=torch.long),
-#                     torch.ones(npoints, dtype=torch.long)])
+npoints = 100
+x1 = np.random.multivariate_normal(
+    [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
+x2 = np.random.multivariate_normal(
+    [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
+
+inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
+                    torch.tensor(x2, dtype=torch.float32)])
+output = torch.cat([torch.zeros(npoints, dtype=torch.long),
+                    torch.ones(npoints, dtype=torch.long)])
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
@@ -707,34 +715,11 @@ loss_type = 'cross_entropy'
 # top k%. so .05 = top 5%
 k = .05
 
-# spatial / unsupervised
-
-# looks like k is key for number of virtual clusters that come up. smaller k = more; larger k = fewer clusters 
-# lr_group has to be large-ish, else virtual clusters don't form (scattered).
-# lr_group has to be > lr_clusters, else virtual cluster don't form. but not too high else clusters go toward centre
-
-# - i think the learning rates might lead to more/less grid like patterns - check which matters more (can use banino's grid code)
-# - need reduction of lr over time?
-
 # SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
-
-# normalization of units
-# c=3, beta=1, lr_attn = .001 then looks OK. faster lr_attn screws up
-# - n_units = 1000 k=.01 then 6. k=.05 then 8 (c=3/6 same - quick check seems c doesn't matter)
-
-# To check
-# - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
-# looks like less later on though. maybe ok?
-
 # trials, etc.
-n_epochs = 40 # 40
-
-# attn
-# - w attn ws starting at .5: lr_attn.005 for 6 clus
-# - w attn w = .33 - not as good?
-# - w attn w = .1  - lr_attn = .05, c=6. type V - bump in pr, looks like attn weights all go up, THEN irr go down
+n_epochs = 5 # 40
 
 # params = {
 #     'r': 1,  # 1=city-block, 2=euclid
@@ -775,17 +760,17 @@ params = {
     }
 
 # cont
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 8,  # node specificity
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1,  # response parameter, non-negative
-#     'lr_attn': .015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
-#     'lr_nn': .005,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
-#     'lr_clusters': .15,  # .15. cont - .05 also works
-#     'lr_clusters_group': .25,  # .5, .25. cont -
-#     'k': k
-#     }
+params = {
+    'r': 2,  # 1=city-block, 2=euclid
+    'c': 8,  # node specificity
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
+    'lr_nn': .005,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
+    'lr_clusters': .15,  # .15. cont - .05 also works
+    'lr_clusters_group': .5,  # .5, .25. cont -
+    'k': k
+    }
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -794,12 +779,6 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 
 print(epoch_acc)
 print(epoch_ptarget)
-plt.plot(1 - epoch_ptarget.detach())
-plt.ylim([0, .5])
-plt.show()
-
-plt.plot(torch.stack(model.attn_trace, dim=0))
-plt.show()
 
 active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
@@ -810,7 +789,57 @@ print(model.attn)
 print(model.recruit_units_trl)
 print(len(model.recruit_units_trl))
 
+
+wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
+
+# plot for several k values (.01, .05, .1, .2?), several n_units (1, 1000, 10000, 1000000) - for n=1, k doesn't matter
+
+# pr target
+plt.plot(1 - epoch_ptarget.detach())
+plt.ylim([0, .5])
+
+# figname = os.path.join(wd,
+#                        'SHJ_prt_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+#                            problem, k, n_units, params['lr_attn'], n_epochs))
+# plt.savefig(figname)
+plt.show()
+
+# attention weights
+plt.plot(torch.stack(model.attn_trace, dim=0))
+# figname = os.path.join(wd,
+#                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+#                            problem, k, n_units, params['lr_attn'], n_epochs))
+# plt.savefig(figname)
+plt.show()
+
+# unit positions
+results = torch.stack(model.units_pos_trace, dim=0)[-1, active_ws]
+plt.scatter(results[:, 0], results[:, 1])
+plt.xlim([-1, 1])
+plt.ylim([-1, 1])
+plt.gca().set_aspect('equal', adjustable='box')
+# plt.axis('equal')
+
+# figname = os.path.join(wd,
+#                        'SHJ_unitspos2D_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+#                            problem, k, n_units, params['lr_attn'], n_epochs))
+# plt.savefig(figname)
+plt.show()
+
 # %% unsupervised
+
+# spatial / unsupervised
+# looks like k is key for number of virtual clusters that come up. smaller k = more; larger k = fewer clusters 
+# lr_group has to be large-ish, else virtual clusters don't form (scattered).
+# lr_group has to be > lr_clusters, else virtual cluster don't form. but not too high else clusters go toward centre
+
+# - i think the learning rates might lead to more/less grid like patterns - check which matters more (can use banino's grid code)
+# - need reduction of lr over time?
+
+# To check
+# - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
+# looks like less later on though. maybe ok?
+
 n_dims = 2
 n_epochs = 1
 n_trials = 2000
