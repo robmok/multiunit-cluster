@@ -112,7 +112,7 @@ class MultiUnitCluster(nn.Module):
         self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
 
         # randomly scatter
-        # self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
+        self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
 
         # # cluster positions as trainable parameters
         # self.clusters = torch.nn.Parameter(
@@ -121,14 +121,14 @@ class MultiUnitCluster(nn.Module):
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type[0:4] == 'dime':
             self.attn = (torch.nn.Parameter(
-                torch.ones(n_dims, dtype=torch.float) * .33))
+                torch.ones(n_dims, dtype=torch.float) * (1 / n_dims)))
             # normalize attn to 1, in case not set correctly above
             self.attn.data = (
                         self.attn.data / torch.sum(self.attn.data))
         elif self.attn_type[0:4] == 'unit':
             self.attn = (
                 torch.nn.Parameter(torch.ones([n_units, n_dims],
-                                              dtype=torch.float) * .33))
+                                              dtype=torch.float) * (1 / n_dims)))
             # normalize attn to 1, in case not set correctly above
             self.attn.data = (
                 self.attn.data /
@@ -143,15 +143,14 @@ class MultiUnitCluster(nn.Module):
         self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
 
         # mask for updating attention weights based on winning units
-        # - might not need this. check with unit-based attention
         # - winning_units is like active_units before, but winning on that
         # trial, since active is define by connection weight ~=0
         # mask for winning clusters
         self.winning_units = torch.zeros(n_units, dtype=torch.bool)
         # self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
         # # do i need this? - i think no, just to make starting weights 0
-        # with torch.no_grad():
-        #     self.fc1.weight.mul_(self.mask)
+        with torch.no_grad():
+            self.fc1.weight.mul_(self.mask)
 
     def forward(self, x):
         # compute activations of clusters here. stim x clusterpos x attn
@@ -264,8 +263,8 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
             #     model.act_trace.append(act[win_ind][0].detach().clone())
 
             # define winner mask
-            winners_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
-            winners_mask[:, win_ind] = True
+            win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
+            win_mask[:, win_ind] = True
             # this goes into forward. if ~active, no out
             model.winning_units = torch.zeros(n_units, dtype=torch.bool)
             model.winning_units[win_ind] = True
@@ -280,9 +279,9 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
             loss.backward()
             # zero out gradient for masked connections
             with torch.no_grad():
-                model.fc1.weight.grad.mul_(winners_mask)
+                model.fc1.weight.grad.mul_(win_mask)
                 if model.attn_type == 'unit':  # mask other clusters' attn
-                    model.attn.grad.mul_(winners_mask[0].unsqueeze(0).T)
+                    model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
 
             # if local attn - clear attn grad computed above
             if model.attn_type[-5:] == 'local':
@@ -362,10 +361,10 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                 model.units_pos[win_ind] += update
 
                 # save updated attn weights, unit pos
-                model.attn_trace.append(model.attn.detach().clone())
+                # model.attn_trace.append(model.attn.detach().clone())
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
-            # save acc peTruer trial
+            # save acc per trial
             trial_acc[itrl] = torch.argmax(out.data) == target
             trial_ptarget[itrl] = pr[target]
 
@@ -409,16 +408,15 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                 model.units_pos[recruit_ind] = x  # place at curr stim
                 # model.mask[:, active_ws] = True  # new clus weights
                 model.recruit_units_trl.append(itrl)
-                
+
                 # go through update again after cluster added
                 optimizer.zero_grad()
                 out, pr = model.forward(x)
                 loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
                 loss.backward()
                 with torch.no_grad():
-                    # model.fc1.weight.grad.mul_(model.mask)  # win_mask enuf?
                     win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
-                    win_mask[:, active_ws] = True  # update new clus
+                    win_mask[:, model.winning_units] = True  # update w winners
                     model.fc1.weight.grad.mul_(win_mask)
                     if model.attn_type == 'unit':
                         model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
@@ -464,29 +462,21 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                         )
 
                 # update units - double update rule
-                # - no need this, since already placed at the stim?
-                # - for non-replaced units, need
-                # should work, but haven't tested since it happens rarely with currently structures
-                if itrl > 0:
-                    upd_ind = torch.cat([win_ind[~mispred_units], recruit_ind])
-                else:
-                    upd_ind = recruit_ind
-
                 update = (
-                    (x - model.units_pos[upd_ind]) *
+                    (x - model.units_pos[model.winning_units]) *
                     model.params['lr_clusters']
                     )
-                model.units_pos[upd_ind] += update
+                model.units_pos[model.winning_units] += update
 
                 # - step 2 - winners update towards self
-                winner_mean = torch.mean(model.units_pos[upd_ind], axis=0)
+                winner_mean = torch.mean(
+                    model.units_pos[model.winning_units], axis=0)
                 update = (
-                    (winner_mean - model.units_pos[upd_ind]) *
+                    (winner_mean - model.units_pos[model.winning_units]) *
                     model.params['lr_clusters_group'])
-                model.units_pos[upd_ind] += update
+                model.units_pos[model.winning_units] += update
                 
                 model.units_pos_trace.append(model.units_pos.detach().clone())
-
 
             # tmp
             # model.winners_trace.append(model.units_pos[model.winning_units][0])
@@ -522,8 +512,8 @@ def train_unsupervised(model, inputs, n_epochs):
                 win_ind = win_ind[act[win_ind] != 0]
 
             # define winner mask
-            winners_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
-            winners_mask[:, win_ind] = True
+            win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
+            win_mask[:, win_ind] = True
 
             # learn
             # update units - double update rule
@@ -561,6 +551,7 @@ def _compute_act(dist, c, p):
         p = 2  # p=1 exp, p=2 gauss
     """
     return torch.exp(-c * (dist**p))
+    # return c * torch.exp(-c * (dist**1))  # sustain-like
 
 
 # loss functions
@@ -650,62 +641,62 @@ stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
-# # continuous - note: need shuffle else it solves it with 1 clus
-mu1 = [-.5, .25]
-var1 = [.0185, .065]
-cov1 = -.005
-mu2 = [-.25, -.6]
-var2 = [.0125, .005]
-cov2 = .005
+# # # continuous - note: need shuffle else it solves it with 1 clus
+# mu1 = [-.5, .25]
+# var1 = [.0185, .065]
+# cov1 = -.005
+# mu2 = [-.25, -.6]
+# var2 = [.0125, .005]
+# cov2 = .005
 
-# # same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
-mu1 = [-.5, .25]
-var1 = [.0185, .065]
-cov1 = -.005
-mu2 = [-.5, -.7]
-var2 = [.015, .005]
-cov2 = .005
+# # # same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
+# mu1 = [-.5, .25]
+# var1 = [.0185, .065]
+# cov1 = -.005
+# mu2 = [-.5, -.7]
+# var2 = [.015, .005]
+# cov2 = .005
 
-# # simple diagonal covariance
+# # # simple diagonal covariance
+# # mu1 = [-.5, .25]
+# # var1 = [.02, .02]
+# # cov1 = 0
+# # mu2 = [-.25, -.6]
+# # var2 = [.02, .02]
+# # cov2 = 0
+
+# # mu1 = [-.5, -.25]
+# # var1 = [.0185, .065]
+# # cov1 = 0
+# # mu2 = [.25, .5]
+# # var2 = [.0185, .065]
+# # cov2 = 0
+
+# # closer together
 # mu1 = [-.5, .25]
 # var1 = [.02, .02]
 # cov1 = 0
-# mu2 = [-.25, -.6]
+# mu2 = [-.25, -.25]
 # var2 = [.02, .02]
 # cov2 = 0
 
-# mu1 = [-.5, -.25]
-# var1 = [.0185, .065]
-# cov1 = 0
-# mu2 = [.25, .5]
-# var2 = [.0185, .065]
-# cov2 = 0
+# # fix same points
+# np.random.seed(5)
+# # torch.random.manual_seed(5)
 
-# closer together
-mu1 = [-.5, .25]
-var1 = [.02, .02]
-cov1 = 0
-mu2 = [-.25, -.25]
-var2 = [.02, .02]
-cov2 = 0
+# npoints = 100
+# x1 = np.random.multivariate_normal(
+#     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
+# x2 = np.random.multivariate_normal(
+#     [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
 
-# fix same points
-np.random.seed(5)
-# torch.random.manual_seed(5)
-
-npoints = 100
-x1 = np.random.multivariate_normal(
-    [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
-x2 = np.random.multivariate_normal(
-    [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
-
-inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
-                    torch.tensor(x2, dtype=torch.float32)])
-output = torch.cat([torch.zeros(npoints, dtype=torch.long),
-                    torch.ones(npoints, dtype=torch.long)])
+# inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
+#                     torch.tensor(x2, dtype=torch.float32)])
+# output = torch.cat([torch.zeros(npoints, dtype=torch.long),
+#                     torch.ones(npoints, dtype=torch.long)])
 
 # model details
-attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
+attn_type = 'dimensional'  # dimensional, unit, dimensional_local
 n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
@@ -713,25 +704,40 @@ loss_type = 'cross_entropy'
 # c_recruit = 'feedback'  # feedback or loss_thresh
 
 # top k%. so .05 = top 5%
-k = .05
+k = .001
 
 # SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 # trials, etc.
-n_epochs = 5 # 40
+n_epochs = 10 # 40
 
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 10,  # node specificity - 6. hmm, if start attn at .33, type V needs c=12 for 6? act now ok, lr_nn = .05
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1,  # response parameter, non-negative
-#     'lr_attn': .005,  # .005 / .05 / .001
-#     'lr_nn': .1,  # .1. .01 actually better, c=6. cont - .15
-#     'lr_clusters': .25,  # .25
-#     'lr_clusters_group': .95,  # .95
-#     'k': k
-#     }
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 6,  # node specificity - 6.
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 3.5,  # response parameter, non-negative
+    'lr_attn': .015,  # .005 / .05 / .001. SHJ - .01
+    'lr_nn': .05,  # .1. .01 actually better, c=6. cont - .15. for fitting SHJ pattern, lr_nn=.01, 
+    'lr_clusters': .015,  # .25
+    'lr_clusters_group': .0,  # .95
+    'k': k
+    }
+
+
+# for fitting SHJ pattern
+# c=1-4 works. >6 then type I initially slower than II... 
+# if p=1 seems always type I slower than II...? 
+
+# why?
+# wondering if this is because i don't normalize cluster activations, type II has more clusters
+# no - others have even more and are slower! maybe coz type 1 clusters move and attn weights have to go down (unless II).. - faster attn? - yes! .005 was too slow
+
+# ok now if keep learning, type III/V screw up like before, attn weights to 0. p doesnt matter.
+# - maybe it's not the local attention rule...?
+# - checked Cluster.py with wta and it works fine - with same params
+# matched all here even k=1 unit...  what is different? FIND OUT
+
 
 # # continuous
 # params = {
@@ -747,30 +753,30 @@ n_epochs = 5 # 40
 #     }
 
 # local attn
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 6,  # node specificity
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1,  # response parameter, non-negative
-    'lr_attn': .0015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
-    'lr_nn': .015,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
-    'lr_clusters': .05,  # .15. cont - .05 also works
-    'lr_clusters_group': .5,  # .5, .25. cont -
-    'k': k
-    }
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 1,  # node specificity
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 1,  # response parameter, non-negative
+#     'lr_attn': .0015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
+#     'lr_nn': .015,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
+#     'lr_clusters': .05,  # .15. cont - .05 also works
+#     'lr_clusters_group': .5,  # .5, .25. cont -
+#     'k': k
+#     }
 
-# cont
-params = {
-    'r': 2,  # 1=city-block, 2=euclid
-    'c': 8,  # node specificity
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1,  # response parameter, non-negative
-    'lr_attn': .015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
-    'lr_nn': .005,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
-    'lr_clusters': .15,  # .15. cont - .05 also works
-    'lr_clusters_group': .5,  # .5, .25. cont -
-    'k': k
-    }
+# # cont
+# params = {
+#     'r': 2,  # 1=city-block, 2=euclid
+#     'c': 8,  # node specificity
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 1,  # response parameter, non-negative
+#     'lr_attn': .015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
+#     'lr_nn': .005,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
+#     'lr_clusters': .15,  # .15. cont - .05 also works
+#     'lr_clusters_group': .5,  # .5, .25. cont -
+#     'k': k
+#     }
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -798,6 +804,10 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
 plt.plot(1 - epoch_ptarget.detach())
 plt.ylim([0, .5])
 
+# if problem == 0:
+#     pt = []
+# pt.append(1 - epoch_ptarget.detach())
+
 # figname = os.path.join(wd,
 #                        'SHJ_prt_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
 #                            problem, k, n_units, params['lr_attn'], n_epochs))
@@ -812,13 +822,13 @@ plt.plot(torch.stack(model.attn_trace, dim=0))
 # plt.savefig(figname)
 plt.show()
 
-# unit positions
-results = torch.stack(model.units_pos_trace, dim=0)[-1, active_ws]
-plt.scatter(results[:, 0], results[:, 1])
-plt.xlim([-1, 1])
-plt.ylim([-1, 1])
-plt.gca().set_aspect('equal', adjustable='box')
-# plt.axis('equal')
+# # unit positions
+# results = torch.stack(model.units_pos_trace, dim=0)[-1, active_ws]
+# plt.scatter(results[:, 0], results[:, 1])
+# # plt.xlim([-1, 1])
+# # plt.ylim([-1, 1])
+# plt.gca().set_aspect('equal', adjustable='box')
+# # plt.axis('equal')
 
 # figname = os.path.join(wd,
 #                        'SHJ_unitspos2D_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
@@ -912,13 +922,13 @@ for i in range(len(lr_clusters)):
     # plt.show()
 
 
-lr = lr_clusters[5]  # >.1 [3/4/5]
-i = torch.nonzero(lr_clusters == lr)
-for j in range(len(lr_group)):
-    plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
-    plt.show()
+# lr = lr_clusters[5]  # >.1 [3/4/5]
+# i = torch.nonzero(lr_clusters == lr)
+# for j in range(len(lr_group)):
+#     plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
+#     plt.xlim([0, 1])
+#     plt.ylim([0, 1])
+#     plt.show()
 
     # figname = os.path.join(wd,
     #                        'hipp_cluster_across_lrgroup' +
