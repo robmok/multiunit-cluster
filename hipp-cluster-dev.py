@@ -220,7 +220,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
     model.train()
     for epoch in range(n_epochs):
-        torch.manual_seed(5)
+        # torch.manual_seed(5)
         if shuffle:
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
@@ -550,8 +550,8 @@ def _compute_act(dist, c, p):
     """ c = 1  # ALCOVE - specificity of the node - free param
         p = 2  # p=1 exp, p=2 gauss
     """
-    return torch.exp(-c * (dist**p))
-    # return c * torch.exp(-c * (dist**1))  # sustain-like
+    # return torch.exp(-c * (dist**p))
+    return c * torch.exp(-c * dist)  # sustain-like
 
 
 # loss functions
@@ -635,7 +635,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 2
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -697,24 +697,24 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit, dimensional_local
-n_units = 1000
+n_units = 500
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
 # c_recruit = 'feedback'  # feedback or loss_thresh
 
 # top k%. so .05 = top 5%
-k = .001
+k = .01
 
 # SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 # trials, etc.
-n_epochs = 10 # 40
+n_epochs = 32 # 40
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 6,  # node specificity - 6.
+    'c': 3,  # node specificity - 6.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 3.5,  # response parameter, non-negative
     'lr_attn': .015,  # .005 / .05 / .001. SHJ - .01
@@ -738,6 +738,19 @@ params = {
 # - checked Cluster.py with wta and it works fine - with same params
 # matched all here even k=1 unit...  what is different? FIND OUT
 
+# these params works to match SHJ pattern with sustain-like activation func
+# - with 8 trials per block
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 1,
+    'p': 1,  # p=1 exp, p =2 gauss
+    'phi': .6,
+    'lr_attn': .02, # .025, .033,
+    'lr_nn': .25, # .15,  # .25
+    'lr_clusters': .1, #.197
+    'lr_clusters_group': .0,  # .95
+    'k': k
+    }
 
 # # continuous
 # params = {
@@ -781,19 +794,19 @@ params = {
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=True)
+    model, inputs, output, n_epochs, shuffle=False)
 
-print(epoch_acc)
-print(epoch_ptarget)
+# print(epoch_acc)
+# print(epoch_ptarget)
 
-active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-# print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
-print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
-# print(np.unique(np.around(model.attn.detach().numpy()[active_ws], decimals=2), axis=0))
-print(model.attn)
+# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+# # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
+# print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
+# # print(np.unique(np.around(model.attn.detach().numpy()[active_ws], decimals=2), axis=0))
+# print(model.attn)
 
 print(model.recruit_units_trl)
-print(len(model.recruit_units_trl))
+# print(len(model.recruit_units_trl))
 
 
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
@@ -804,23 +817,23 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
 plt.plot(1 - epoch_ptarget.detach())
 plt.ylim([0, .5])
 
-# if problem == 0:
-#     pt = []
-# pt.append(1 - epoch_ptarget.detach())
+if problem == 0:
+    pt = []
+pt.append(1 - epoch_ptarget.detach())
 
 # figname = os.path.join(wd,
 #                        'SHJ_prt_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
 #                            problem, k, n_units, params['lr_attn'], n_epochs))
 # plt.savefig(figname)
-plt.show()
+# plt.show()
 
-# attention weights
-plt.plot(torch.stack(model.attn_trace, dim=0))
-# figname = os.path.join(wd,
-#                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
-#                            problem, k, n_units, params['lr_attn'], n_epochs))
-# plt.savefig(figname)
-plt.show()
+# # attention weights
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# # figname = os.path.join(wd,
+# #                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+# #                            problem, k, n_units, params['lr_attn'], n_epochs))
+# # plt.savefig(figname)
+# plt.show()
 
 # # unit positions
 # results = torch.stack(model.units_pos_trace, dim=0)[-1, active_ws]
@@ -834,7 +847,114 @@ plt.show()
 #                        'SHJ_unitspos2D_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
 #                            problem, k, n_units, params['lr_attn'], n_epochs))
 # plt.savefig(figname)
+# plt.show()
+
+
+# plt.plot(torch.stack(pt).T)
+
+# %% shj cluster_wta
+
+six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 1], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 0], [1, 1, 1, 0]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 0], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 0]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 1, 0],
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]],
+
+                ]
+
+
+niter = 40
+n_epochs = 32
+pt_all = torch.zeros([niter, 6, n_epochs])
+
+# run multiple iterations
+for i in range(niter):
+    
+    # six problems
+    for problem in range(6):
+    
+        stim = six_problems[problem]
+        stim = torch.tensor(stim, dtype=torch.float)
+        inputs = stim[:, 0:-1]
+        output = stim[:, -1].long()  # integer
+
+        # model details
+        attn_type = 'dimensional'  # dimensional, unit, dimensional_local
+        n_units = 500
+        n_dims = inputs.shape[1]
+        loss_type = 'cross_entropy'
+        k = .01  # top k%. so .05 = top 5%
+        
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3,  # node specificity - 6.
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 3.5,  # response parameter, non-negative
+        #     'lr_attn': .015,  # .005 / .05 / .001. SHJ - .01
+        #     'lr_nn': .05,  # .1. .01 actually better, c=6. cont - .15. for fitting SHJ pattern, lr_nn=.01, 
+        #     'lr_clusters': .015,  # .25
+        #     'lr_clusters_group': .0,  # .95
+        #     'k': k
+        #     }
+        
+        # these params works to match SHJ pattern with sustain-like activation func
+        # - with 8 trials per block
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 1,
+            'p': 1,  # p=1 exp, p =2 gauss
+            'phi': .6,
+            'lr_attn': .02, # .025, .033,
+            'lr_nn': .25, # .15,  # .25
+            'lr_clusters': .1, #.197
+            'lr_clusters_group': .0,  # .95
+            'k': k
+            }
+        
+        model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+        
+        model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+            model, inputs, output, n_epochs, shuffle=True)
+
+        pt_all[i, problem] = 1 - epoch_ptarget.detach()
+
+        # print(model.recruit_cluster_trl)
+    
+plt.plot(pt_all.mean(axis=0).T)
+plt.ylim([0., 0.55])
+plt.gca().legend(('1','2','3','4','5','6'))
 plt.show()
+
+# %% fit shj
+
+# the human data from nosofsky, et al. replication
+shj = (
+    np.array([[0.211, 0.025, 0.003, 0., 0., 0., 0., 0.,
+               0., 0., 0., 0., 0., 0., 0., 0.],
+              [0.378, 0.156, 0.083, 0.056, 0.031, 0.027, 0.028, 0.016,
+               0.016, 0.008, 0., 0.002, 0.005, 0.003, 0.002, 0.],
+              [0.459, 0.286, 0.223, 0.145, 0.081, 0.078, 0.063, 0.033,
+               0.023, 0.016, 0.019, 0.009, 0.008, 0.013, 0.009, 0.013],
+              [0.422, 0.295, 0.222, 0.172, 0.148, 0.109, 0.089, 0.062,
+               0.025, 0.031, 0.019, 0.025, 0.005, 0., 0., 0.],
+              [0.472, 0.331, 0.23, 0.139, 0.106, 0.081, 0.067,
+               0.078, 0.048, 0.045, 0.05, 0.036, 0.031, 0.027, 0.016, 0.014],
+              [0.498, 0.341, 0.284, 0.245, 0.217, 0.192, 0.192, 0.177,
+               0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
+    )
+
 
 # %% unsupervised
 
