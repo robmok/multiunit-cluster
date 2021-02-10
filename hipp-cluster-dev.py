@@ -560,12 +560,6 @@ def humble_teacher(output, target, n_classes=2):
     If multiple_tasks or output classes>2, need specify n_classes
     (unlike cross_entropy - so I had an if statement for loss=criterion...)
     '''
-    # # 1 output, sustain
-    # if (target == 1 and output >= 1) or (target == 0 and output <= 0):
-    #     error = 0
-    # else:
-    #     error = target - output  # check
-
     # 2+ outputs
     output = output.squeeze()  # unsqueeze needed for cross-entropy
     error = torch.zeros(n_classes)
@@ -648,52 +642,6 @@ output = stim[:, -1].long()  # integer
 # mu2 = [-.25, -.6]
 # var2 = [.0125, .005]
 # cov2 = .005
-
-# # # same/similar on first dim - attn not learning the right one...? local attn works better, interestingly.
-# mu1 = [-.5, .25]
-# var1 = [.0185, .065]
-# cov1 = -.005
-# mu2 = [-.5, -.7]
-# var2 = [.015, .005]
-# cov2 = .005
-
-# # # simple diagonal covariance
-# # mu1 = [-.5, .25]
-# # var1 = [.02, .02]
-# # cov1 = 0
-# # mu2 = [-.25, -.6]
-# # var2 = [.02, .02]
-# # cov2 = 0
-
-# # mu1 = [-.5, -.25]
-# # var1 = [.0185, .065]
-# # cov1 = 0
-# # mu2 = [.25, .5]
-# # var2 = [.0185, .065]
-# # cov2 = 0
-
-# # closer together
-# mu1 = [-.5, .25]
-# var1 = [.02, .02]
-# cov1 = 0
-# mu2 = [-.25, -.25]
-# var2 = [.02, .02]
-# cov2 = 0
-
-# # fix same points
-# np.random.seed(5)
-# # torch.random.manual_seed(5)
-
-# npoints = 100
-# x1 = np.random.multivariate_normal(
-#     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
-# x2 = np.random.multivariate_normal(
-#     [mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]], npoints)
-
-# inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
-#                     torch.tensor(x2, dtype=torch.float32)])
-# output = torch.cat([torch.zeros(npoints, dtype=torch.long),
-#                     torch.ones(npoints, dtype=torch.long)])
 
 # model details
 attn_type = 'dimensional'  # dimensional, unit, dimensional_local
@@ -875,8 +823,8 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 40
-n_epochs = 32
+niter = 20
+n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
 # run multiple iterations
@@ -889,13 +837,17 @@ for i in range(niter):
         stim = torch.tensor(stim, dtype=torch.float)
         inputs = stim[:, 0:-1]
         output = stim[:, -1].long()  # integer
+        
+        # 16 per trial
+        inputs = inputs.repeat(2, 1)
+        output = output.repeat(2).T
 
         # model details
         attn_type = 'dimensional'  # dimensional, unit, dimensional_local
-        n_units = 500
+        n_units = 1000
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .01  # top k%. so .05 = top 5%
+        k = .05  # top k%. so .05 = top 5%
         
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
@@ -910,21 +862,49 @@ for i in range(niter):
         #     }
         
         # these params works to match SHJ pattern with sustain-like activation func
-        # - with 8 trials per block
+        # k=.01
         params = {
             'r': 1,  # 1=city-block, 2=euclid
             'c': 1,
             'p': 1,  # p=1 exp, p =2 gauss
-            'phi': .6,
+            'phi': .5,  # n_units 500=0.6. 
             'lr_attn': .02, # .025, .033,
             'lr_nn': .25, # .15,  # .25
-            'lr_clusters': .1, #.197
-            'lr_clusters_group': .0,  # .95
+            'lr_clusters': .05, # .197
+            'lr_clusters_group': .1,  # .1, .4, same
             'k': k
             }
+
+        # testing - higher c, type 6 fast, type 1 slow. OK
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3,
+        #     'p': 1,  # p=1 exp, p =2 gauss
+        #     'phi': .25,  # n_units 500=0.6
+        #     'lr_attn': .02,  # .025, .033,
+        #     'lr_nn': .25,  # .15,  # .25
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .4,
+        #     'k': k
+        #     }
         
+        # k=.05, lr_nn needs to be lower. e.g. .05. phi lower to show effects when c>3
+        # - note, c=1 is v slow now. but c>3 is fast, and separation of 1/6/others is clear
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 3,
+            'p': 1,  # p=1 exp, p =2 gauss
+            'phi': .35,  #  .35 when c=3, 
+            'lr_attn': .02, # .025, .033,
+            'lr_nn': .035, # 
+            'lr_clusters': .05, # .197
+            'lr_clusters_group': .1,  # .1, .4, same
+            'k': k
+            }
+
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
-        
+
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, n_epochs, shuffle=True)
 
