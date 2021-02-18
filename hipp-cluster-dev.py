@@ -220,7 +220,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
     model.train()
     for epoch in range(n_epochs):
-        # torch.manual_seed(5)
+        torch.manual_seed(5)
         if shuffle:
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
@@ -762,12 +762,12 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
 # plot for several k values (.01, .05, .1, .2?), several n_units (1, 1000, 10000, 1000000) - for n=1, k doesn't matter
 
 # pr target
-plt.plot(1 - epoch_ptarget.detach())
-plt.ylim([0, .5])
+# plt.plot(1 - epoch_ptarget.detach())
+# plt.ylim([0, .5])
 
-if problem == 0:
-    pt = []
-pt.append(1 - epoch_ptarget.detach())
+# if problem == 0:
+#     pt = []
+# pt.append(1 - epoch_ptarget.detach())
 
 # figname = os.path.join(wd,
 #                        'SHJ_prt_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
@@ -823,7 +823,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 20
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
@@ -831,6 +831,7 @@ pt_all = torch.zeros([niter, 6, n_epochs])
 for i in range(niter):
     
     # six problems
+    
     for problem in range(6):
     
         stim = six_problems[problem]
@@ -844,7 +845,7 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional'  # dimensional, unit, dimensional_local
-        n_units = 1000
+        n_units = 10000
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
         k = .05  # top k%. so .05 = top 5%
@@ -867,13 +868,50 @@ for i in range(niter):
             'r': 1,  # 1=city-block, 2=euclid
             'c': 1,
             'p': 1,  # p=1 exp, p =2 gauss
-            'phi': .5,  # n_units 500=0.6. 
-            'lr_attn': .02, # .025, .033,
+            'phi': .8,  # n_units 500=0.6. 
+            'lr_attn': .033, # .025, .033,
             'lr_nn': .25, # .15,  # .25
-            'lr_clusters': .05, # .197
-            'lr_clusters_group': .1,  # .1, .4, same
+            'lr_clusters': .05, # .01, .05
+            'lr_clusters_group': .1,
             'k': k
             }
+        
+        # better in cluster, better here with minor edits - higher c, higher attn
+        # - k=.01, n_units=500 ok
+        # - k=.01, n_units=1000 - why is this different...
+        # --> when c is > 1.5, n_units makes a difference. 1.25 more similar?
+        # potential issue, interaction etween lr_nn and c
+        # - looks like when lr_nn >.2, c>1.5, nunits>1000, everything too fast,
+        # order goes out of whack
+        # - solution - lower lr_nn, higher c, phi
+        # - BUT with higher k value (e.g. .05), c>1 does the above again.
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 1.6,  #  1.6 w/ k=.01, c=<1 if k=.05
+            'p': 1,  # p=1 exp, p =2 gauss
+            'phi': .7,  # n_units 500=0.6. 
+            'lr_attn': .03, # .025, .033,
+            'lr_nn': .05, # .15
+            'lr_clusters': .01,  # .01
+            'lr_clusters_group': .1,  # .1 - doesn't change for shj?
+            'k': k
+            }
+
+        # - k=.05 -lower c and higher lr_attn
+        # 1k units ok, but now 2k units problem with c=1.
+        # c needs to be .6/.7 to look like above again. and now type 3 is faster than 4/5
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .7,  #  1.6 w/ k=.01, c=<1 if k=.05
+            'p': 1,  # p=1 exp, p =2 gauss
+            'phi': .7,
+            'lr_attn': .1, # .025, .033,
+            'lr_nn': .05, # .15
+            'lr_clusters': .01,  # .01
+            'lr_clusters_group': .1,  # .1 - doesn't change for shj?
+            'k': k
+            }
+
 
         # testing - higher c, type 6 fast, type 1 slow. OK
         # params = {
@@ -887,21 +925,20 @@ for i in range(niter):
         #     'lr_clusters_group': .4,
         #     'k': k
         #     }
-        
-        # k=.05, lr_nn needs to be lower. e.g. .05. phi lower to show effects when c>3
-        # - note, c=1 is v slow now. but c>3 is fast, and separation of 1/6/others is clear
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 3,
-            'p': 1,  # p=1 exp, p =2 gauss
-            'phi': .35,  #  .35 when c=3, 
-            'lr_attn': .02, # .025, .033,
-            'lr_nn': .035, # 
-            'lr_clusters': .05, # .197
-            'lr_clusters_group': .1,  # .1, .4, same
-            'k': k
-            }
 
+        # # k=.05, lr_nn needs to be lower. e.g. .05. phi lower to show effects when c>3
+        # # - note, c=1 is v slow now. but c>3 is fast, and separation of 1/6/others is clear
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3,
+        #     'p': 1,  # p=1 exp, p =2 gauss
+        #     'phi': .35,  #  .35 when c=3, 
+        #     'lr_attn': .02, # .025, .033,
+        #     'lr_nn': .035, # 
+        #     'lr_clusters': .05, # .197
+        #     'lr_clusters_group': .1,  # .1, .4, same
+        #     'k': k
+        #     }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
