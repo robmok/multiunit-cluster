@@ -162,13 +162,18 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
-        norm_units = False
+        norm_units = True
         if norm_units:
-            # beta = self.params['beta']
-            beta = 1
-            act.data[self.winning_units] = (
-                (act.data[self.winning_units]**beta) /
-                (torch.sum(act.data[self.winning_units]**beta)))
+            beta = self.params['beta']
+
+            # edited self.winning_units as index to active_ws - since normalize by all active units, not just winners.
+            # pretty sure previous was wrong. but this also doesn't work as expected...
+            active_ws = torch.sum(abs(self.fc1.weight) > 0, axis=0,
+                                  dtype=torch.bool)
+
+            act.data[active_ws] = (
+                (act.data[active_ws]**beta) /
+                (torch.sum(act.data[active_ws]**beta)))
 
         units_output = act * self.winning_units
 
@@ -220,7 +225,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
     model.train()
     for epoch in range(n_epochs):
-        torch.manual_seed(5)
+        # torch.manual_seed(5)
         if shuffle:
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
@@ -629,7 +634,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 5
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -845,10 +850,10 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional'  # dimensional, unit, dimensional_local
-        n_units = 10000
+        n_units = 500
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .05  # top k%. so .05 = top 5%
+        k = .01  # top k%. so .05 = top 5%
         
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
@@ -870,12 +875,12 @@ for i in range(niter):
             'p': 1,  # p=1 exp, p =2 gauss
             'phi': .8,  # n_units 500=0.6. 
             'lr_attn': .033, # .025, .033,
-            'lr_nn': .25, # .15,  # .25
+            'lr_nn': .15, # .15,  # .25
             'lr_clusters': .05, # .01, .05
             'lr_clusters_group': .1,
             'k': k
             }
-        
+
         # better in cluster, better here with minor edits - higher c, higher attn
         # - k=.01, n_units=500 ok
         # - k=.01, n_units=1000 - why is this different...
@@ -885,42 +890,56 @@ for i in range(niter):
         # order goes out of whack
         # - solution - lower lr_nn, higher c, phi
         # - BUT with higher k value (e.g. .05), c>1 does the above again.
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.6,  #  1.6 w/ k=.01, c=<1 if k=.05
-            'p': 1,  # p=1 exp, p =2 gauss
-            'phi': .7,  # n_units 500=0.6. 
-            'lr_attn': .03, # .025, .033,
-            'lr_nn': .05, # .15
-            'lr_clusters': .01,  # .01
-            'lr_clusters_group': .1,  # .1 - doesn't change for shj?
-            'k': k
-            }
-
-        # - k=.05 -lower c and higher lr_attn
-        # 1k units ok, but now 2k units problem with c=1.
-        # c needs to be .6/.7 to look like above again. and now type 3 is faster than 4/5
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .7,  #  1.6 w/ k=.01, c=<1 if k=.05
-            'p': 1,  # p=1 exp, p =2 gauss
-            'phi': .7,
-            'lr_attn': .1, # .025, .033,
-            'lr_nn': .05, # .15
-            'lr_clusters': .01,  # .01
-            'lr_clusters_group': .1,  # .1 - doesn't change for shj?
-            'k': k
-            }
-
-
-        # testing - higher c, type 6 fast, type 1 slow. OK
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3,
+        #     'c': 1.6,  #  1.6 w/ k=.01, c=<1 if k=.05
         #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'phi': .25,  # n_units 500=0.6
-        #     'lr_attn': .02,  # .025, .033,
-        #     'lr_nn': .25,  # .15,  # .25
+        #     'phi': .7,  # n_units 500=0.6. 
+        #     'lr_attn': .03, # .025, .033,
+        #     'lr_nn': .05, # .15
+        #     'lr_clusters': .01,  # .01
+        #     'lr_clusters_group': .1,  # .1 - doesn't change for shj?
+        #     'k': k
+        #     }
+
+        # # - k=.05 -lower c and higher lr_attn
+        # # 1k units ok, but now 2k units problem with c=1.
+        # # c needs to be .6/.7 to look like above again. and now type 3 is faster than 4/5
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .7,  #  1.6 w/ k=.01, c=<1 if k=.05
+        #     'p': 1,  # p=1 exp, p =2 gauss
+        #     'phi': .7,
+        #     'lr_attn': .1, # .025, .033,
+        #     'lr_nn': .05, # .15
+        #     'lr_clusters': .01,  # .01
+        #     'lr_clusters_group': .1,  # .1 - doesn't change for shj?
+        #     'k': k
+        #     }
+
+        # trying shj with cluster competition
+        params = {            
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 1.,
+            'p': 1,  # p=1 exp, p =2 gauss
+            'beta': 1.1,
+            'phi': 6,
+            'lr_attn': .005,
+            'lr_nn': .15, # .15,  # .25
+            'lr_clusters': .1, # .01, .05
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
+
+        # # testing - higher c, type 6 fast, type 1 slow. OK
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3,  # 1, 2, 3
+        #     'p': 1,  # p=1 exp, p =2 gauss
+        #     'phi': .5,
+        #     'lr_attn': .01,
+        #     'lr_nn': .1,  # .1
         #     'lr_clusters': .05,
         #     'lr_clusters_group': .4,
         #     'k': k
@@ -947,7 +966,7 @@ for i in range(niter):
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
-        # print(model.recruit_cluster_trl)
+        # print(model.recruit_units_trl)
     
 plt.plot(pt_all.mean(axis=0).T)
 plt.ylim([0., 0.55])
