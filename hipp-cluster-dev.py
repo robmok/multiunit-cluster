@@ -162,14 +162,13 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
-        norm_units = True
+        # edited self.winning_units as index to active_ws - since normalize by all active units, not just winners.
+        # pretty sure previous was wrong. but this also doesn't work as expected...
+        active_ws = torch.sum(abs(self.fc1.weight) > 0, axis=0,
+                              dtype=torch.bool)
+        norm_units = False
         if norm_units:
             beta = self.params['beta']
-
-            # edited self.winning_units as index to active_ws - since normalize by all active units, not just winners.
-            # pretty sure previous was wrong. but this also doesn't work as expected...
-            active_ws = torch.sum(abs(self.fc1.weight) > 0, axis=0,
-                                  dtype=torch.bool)
 
             act.data[active_ws] = (
                 (act.data[active_ws]**beta) /
@@ -180,6 +179,7 @@ class MultiUnitCluster(nn.Module):
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
         # self.units_act_trace.append(units_output.detach().clone())
+        self.units_act_trace.append(units_output[active_ws].detach().clone())
 
         # save attn weights
         if not self.attn_type[-5] == 'local':
@@ -275,7 +275,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
             model.winning_units[win_ind] = True
 
             # save acts
-            model.units_act_trace.append(act[win_ind].detach().clone())
+            # model.units_act_trace.append(act[win_ind].detach().clone())
 
             # learn
             optimizer.zero_grad()
@@ -317,26 +317,51 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                     # else:
                     #     ind = range(len(win_ind))
 
-                    # index the winners with dist > 0 to be updated
-                    # - if 1/2 winners on stim and 1/2 not, can't selective upd
-                    ind = torch.sum(
-                            abs(x - model.units_pos[win_ind]), axis=1) > 0
-                    # win_ind_1 = win_ind[ind]
+                    # # index the winners with dist > 0 to be updated
+                    # # - if 1/2 winners on stim and 1/2 not, can't selective upd
+                    # ind = torch.sum(
+                    #         abs(x - model.units_pos[win_ind]), axis=1) > 0
+                    # # win_ind_1 = win_ind[ind]
 
-                    act_1 = _compute_act(
-                        (torch.sum(model.attn *
-                                   (abs(x - model.units_pos[win_ind[ind]])
+                    # act_1 = _compute_act(
+                    #     (torch.sum(model.attn *
+                    #                (abs(x - model.units_pos[win_ind[ind]])
+                    #                 ** model.params['r']), axis=1) **
+                    #      (1/model.params['r'])),
+                    #     model.params['c'], model.params['p'])
+
+
+                    # NEW changing win_ind - wta winner only
+                    # - only works with 
+                    win_ind = win_mask[0]  # wta_mask[0] / ind[0][0] both work - wta winner
+                    lose_ind = (win_mask[0] == False) & active_ws
+
+                    # compute gradient based on activation of winners *minus*
+                    # losing units.
+                    act_1 = (
+                        _compute_act(
+                            (torch.sum(model.attn *
+                                    (abs(x - model.units_pos[win_ind])
                                     ** model.params['r']), axis=1) **
-                         (1/model.params['r'])),
-                        model.params['c'], model.params['p'])
+                              (1/model.params['r'])), model.params['c'],
+                            model.params['p']) - 
+
+                        torch.mean(_compute_act(  # mean or sum?
+                            (torch.sum(model.attn *
+                                        (abs(x - model.units_pos[lose_ind])
+                                        ** model.params['r']), axis=1) **
+                              (1/model.params['r'])), model.params['c'],
+                            model.params['p']))
+                        )
 
                     # compute gradient
                     for i in range(len(act_1)):
                         act_1[i].backward(retain_graph=True)
                     if len(act_1):  # if any
-                        model.attn.grad = model.attn.grad / len(act_1)  # len(win_ind) or len(act_1) - still take the win_ind len even if some zeros?
+                        model.attn.grad = model.attn.grad / len(act_1)
                         model.attn.data += (
                             model.params['lr_attn'] * model.attn.grad)
+
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -430,41 +455,41 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
                 optimizer.step()
 
-                # if use local attention update - gradient ascent to unit acts
-                if model.attn_type[-5:] == 'local':
-                    # compute act of winners and compute gradient for attn ws
-                    # - most of the time zero since it's on the stimulus
-                    # - except when replacing. existing ones not on stim
+                # # if use local attention update - gradient ascent to unit acts
+                # if model.attn_type[-5:] == 'local':
+                #     # compute act of winners and compute gradient for attn ws
+                #     # - most of the time zero since it's on the stimulus
+                #     # - except when replacing. existing ones not on stim
 
-                    # index the winners with dist > 0 to be updated
-                    ind = torch.sum(
-                        abs(x - model.units_pos[recruit_ind]), axis=1) > 0
+                #     # index the winners with dist > 0 to be updated
+                #     ind = torch.sum(
+                #         abs(x - model.units_pos[recruit_ind]), axis=1) > 0
 
-                    act_1 = _compute_act(
-                        (torch.sum(model.attn *
-                                   (abs(x - model.units_pos[recruit_ind[ind]])
-                                    ** model.params['r']), axis=1) **
-                         (1/model.params['r'])),
-                        model.params['c'], model.params['p'])
+                #     act_1 = _compute_act(
+                #         (torch.sum(model.attn *
+                #                    (abs(x - model.units_pos[recruit_ind[ind]])
+                #                     ** model.params['r']), axis=1) **
+                #          (1/model.params['r'])),
+                #         model.params['c'], model.params['p'])
 
-                    # compute gradient
-                    for i in range(len(act_1)):
-                        act_1[i].backward(retain_graph=True)
-                    if len(act_1):  # if any
-                        model.attn.grad = model.attn.grad / len(act_1)  # len(recruit_ind) or len(act_1) - still take the recruit_ind len?
-                        model.attn.data += (
-                            model.params['lr_attn'] * model.attn.grad)
+                #     # compute gradient
+                #     for i in range(len(act_1)):
+                #         act_1[i].backward(retain_graph=True)
+                #     if len(act_1):  # if any
+                #         model.attn.grad = model.attn.grad / len(act_1)  # len(recruit_ind) or len(act_1) - still take the recruit_ind len?
+                #         model.attn.data += (
+                #             model.params['lr_attn'] * model.attn.grad)
 
-                # sum attention weights to 1
-                model.attn.data = torch.clamp(model.attn.data, min=0.)
-                if model.attn_type[0:4] == 'dime':
-                    model.attn.data = (
-                        model.attn.data / torch.sum(model.attn.data))
-                elif model.attn_type[0:4] == 'unit':
-                    model.attn.data = (
-                        model.attn.data /
-                        torch.sum(model.attn.data, dim=1, keepdim=True)
-                        )
+                # # sum attention weights to 1
+                # model.attn.data = torch.clamp(model.attn.data, min=0.)
+                # if model.attn_type[0:4] == 'dime':
+                #     model.attn.data = (
+                #         model.attn.data / torch.sum(model.attn.data))
+                # elif model.attn_type[0:4] == 'unit':
+                #     model.attn.data = (
+                #         model.attn.data /
+                #         torch.sum(model.attn.data, dim=1, keepdim=True)
+                #         )
 
                 # update units - double update rule
                 update = (
@@ -649,7 +674,7 @@ output = stim[:, -1].long()  # integer
 # cov2 = .005
 
 # model details
-attn_type = 'dimensional'  # dimensional, unit, dimensional_local
+attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
 n_units = 500
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
@@ -657,7 +682,7 @@ loss_type = 'cross_entropy'
 # c_recruit = 'feedback'  # feedback or loss_thresh
 
 # top k%. so .05 = top 5%
-k = .01
+k = .05
 
 # SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
@@ -677,6 +702,33 @@ params = {
     'k': k
     }
 
+# new local attn
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .3,
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': .8, # (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
+    'beta': 1.,
+    'lr_attn': .01,
+    'lr_nn': .2,
+    'lr_clusters': .01,
+    'lr_clusters_group': .05,
+    'k': k
+    }
+
+# # new local attn - cluster competition
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': .7,
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 15.5,
+#     'beta': 1.,
+#     'lr_attn': .01,
+#     'lr_nn': .2,
+#     'lr_clusters': .01,
+#     'lr_clusters_group': .05,
+#     'k': k
+#     }
 
 # for fitting SHJ pattern
 # c=1-4 works. >6 then type I initially slower than II... 
@@ -693,57 +745,33 @@ params = {
 
 # these params works to match SHJ pattern with sustain-like activation func
 # - with 8 trials per block
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 1,
-    'p': 1,  # p=1 exp, p =2 gauss
-    'phi': .6,
-    'lr_attn': .02, # .025, .033,
-    'lr_nn': .25, # .15,  # .25
-    'lr_clusters': .1, #.197
-    'lr_clusters_group': .0,  # .95
-    'k': k
-    }
-
-# # continuous
-# params = {
-#     'r': 1,
-#     'c': 10,
-#     'p': 1,
-#     'phi': 1,
-#     'lr_attn': .025,  # cont+unit- .25 - needs to be fast..?
-#     'lr_nn': .015,  # cont - .15
-#     'lr_clusters': .125,
-#     'lr_clusters_group': .95,
-#     'k': k
-#     }
-
-# local attn
 # params = {
 #     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 1,  # node specificity
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1,  # response parameter, non-negative
-#     'lr_attn': .0015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
-#     'lr_nn': .015,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
-#     'lr_clusters': .05,  # .15. cont - .05 also works
-#     'lr_clusters_group': .5,  # .5, .25. cont -
+#     'c': 1,
+#     'p': 1,  # p=1 exp, p =2 gauss
+#     'phi': .6,
+#     'lr_attn': .02, # .025, .033,
+#     'lr_nn': .25, # .15,  # .25
+#     'lr_clusters': .1, #.197
+#     'lr_clusters_group': .0,  # .95
 #     'k': k
 #     }
 
-# # cont
-# params = {
-#     'r': 2,  # 1=city-block, 2=euclid
-#     'c': 8,  # node specificity
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1,  # response parameter, non-negative
-#     'lr_attn': .015,  # .0015, .015. for SHJ, .0025 (with lr_nn=.05)
-#     'lr_nn': .005,  # .005, .05, .015 (cont w/.025 attn - when dim1 irrelevant, learns attn ws of [1,0] or close to it.. hmm it does this for all problems though)
-#     'lr_clusters': .15,  # .15. cont - .05 also works
-#     'lr_clusters_group': .5,  # .5, .25. cont -
+
+# # trying shj with cluster competition
+# params = {            
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 1.,
+#     'p': 1,  # p=1 exp, p =2 gauss
+#     'beta': 1.1,
+#     'phi': 6,
+#     'lr_attn': .005,
+#     'lr_nn': .15, # .15,  # .25
+#     'lr_clusters': .1, # .01, .05
+#     'lr_clusters_group': .1,
 #     'k': k
 #     }
-
+        
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -767,8 +795,11 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
 # plot for several k values (.01, .05, .1, .2?), several n_units (1, 1000, 10000, 1000000) - for n=1, k doesn't matter
 
 # pr target
-# plt.plot(1 - epoch_ptarget.detach())
-# plt.ylim([0, .5])
+plt.plot(1 - epoch_ptarget.detach())
+plt.ylim([0, .5])
+
+# plt.plot(1 - trial_ptarget.detach()[0:16])
+# plt.ylim([0, 1])
 
 # if problem == 0:
 #     pt = []
@@ -828,7 +859,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 1
+niter = 20
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
@@ -853,7 +884,7 @@ for i in range(niter):
         n_units = 500
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .01  # top k%. so .05 = top 5%
+        k = .05  # top k%. so .05 = top 5%
         
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
@@ -927,6 +958,20 @@ for i in range(niter):
             'lr_attn': .005,
             'lr_nn': .15, # .15,  # .25
             'lr_clusters': .1, # .01, .05
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
+        # new local attn
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .5,  # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1., # (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
+            'beta': 1.,
+            'lr_attn': .05,
+            'lr_nn': .15,
+            'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
             }
