@@ -859,7 +859,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 20
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
@@ -965,9 +965,9 @@ for i in range(niter):
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .5,  # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
+            'c': .1,  # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1., # (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
+            'phi': 3.5, # (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
             'beta': 1.,
             'lr_attn': .05,
             'lr_nn': .15,
@@ -976,6 +976,33 @@ for i in range(niter):
             'k': k
             }
 
+
+        # new local attn + cluster comp
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .2,  # .2
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 200,  # 200
+        #     'beta': .1,
+        #     'lr_attn': .01,  # .01
+        #     'lr_nn': .2,  # .2
+        #     'lr_clusters': .01,
+        #     'lr_clusters_group': .15,
+        #     'k': k
+        #     }
+        
+        
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 2,
+#     'p': 1,  # p=1 exp, p =2 gauss
+#     'beta': 1,
+#     'phi': 4.5,
+#     'a': .005,
+#     'lr_attn': .01,
+#     'lr_nn': .25,
+#     'lr_clusters': .1
+#     }
 
         # # testing - higher c, type 6 fast, type 1 slow. OK
         # params = {
@@ -1011,14 +1038,12 @@ for i in range(niter):
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
-        # print(model.recruit_units_trl)
+        print(model.recruit_units_trl)
     
 plt.plot(pt_all.mean(axis=0).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('1','2','3','4','5','6'))
 plt.show()
-
-# %% fit shj
 
 # the human data from nosofsky, et al. replication
 shj = (
@@ -1035,6 +1060,22 @@ shj = (
               [0.498, 0.341, 0.284, 0.245, 0.217, 0.192, 0.192, 0.177,
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
+
+# fig, ax = plt.subplots(2, 1)
+# ax[0].plot(shj.T)
+# ax[0].set_ylim([0., .55])
+# ax[0].set_aspect(17)
+# ax[1].plot(pt_all.mean(axis=0).T)
+# ax[1].set_ylim([0., .55])
+# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+# ax[1].set_aspect(17)
+
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj.T, 'k')
+ax.plot(pt_all.mean(axis=0).T, 'o-')
+# ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
+ax.set_ylim([0., .55])
+ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
 
 # %% unsupervised
