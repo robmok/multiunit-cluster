@@ -346,7 +346,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                               (1/model.params['r'])), model.params['c'],
                             model.params['p']) - 
 
-                        torch.mean(_compute_act(  # mean or sum?
+                        torch.sum(_compute_act(  # mean or sum? - mean might make more sense here, many more losers. However, losers smaller acts, so sum is needed to counteract the winners (in Cluster this is the case)
                             (torch.sum(model.attn *
                                         (abs(x - model.units_pos[lose_ind])
                                         ** model.params['r']), axis=1) **
@@ -859,15 +859,15 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 1
+niter = 10
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
 # run multiple iterations
 for i in range(niter):
-    
+
     # six problems
-    
+
     for problem in range(6):
     
         stim = six_problems[problem]
@@ -885,7 +885,7 @@ for i in range(niter):
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
         k = .05  # top k%. so .05 = top 5%
-        
+
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
         #     'c': 3,  # node specificity - 6.
@@ -900,17 +900,17 @@ for i in range(niter):
         
         # these params works to match SHJ pattern with sustain-like activation func
         # k=.01
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1,
-            'p': 1,  # p=1 exp, p =2 gauss
-            'phi': .8,  # n_units 500=0.6. 
-            'lr_attn': .033, # .025, .033,
-            'lr_nn': .15, # .15,  # .25
-            'lr_clusters': .05, # .01, .05
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 1,
+        #     'p': 1,  # p=1 exp, p =2 gauss
+        #     'phi': .8,  # n_units 500=0.6. 
+        #     'lr_attn': .033, # .025, .033,
+        #     'lr_nn': .15, # .15,  # .25
+        #     'lr_clusters': .05, # .01, .05
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
         # better in cluster, better here with minor edits - higher c, higher attn
         # - k=.01, n_units=500 ok
@@ -948,33 +948,47 @@ for i in range(niter):
         #     'k': k
         #     }
 
-        # trying shj with cluster competition
-        params = {            
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.,
-            'p': 1,  # p=1 exp, p =2 gauss
-            'beta': 1.1,
-            'phi': 6,
-            'lr_attn': .005,
-            'lr_nn': .15, # .15,  # .25
-            'lr_clusters': .1, # .01, .05
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # trying shj with cluster competition
+        # params = {            
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 1.,
+        #     'p': 1,  # p=1 exp, p =2 gauss
+        #     'beta': 1.1,
+        #     'phi': 6,
+        #     'lr_attn': .005,
+        #     'lr_nn': .15, # .15,  # .25
+        #     'lr_clusters': .1, # .01, .05
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .1,  # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
+            'c': .5, # .1 # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 3.5, # (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
+            'phi': .75, # .05 with c = 2/3. .75 with c=.5      .3.5 (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
             'beta': 1.,
-            'lr_attn': .05,
-            'lr_nn': .15,
+            'lr_attn': .1,  # .05
+            'lr_nn': .175,
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
             }
+        # trying with higher c
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 1.75,
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': .5,
+            'beta': 1.,
+            'lr_attn': .01,  # .05
+            'lr_nn': .1,
+            'lr_clusters': .05,
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
 
 
         # new local attn + cluster comp
@@ -983,7 +997,7 @@ for i in range(niter):
         #     'c': .2,  # .2
         #     'p': 1,  # p=1 exp, p=2 gauss
         #     'phi': 200,  # 200
-        #     'beta': .1,
+        #     'beta': .1,  # .1
         #     'lr_attn': .01,  # .01
         #     'lr_nn': .2,  # .2
         #     'lr_clusters': .01,
@@ -1070,12 +1084,12 @@ shj = (
 # ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
 # ax[1].set_aspect(17)
 
-fig, ax = plt.subplots(1, 1)
-ax.plot(shj.T, 'k')
-ax.plot(pt_all.mean(axis=0).T, 'o-')
-# ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
-ax.set_ylim([0., .55])
-ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(shj.T, 'k')
+# ax.plot(pt_all.mean(axis=0).T, 'o-')
+# # ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
+# ax.set_ylim([0., .55])
+# ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
 
 # %% unsupervised
