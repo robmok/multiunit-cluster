@@ -358,7 +358,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                     for i in range(len(act_1)):
                         act_1[i].backward(retain_graph=True)
                     if len(act_1):  # if any
-                        model.attn.grad = model.attn.grad / len(act_1)
+                        # model.attn.grad = model.attn.grad / len(act_1)  # - ah, this makes the gradients smaller. commenting it out makes it look good..
                         model.attn.data += (
                             model.params['lr_attn'] * model.attn.grad)
 
@@ -859,7 +859,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 10
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
@@ -868,7 +868,7 @@ for i in range(niter):
 
     # six problems
 
-    for problem in range(6):
+    for problem in np.array([4]):  # range(6):  # 
     
         stim = six_problems[problem]
         stim = torch.tensor(stim, dtype=torch.float)
@@ -880,24 +880,12 @@ for i in range(niter):
         output = output.repeat(2).T
 
         # model details
-        attn_type = 'dimensional'  # dimensional, unit, dimensional_local
-        n_units = 500
+        attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
+        n_units = 1000
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
         k = .05  # top k%. so .05 = top 5%
 
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3,  # node specificity - 6.
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 3.5,  # response parameter, non-negative
-        #     'lr_attn': .015,  # .005 / .05 / .001. SHJ - .01
-        #     'lr_nn': .05,  # .1. .01 actually better, c=6. cont - .15. for fitting SHJ pattern, lr_nn=.01, 
-        #     'lr_clusters': .015,  # .25
-        #     'lr_clusters_group': .0,  # .95
-        #     'k': k
-        #     }
-        
         # these params works to match SHJ pattern with sustain-like activation func
         # k=.01
         # params = {
@@ -933,90 +921,50 @@ for i in range(niter):
         #     'k': k
         #     }
 
-        # # - k=.05 -lower c and higher lr_attn
-        # # 1k units ok, but now 2k units problem with c=1.
-        # # c needs to be .6/.7 to look like above again. and now type 3 is faster than 4/5
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .7,  #  1.6 w/ k=.01, c=<1 if k=.05
-        #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'phi': .7,
-        #     'lr_attn': .1, # .025, .033,
-        #     'lr_nn': .05, # .15
-        #     'lr_clusters': .01,  # .01
-        #     'lr_clusters_group': .1,  # .1 - doesn't change for shj?
-        #     'k': k
-        #     }
-
-        # # trying shj with cluster competition
-        # params = {            
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 1.,
-        #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'beta': 1.1,
-        #     'phi': 6,
-        #     'lr_attn': .005,
-        #     'lr_nn': .15, # .15,  # .25
-        #     'lr_clusters': .1, # .01, .05
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
 
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .5, # .1 # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
+            'c': .2, # .1 # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': .75, # .05 with c = 2/3. .75 with c=.5      .3.5 (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
+            'phi': 1.25, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5      .3.5 (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
             'beta': 1.,
-            'lr_attn': .1,  # .05
+            'lr_attn': .05,  # .05
             'lr_nn': .175,
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
             }
-        # trying with higher c
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.75,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': .5,
-            'beta': 1.,
-            'lr_attn': .01,  # .05
-            'lr_nn': .1,
-            'lr_clusters': .05,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # trying with higher c - flipping 1& 6
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 1,  # high=1.75. nunits=100, low=1.75 high=3.25
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': .5,
+        #     'beta': 1.,
+        #     'lr_attn': .01,  # .05
+        #     'lr_nn': .1,
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
 
 
-        # new local attn + cluster comp
+        # # new local attn + cluster comp
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
         #     'c': .2,  # .2
         #     'p': 1,  # p=1 exp, p=2 gauss
         #     'phi': 200,  # 200
         #     'beta': .1,  # .1
-        #     'lr_attn': .01,  # .01
+        #     'lr_attn': .1,  # .01
         #     'lr_nn': .2,  # .2
         #     'lr_clusters': .01,
         #     'lr_clusters_group': .15,
         #     'k': k
         #     }
         
-        
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 2,
-#     'p': 1,  # p=1 exp, p =2 gauss
-#     'beta': 1,
-#     'phi': 4.5,
-#     'a': .005,
-#     'lr_attn': .01,
-#     'lr_nn': .25,
-#     'lr_clusters': .1
-#     }
 
         # # testing - higher c, type 6 fast, type 1 slow. OK
         # params = {
@@ -1048,7 +996,7 @@ for i in range(niter):
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True)
+            model, inputs, output, n_epochs, shuffle=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
@@ -1091,6 +1039,9 @@ shj = (
 # ax.set_ylim([0., .55])
 # ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
+
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# plt.show()
 
 # %% unsupervised
 
