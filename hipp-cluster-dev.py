@@ -927,10 +927,10 @@ for i in range(niter):
             'r': 1,  # 1=city-block, 2=euclid
             'c': .2, # .1 # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.25, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5      .3.5 (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
+            'phi': 1.25, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
             'beta': 1.,
-            'lr_attn': .01*5,  # .05
-            'lr_nn': .175*5,
+            'lr_attn': .01*5,  # .05. # scale by n_units*k - figure out general form (e.g. base is 100 units. could you do 1 unit? prob not since need test different k values)
+            'lr_nn': .175*5,  # scale by n_units*k
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
