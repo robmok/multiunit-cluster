@@ -346,7 +346,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                               (1/model.params['r'])), model.params['c'],
                             model.params['p']) - 
 
-                        torch.sum(_compute_act(  # mean or sum? - mean might make more sense here, many more losers. However, losers smaller acts, so sum is needed to counteract the winners (in Cluster this is the case)
+                        torch.mean(_compute_act(  # mean or sum? - mean might make more sense here, many more losers. However, losers smaller acts, so sum is needed to counteract the winners (in Cluster this is the case)
                             (torch.sum(model.attn *
                                         (abs(x - model.units_pos[lose_ind])
                                         ** model.params['r']), axis=1) **
@@ -881,10 +881,10 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-        n_units = 1000
+        n_units = 500
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .05  # top k%. so .05 = top 5%
+        k = .01  # top k%. so .05 = top 5%
 
         # these params works to match SHJ pattern with sustain-like activation func
         # k=.01
@@ -929,8 +929,8 @@ for i in range(niter):
             'p': 1,  # p=1 exp, p=2 gauss
             'phi': 1.25, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5      .3.5 (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
             'beta': 1.,
-            'lr_attn': .05,  # .05
-            'lr_nn': .175,
+            'lr_attn': .01*5,  # .05
+            'lr_nn': .175*5,
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
@@ -1040,8 +1040,9 @@ shj = (
 # ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
 
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# plt.show()
+plt.plot(torch.stack(model.attn_trace, dim=0))
+plt.ylim([0.15, 0.45])
+plt.show()
 
 # %% unsupervised
 
