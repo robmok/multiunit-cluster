@@ -868,7 +868,7 @@ for i in range(niter):
 
     # six problems
 
-    for problem in np.array([4]):  # range(6):  # 
+    for problem in np.array([4]): # range(6):  # 
     
         stim = six_problems[problem]
         stim = torch.tensor(stim, dtype=torch.float)
@@ -884,7 +884,10 @@ for i in range(niter):
         n_units = 500
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .01  # top k%. so .05 = top 5%
+        k = .05  # top k%. so .05 = top 5%
+
+        # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
+        lr_scale = n_units*k / 1
 
         # these params works to match SHJ pattern with sustain-like activation func
         # k=.01
@@ -925,12 +928,12 @@ for i in range(niter):
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .2, # .1 # n_unit=500, .5 w phi=1.5, .8 w phi=1; 1000; so keep c same works, just phi
+            'c': .3, # .2
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.25, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
+            'phi': 2.5, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
             'beta': 1.,
-            'lr_attn': .01*5,  # .05. # scale by n_units*k - figure out general form (e.g. base is 100 units. could you do 1 unit? prob not since need test different k values)
-            'lr_nn': .175*5,  # scale by n_units*k
+            'lr_attn': .4/lr_scale,  # .05. # scale by n_units*k - figure out general form (e.g. base is 100 units. could you do 1 unit? prob not since need test different k values)
+            'lr_nn': .9/lr_scale,  # scale by n_units*k
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
@@ -1023,14 +1026,15 @@ shj = (
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
 
-# fig, ax = plt.subplots(2, 1)
-# ax[0].plot(shj.T)
-# ax[0].set_ylim([0., .55])
-# ax[0].set_aspect(17)
-# ax[1].plot(pt_all.mean(axis=0).T)
-# ax[1].set_ylim([0., .55])
-# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-# ax[1].set_aspect(17)
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(shj.T)
+ax[0].set_ylim([0., .55])
+ax[0].set_aspect(17)
+ax[1].plot(pt_all.mean(axis=0).T)
+ax[1].set_ylim([0., .55])
+ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+ax[1].set_aspect(17)
+plt.show()
 
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(shj.T, 'k')
