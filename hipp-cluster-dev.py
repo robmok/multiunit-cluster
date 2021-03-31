@@ -716,19 +716,19 @@ params = {
     'k': k
     }
 
-# # new local attn - cluster competition
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .7,
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 15.5,
-#     'beta': 1.,
-#     'lr_attn': .01,
-#     'lr_nn': .2,
-#     'lr_clusters': .01,
-#     'lr_clusters_group': .05,
-#     'k': k
-#     }
+# new local attn - cluster competition
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .7,
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 15.5,
+    'beta': 1.,
+    'lr_attn': .01,
+    'lr_nn': .2,
+    'lr_clusters': .01,
+    'lr_clusters_group': .05,
+    'k': k
+    }
 
 # for fitting SHJ pattern
 # c=1-4 works. >6 then type I initially slower than II... 
@@ -868,26 +868,26 @@ for i in range(niter):
 
     # six problems
 
-    for problem in np.array([4]): # range(6):  # 
-    
+    for problem in range(6):  # np.array([4]):
+
         stim = six_problems[problem]
         stim = torch.tensor(stim, dtype=torch.float)
         inputs = stim[:, 0:-1]
         output = stim[:, -1].long()  # integer
-        
+
         # 16 per trial
         inputs = inputs.repeat(2, 1)
         output = output.repeat(2).T
 
         # model details
         attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-        n_units = 500
+        n_units = 100
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .05  # top k%. so .05 = top 5%
+        k = .01  # top k%. so .05 = top 5%
 
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
-        lr_scale = n_units*k / 1
+        lr_scale = (n_units * k) / 1
 
         # these params works to match SHJ pattern with sustain-like activation func
         # k=.01
@@ -932,21 +932,22 @@ for i in range(niter):
             'p': 1,  # p=1 exp, p=2 gauss
             'phi': 2.5, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
             'beta': 1.,
-            'lr_attn': .4/lr_scale,  # .05. # scale by n_units*k - figure out general form (e.g. base is 100 units. could you do 1 unit? prob not since need test different k values)
+            'lr_attn': .4/lr_scale,  # .05. # scale by n_units*k
             'lr_nn': .9/lr_scale,  # scale by n_units*k
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
             }
-        # # trying with higher c - flipping 1& 6
+        # trying with higher c - flipping 1& 6
+        # - works well - needs lr_attn to be v slow, then type 6>1 (flipped) 
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 1,  # high=1.75. nunits=100, low=1.75 high=3.25
+        #     'c': 4.,  # high=3.5/4, mid=2 (all same), low = less than 1.5
         #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': .5,
+        #     'phi': .85,
         #     'beta': 1.,
-        #     'lr_attn': .01,  # .05
-        #     'lr_nn': .1,
+        #     'lr_attn': .0001/lr_scale,
+        #     'lr_nn': .15/lr_scale,
         #     'lr_clusters': .05,
         #     'lr_clusters_group': .1,
         #     'k': k
@@ -957,12 +958,12 @@ for i in range(niter):
         # # new local attn + cluster comp
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .2,  # .2
+        #     'c': .01,  # .2
         #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 200,  # 200
-        #     'beta': .1,  # .1
-        #     'lr_attn': .1,  # .01
-        #     'lr_nn': .2,  # .2
+        #     'phi': 100,  # 200
+        #     'beta': 1.5,  # .1
+        #     'lr_attn': .4/lr_scale,  
+        #     'lr_nn': .3,
         #     'lr_clusters': .01,
         #     'lr_clusters_group': .15,
         #     'k': k
@@ -1026,15 +1027,15 @@ shj = (
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
 
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj.T)
-ax[0].set_ylim([0., .55])
-ax[0].set_aspect(17)
-ax[1].plot(pt_all.mean(axis=0).T)
-ax[1].set_ylim([0., .55])
-ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-ax[1].set_aspect(17)
-plt.show()
+# fig, ax = plt.subplots(2, 1)
+# ax[0].plot(shj.T)
+# ax[0].set_ylim([0., .55])
+# ax[0].set_aspect(17)
+# ax[1].plot(pt_all.mean(axis=0).T)
+# ax[1].set_ylim([0., .55])
+# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+# ax[1].set_aspect(17)
+# plt.show()
 
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(shj.T, 'k')
@@ -1043,10 +1044,9 @@ plt.show()
 # ax.set_ylim([0., .55])
 # ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
-
-plt.plot(torch.stack(model.attn_trace, dim=0))
-plt.ylim([0.15, 0.45])
-plt.show()
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# plt.ylim([0.15, 0.45])
+# plt.show()
 
 # %% unsupervised
 
