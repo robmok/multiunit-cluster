@@ -338,30 +338,51 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    act_1 = (
-                        _compute_act(
-                            (torch.sum(model.attn *
-                                    (abs(x - model.units_pos[win_ind])
-                                    ** model.params['r']), axis=1) **
-                              (1/model.params['r'])), model.params['c'],
-                            model.params['p']) - 
+                    # act_1 = (
+                    #     _compute_act(
+                    #         (torch.sum(model.attn *
+                    #                 (abs(x - model.units_pos[win_ind])
+                    #                 ** model.params['r']), axis=1) **
+                    #           (1/model.params['r'])), model.params['c'],
+                    #         model.params['p']) - 
 
-                        torch.mean(_compute_act(  # mean or sum? - mean might make more sense here, many more losers. However, losers smaller acts, so sum is needed to counteract the winners (in Cluster this is the case)
+                    #     torch.mean(_compute_act(  # mean or sum? - mean might make more sense here, many more losers. However, losers smaller acts, so sum is needed to counteract the winners (in Cluster this is the case)
+                    #         (torch.sum(model.attn *
+                    #                     (abs(x - model.units_pos[lose_ind])
+                    #                     ** model.params['r']), axis=1) **
+                    #           (1/model.params['r'])), model.params['c'],
+                    #         model.params['p']))
+                    #     )
+
+                    # compute gradient
+                    # for i in range(len(act_1)):
+                    #     act_1[i].backward(retain_graph=True)
+                    # if len(act_1):  # if any
+                    #     # model.attn.grad = model.attn.grad / len(act_1)  # - ah, this makes the gradients smaller. commenting it out makes it look good..
+                    #     model.attn.data += (
+                    #         model.params['lr_attn'] * model.attn.grad)
+
+                    # new - sum of winners minus sum of losers - faster
+                    act_1 = (
+                        torch.sum(_compute_act(
                             (torch.sum(model.attn *
-                                        (abs(x - model.units_pos[lose_ind])
+                                       (abs(x - model.units_pos[win_ind])
                                         ** model.params['r']), axis=1) **
-                              (1/model.params['r'])), model.params['c'],
+                             (1/model.params['r'])), model.params['c'],
+                            model.params['p'])) -
+
+                        torch.sum(_compute_act(
+                            (torch.sum(model.attn *
+                                       (abs(x - model.units_pos[lose_ind])
+                                        ** model.params['r']), axis=1) **
+                             (1/model.params['r'])), model.params['c'],
                             model.params['p']))
                         )
 
                     # compute gradient
-                    for i in range(len(act_1)):
-                        act_1[i].backward(retain_graph=True)
-                    if len(act_1):  # if any
-                        # model.attn.grad = model.attn.grad / len(act_1)  # - ah, this makes the gradients smaller. commenting it out makes it look good..
-                        model.attn.data += (
-                            model.params['lr_attn'] * model.attn.grad)
-
+                    act_1.backward(retain_graph=True)
+                    model.attn.data += (
+                        model.params['lr_attn'] * model.attn.grad)
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -659,7 +680,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -716,17 +737,33 @@ params = {
     'k': k
     }
 
-# new local attn - cluster competition
+# # new local attn - cluster competition
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': .7,
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 15.5,
+#     'beta': 1.,
+#     'lr_attn': .01,
+#     'lr_nn': .2,
+#     'lr_clusters': .01,
+#     'lr_clusters_group': .05,
+#     'k': k
+#     }
+
+# new local attn - scaling lr
+lr_scale = (n_units * k) / 1
+
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': .7,
+    'c': .3, # .2
     'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 15.5,
+    'phi': 2.5, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
     'beta': 1.,
-    'lr_attn': .01,
-    'lr_nn': .2,
-    'lr_clusters': .01,
-    'lr_clusters_group': .05,
+    'lr_attn': .4/lr_scale,  # .05. # scale by n_units*k
+    'lr_nn': .9/lr_scale,  # scale by n_units*k
+    'lr_clusters': .05,
+    'lr_clusters_group': .1,
     'k': k
     }
 
@@ -797,6 +834,7 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
 # pr target
 plt.plot(1 - epoch_ptarget.detach())
 plt.ylim([0, .5])
+plt.show()
 
 # plt.plot(1 - trial_ptarget.detach()[0:16])
 # plt.ylim([0, 1])
@@ -812,12 +850,12 @@ plt.ylim([0, .5])
 # plt.show()
 
 # # attention weights
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# # figname = os.path.join(wd,
-# #                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
-# #                            problem, k, n_units, params['lr_attn'], n_epochs))
-# # plt.savefig(figname)
-# plt.show()
+plt.plot(torch.stack(model.attn_trace, dim=0))
+# figname = os.path.join(wd,
+#                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+#                            problem, k, n_units, params['lr_attn'], n_epochs))
+# plt.savefig(figname)
+plt.show()
 
 # # unit positions
 # results = torch.stack(model.units_pos_trace, dim=0)[-1, active_ws]
