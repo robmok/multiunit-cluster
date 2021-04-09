@@ -234,13 +234,13 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
             inputs_ = inputs
             output_ = output
         for x, target in zip(inputs_, output_):
-            
+
             # TMP - testing
             # x=inputs_[np.mod(itrl-8, 8)]
             # target=output_[np.mod(itrl-8, 8)]
-            # x=inputs_[itrl]
-            # target=output_[itrl]
-            
+            # # x=inputs_[itrl]
+            # # target=output_[itrl]
+
             # find winners
             # first: only connected units (assoc ws ~0) can be winners
             # - any weight > 0 = connected/active unit (so sum over out dim)
@@ -308,33 +308,11 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
                 # if use local attention update - gradient ascent to unit acts
                 if model.attn_type[-5:] == 'local':
-                    # compute act of winners and compute gradient for attn ws
-                    # spell out _compute_dist to compute gradient
-                    # - note win_ind indexes winners; else non-winners added
-                    # if model.params['r'] > 1:
-                    #     ind = torch.sum(
-                    #         abs(x - model.units_pos[win_ind]), axis=1) > 0
-                    # else:
-                    #     ind = range(len(win_ind))
-
-                    # # index the winners with dist > 0 to be updated
-                    # # - if 1/2 winners on stim and 1/2 not, can't selective upd
-                    # ind = torch.sum(
-                    #         abs(x - model.units_pos[win_ind]), axis=1) > 0
-                    # # win_ind_1 = win_ind[ind]
-
-                    # act_1 = _compute_act(
-                    #     (torch.sum(model.attn *
-                    #                (abs(x - model.units_pos[win_ind[ind]])
-                    #                 ** model.params['r']), axis=1) **
-                    #      (1/model.params['r'])),
-                    #     model.params['c'], model.params['p'])
-
 
                     # NEW changing win_ind - wta winner only
-                    # - only works with 
-                    win_ind = win_mask[0]  # wta_mask[0] / ind[0][0] both work - wta winner
-                    lose_ind = (win_mask[0] == False) & active_ws
+                    # - only works with wta
+                    win_ind = win_mask[0]  # wta_mask[0] / ind[0][0] both work
+                    lose_ind = (win_mask[0] == 0) & active_ws
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
@@ -476,43 +454,39 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
                 optimizer.step()
 
-                # # if use local attention update - gradient ascent to unit acts
+                # for recruited units, gradient is zero
+                # however, if replacing units, old units will have a grad
+                # TODO
+                # - problem looks like the losers have high act now (so act_1
+                # can be negative, screws things up....)
+
                 # if model.attn_type[-5:] == 'local':
-                #     # compute act of winners and compute gradient for attn ws
-                #     # - most of the time zero since it's on the stimulus
-                #     # - except when replacing. existing ones not on stim
+                #     win_ind = win_mask[0]
+                #     lose_ind = (win_mask[0] == 0) & active_ws
 
-                #     # index the winners with dist > 0 to be updated
-                #     ind = torch.sum(
-                #         abs(x - model.units_pos[recruit_ind]), axis=1) > 0
+                #     # gradient based on activation of winners minus losers
+                #     act_1 = (
+                #         torch.sum(_compute_act(
+                #             (torch.sum(model.attn *
+                #                        (abs(x - model.units_pos[win_ind])
+                #                         ** model.params['r']), axis=1) **
+                #              (1/model.params['r'])), model.params['c'],
+                #             model.params['p'])) -
 
-                #     act_1 = _compute_act(
-                #         (torch.sum(model.attn *
-                #                    (abs(x - model.units_pos[recruit_ind[ind]])
-                #                     ** model.params['r']), axis=1) **
-                #          (1/model.params['r'])),
-                #         model.params['c'], model.params['p'])
-
-                #     # compute gradient
-                #     for i in range(len(act_1)):
-                #         act_1[i].backward(retain_graph=True)
-                #     if len(act_1):  # if any
-                #         model.attn.grad = model.attn.grad / len(act_1)  # len(recruit_ind) or len(act_1) - still take the recruit_ind len?
-                #         model.attn.data += (
-                #             model.params['lr_attn'] * model.attn.grad)
-
-                # # sum attention weights to 1
-                # model.attn.data = torch.clamp(model.attn.data, min=0.)
-                # if model.attn_type[0:4] == 'dime':
-                #     model.attn.data = (
-                #         model.attn.data / torch.sum(model.attn.data))
-                # elif model.attn_type[0:4] == 'unit':
-                #     model.attn.data = (
-                #         model.attn.data /
-                #         torch.sum(model.attn.data, dim=1, keepdim=True)
+                #         torch.sum(_compute_act(
+                #             (torch.sum(model.attn *
+                #                        (abs(x - model.units_pos[lose_ind])
+                #                         ** model.params['r']), axis=1) **
+                #              (1/model.params['r'])), model.params['c'],
+                #             model.params['p']))
                 #         )
 
-                # update units - double update rule
+                #     # compute gradient
+                #     act_1.backward(retain_graph=True)
+                #     model.attn.data += (
+                #         model.params['lr_attn'] * model.attn.grad)
+
+                # update units positions - double update rule
                 update = (
                     (x - model.units_pos[model.winning_units]) *
                     model.params['lr_clusters']
@@ -526,7 +500,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                     (winner_mean - model.units_pos[model.winning_units]) *
                     model.params['lr_clusters_group'])
                 model.units_pos[model.winning_units] += update
-                
+
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             # tmp
@@ -696,7 +670,7 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 500
+n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
