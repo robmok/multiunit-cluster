@@ -236,8 +236,8 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
         for x, target in zip(inputs_, output_):
 
             # TMP - testing
-            x=inputs_[np.mod(itrl-8, 8)]
-            target=output_[np.mod(itrl-8, 8)]
+            # x=inputs_[np.mod(itrl-8, 8)]
+            # target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
             # target=output_[itrl]
 
@@ -364,7 +364,7 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                     # divide grad by n active units (scales to any n_units)
                     model.attn.data += (
                         model.params['lr_attn'] *
-                        (model.attn.grad / torch.sum(active_ws)))
+                        (model.attn.grad / model.n_units))  # torch.sum(active_ws)
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -472,23 +472,25 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
                 #     act_1 = (
                 #         torch.sum(_compute_act(
                 #             (torch.sum(model.attn *
-                #                        (abs(x - model.units_pos[win_ind])
+                #                         (abs(x - model.units_pos[win_ind])
                 #                         ** model.params['r']), axis=1) **
-                #              (1/model.params['r'])), model.params['c'],
+                #               (1/model.params['r'])), model.params['c'],
                 #             model.params['p'])) -
 
                 #         torch.sum(_compute_act(
                 #             (torch.sum(model.attn *
-                #                        (abs(x - model.units_pos[lose_ind])
+                #                         (abs(x - model.units_pos[lose_ind])
                 #                         ** model.params['r']), axis=1) **
-                #              (1/model.params['r'])), model.params['c'],
+                #               (1/model.params['r'])), model.params['c'],
                 #             model.params['p']))
                 #         )
 
                 #     # compute gradient
                 #     act_1.backward(retain_graph=True)
+                #     # divide grad by n active units (scales to any n_units)
                 #     model.attn.data += (
-                #         model.params['lr_attn'] * model.attn.grad)
+                #         model.params['lr_attn'] *
+                #         (model.attn.grad / model.n_units))
 
                 # update units positions - double update rule
                 update = (
@@ -658,12 +660,16 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 2
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
+# 16 per trial
+inputs = inputs.repeat(2, 1)
+output = output.repeat(2).T
+        
 # # # continuous - note: need shuffle else it solves it with 1 clus
 # mu1 = [-.5, .25]
 # var1 = [.0185, .065]
@@ -674,7 +680,7 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 500
+n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -687,45 +693,17 @@ k = .05
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 # trials, etc.
-n_epochs = 32
+n_epochs = 16
 
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 3,  # node specificity - 6.
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 3.5,  # response parameter, non-negative
-    'lr_attn': .015,  # .005 / .05 / .001. SHJ - .01
-    'lr_nn': .05,  # .1. .01 actually better, c=6. cont - .15. for fitting SHJ pattern, lr_nn=.01, 
-    'lr_clusters': .015,  # .25
-    'lr_clusters_group': .0,  # .95
-    'k': k
-    }
-
-# new local attn
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .3,
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': .8, # (k * n_units)**-.05,  # .995**(k * n_units), #  2/np.log(k * n_units),  # norm by k units -  k * n_units
-    'beta': 1.,
-    'lr_attn': .01,
-    'lr_nn': .2,
-    'lr_clusters': .01,
-    'lr_clusters_group': .05,
-    'k': k
-    }
-
-# # new local attn - cluster competition
 # params = {
 #     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .7,
+#     'c': 3,  # node specificity - 6.
 #     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 15.5,
-#     'beta': 1.,
-#     'lr_attn': .01,
-#     'lr_nn': .2,
-#     'lr_clusters': .01,
-#     'lr_clusters_group': .05,
+#     'phi': 3.5,  # response parameter, non-negative
+#     'lr_attn': .015,  # .005 / .05 / .001. SHJ - .01
+#     'lr_nn': .05,  # .1. .01 actually better, c=6. cont - .15. for fitting SHJ pattern, lr_nn=.01, 
+#     'lr_clusters': .015,  # .25
+#     'lr_clusters_group': .0,  # .95
 #     'k': k
 #     }
 
@@ -734,59 +712,31 @@ lr_scale = (n_units * k) / 1
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 4., # .2/.3. with attn grad normalized, c can be large now
+    'c': .9, # w/ attn grad normalized, c can be large now
     'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 2.5, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
+    'phi': 18.5,
     'beta': 1.,
-    'lr_attn': .025, # this scales at grad computation now
+    'lr_attn': .15, # this scales at grad computation now
     'lr_nn': .01/lr_scale,  # scale by n_units*k
-    'lr_clusters': .05,
+    'lr_clusters': .01,
     'lr_clusters_group': .1,
     'k': k
     }
 
-# for fitting SHJ pattern
-# c=1-4 works. >6 then type I initially slower than II... 
-# if p=1 seems always type I slower than II...? 
+# shj params
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 1., # w/ attn grad normalized, c can be large now
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 12.5,
+    'beta': 1.,
+    'lr_attn': .15, # this scales at grad computation now
+    'lr_nn': .015/lr_scale,  # scale by n_units*k
+    'lr_clusters': .01,
+    'lr_clusters_group': .1,
+    'k': k
+    }
 
-# why?
-# wondering if this is because i don't normalize cluster activations, type II has more clusters
-# no - others have even more and are slower! maybe coz type 1 clusters move and attn weights have to go down (unless II).. - faster attn? - yes! .005 was too slow
-
-# ok now if keep learning, type III/V screw up like before, attn weights to 0. p doesnt matter.
-# - maybe it's not the local attention rule...?
-# - checked Cluster.py with wta and it works fine - with same params
-# matched all here even k=1 unit...  what is different? FIND OUT
-
-# these params works to match SHJ pattern with sustain-like activation func
-# - with 8 trials per block
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 1,
-#     'p': 1,  # p=1 exp, p =2 gauss
-#     'phi': .6,
-#     'lr_attn': .02, # .025, .033,
-#     'lr_nn': .25, # .15,  # .25
-#     'lr_clusters': .1, #.197
-#     'lr_clusters_group': .0,  # .95
-#     'k': k
-#     }
-
-
-# # trying shj with cluster competition
-# params = {            
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 1.,
-#     'p': 1,  # p=1 exp, p =2 gauss
-#     'beta': 1.1,
-#     'phi': 6,
-#     'lr_attn': .005,
-#     'lr_nn': .15, # .15,  # .25
-#     'lr_clusters': .1, # .01, .05
-#     'lr_clusters_group': .1,
-#     'k': k
-#     }
-        
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -905,81 +855,35 @@ for i in range(niter):
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
         lr_scale = (n_units * k) / 1
 
-        # these params works to match SHJ pattern with sustain-like activation func
-        # k=.01
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 1,
-        #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'phi': .8,  # n_units 500=0.6. 
-        #     'lr_attn': .033, # .025, .033,
-        #     'lr_nn': .15, # .15,  # .25
-        #     'lr_clusters': .05, # .01, .05
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # better in cluster, better here with minor edits - higher c, higher attn
-        # - k=.01, n_units=500 ok
-        # - k=.01, n_units=1000 - why is this different...
-        # --> when c is > 1.5, n_units makes a difference. 1.25 more similar?
-        # potential issue, interaction etween lr_nn and c
-        # - looks like when lr_nn >.2, c>1.5, nunits>1000, everything too fast,
-        # order goes out of whack
-        # - solution - lower lr_nn, higher c, phi
-        # - BUT with higher k value (e.g. .05), c>1 does the above again.
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 1.6,  #  1.6 w/ k=.01, c=<1 if k=.05
-        #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'phi': .7,  # n_units 500=0.6. 
-        #     'lr_attn': .03, # .025, .033,
-        #     'lr_nn': .05, # .15
-        #     'lr_clusters': .01,  # .01
-        #     'lr_clusters_group': .1,  # .1 - doesn't change for shj?
-        #     'k': k
-        #     }
-
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .9, # w/ attn grad normalized, c can be large now
+            'c': 1.,  # w/ attn grad normalized, c can be large now
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 18.5, # 
+            'phi': 12.5,
             'beta': 1.,
-            'lr_attn': .15, # this scales at grad computation now
-            'lr_nn': .0075/lr_scale,  # scale by n_units*k
+            'lr_attn': .15,  # this scales at grad computation now
+            'lr_nn': .015/lr_scale,  # scale by n_units*k
             'lr_clusters': .01,
             'lr_clusters_group': .1,
             'k': k
-            }        
-        
-        # trying with higher c - flipping 1& 6
-        # - works well - needs lr_attn to be v slow, then type 6>1 (flipped) 
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 4.,  # high=3.5/4, mid=2 (all same), low = less than 1.5
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': .85,
-        #     'beta': 1.,
-        #     'lr_attn': .0001/lr_scale,
-        #     'lr_nn': .15/lr_scale,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
+            }
+    
+        # # trying with higher c - flipping 1& 6
+        # # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
+        # # now type II also can be slow, types 3-5 faster - as brad predicted
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': 3.5, # low = 1; med = 2.2; high = 3.5+
+            'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 4.5, # 
+            'phi': 1.5, 
             'beta': 1.,
-            'lr_attn': .001,
-            'lr_nn': .01/lr_scale,  # scale by n_units*k
+            'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
+            'lr_nn': .02/lr_scale,  # scale by n_units*k
             'lr_clusters': .01,
             'lr_clusters_group': .1,
             'k': k
-            }        
+            }
 
         # # new local attn + cluster comp
         # params = {
@@ -994,39 +898,11 @@ for i in range(niter):
         #     'lr_clusters_group': .15,
         #     'k': k
         #     }
-        
-
-        # # testing - higher c, type 6 fast, type 1 slow. OK
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3,  # 1, 2, 3
-        #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'phi': .5,
-        #     'lr_attn': .01,
-        #     'lr_nn': .1,  # .1
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .4,
-        #     'k': k
-        #     }
-
-        # # k=.05, lr_nn needs to be lower. e.g. .05. phi lower to show effects when c>3
-        # # - note, c=1 is v slow now. but c>3 is fast, and separation of 1/6/others is clear
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3,
-        #     'p': 1,  # p=1 exp, p =2 gauss
-        #     'phi': .35,  #  .35 when c=3, 
-        #     'lr_attn': .02, # .025, .033,
-        #     'lr_nn': .035, # 
-        #     'lr_clusters': .05, # .197
-        #     'lr_clusters_group': .1,  # .1, .4, same
-        #     'k': k
-        #     }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=False)
+            model, inputs, output, n_epochs, shuffle=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
@@ -1053,15 +929,15 @@ shj = (
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
 
-# fig, ax = plt.subplots(2, 1)
-# ax[0].plot(shj.T)
-# ax[0].set_ylim([0., .55])
-# ax[0].set_aspect(17)
-# ax[1].plot(pt_all.mean(axis=0).T)
-# ax[1].set_ylim([0., .55])
-# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-# ax[1].set_aspect(17)
-# plt.show()
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(shj.T)
+ax[0].set_ylim([0., .55])
+ax[0].set_aspect(17)
+ax[1].plot(pt_all.mean(axis=0).T)
+ax[1].set_ylim([0., .55])
+ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+ax[1].set_aspect(17)
+plt.show()
 
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(shj.T, 'k')
