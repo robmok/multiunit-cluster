@@ -196,13 +196,9 @@ class MultiUnitCluster(nn.Module):
         return out, pr
 
 
-def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
-          shuffle=False):
+def train(model, inputs, output, n_epochs, shuffle=False):
 
-    if loss_type == 'humble_teacher':
-        criterion = humble_teacher
-    elif loss_type == 'cross_entropy':
-        criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss()
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
@@ -583,31 +579,6 @@ def _compute_act(dist, c, p):
     """
     # return torch.exp(-c * (dist**p))
     return c * torch.exp(-c * dist)  # sustain-like
-
-
-# loss functions
-def humble_teacher(output, target, n_classes=2):
-    '''
-    If multiple_tasks or output classes>2, need specify n_classes
-    (unlike cross_entropy - so I had an if statement for loss=criterion...)
-    '''
-    # 2+ outputs
-    output = output.squeeze()  # unsqueeze needed for cross-entropy
-    error = torch.zeros(n_classes)
-    target_vec = torch.zeros(n_classes)
-    target_vec[target] = 1
-    for i in range(n_classes):
-        if ((target_vec[i] == 1 and output[i] >= 1) or
-                (target_vec[i] == 0 and output[i] <= -1)):
-            error[i] = output[i] - output[i]  # 0. do this to keep the grad_fn
-        else:
-            # if in category K, t=1, else t=-1
-            if target_vec[i] == 1:
-                t = 1
-            elif target_vec[i] == 0:
-                t = -1
-            error[i] = .5 * ((t - output[i])**2)
-    return torch.sum(error)
 
 
 # %%
