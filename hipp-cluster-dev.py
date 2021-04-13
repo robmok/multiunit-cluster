@@ -236,10 +236,10 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
         for x, target in zip(inputs_, output_):
 
             # TMP - testing
-            # x=inputs_[np.mod(itrl-8, 8)]
-            # target=output_[np.mod(itrl-8, 8)]
-            # # x=inputs_[itrl]
-            # # target=output_[itrl]
+            x=inputs_[np.mod(itrl-8, 8)]
+            target=output_[np.mod(itrl-8, 8)]
+            # x=inputs_[itrl]
+            # target=output_[itrl]
 
             # find winners
             # first: only connected units (assoc ws ~0) can be winners
@@ -359,8 +359,12 @@ def train(model, inputs, output, n_epochs, loss_type='cross_entropy',
 
                     # compute gradient
                     act_1.backward(retain_graph=True)
+                    # model.attn.data += (
+                    #     model.params['lr_attn'] * model.attn.grad)
+                    # divide grad by n active units (scales to any n_units)
                     model.attn.data += (
-                        model.params['lr_attn'] * model.attn.grad)
+                        model.params['lr_attn'] *
+                        (model.attn.grad / torch.sum(active_ws)))
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -670,7 +674,7 @@ output = stim[:, -1].long()  # integer
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 1000
+n_units = 500
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -683,7 +687,7 @@ k = .05
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 # trials, etc.
-n_epochs = 32 # 40
+n_epochs = 32
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -730,12 +734,12 @@ lr_scale = (n_units * k) / 1
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': .3, # .2
+    'c': 4., # .2/.3. with attn grad normalized, c can be large now
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 2.5, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
     'beta': 1.,
-    'lr_attn': .4/lr_scale,  # .05. # scale by n_units*k
-    'lr_nn': .9/lr_scale,  # scale by n_units*k
+    'lr_attn': .025, # this scales at grad computation now
+    'lr_nn': .01/lr_scale,  # scale by n_units*k
     'lr_clusters': .05,
     'lr_clusters_group': .1,
     'k': k
@@ -893,10 +897,10 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-        n_units = 100
+        n_units = 1000
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .01  # top k%. so .05 = top 5%
+        k = .05  # top k%. so .05 = top 5%
 
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
         lr_scale = (n_units * k) / 1
@@ -936,20 +940,20 @@ for i in range(niter):
         #     'k': k
         #     }
 
-
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .3, # .2
+            'c': .9, # w/ attn grad normalized, c can be large now
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 2.5, # . 75. if 100 units, phi=1.25. .05 with c = 2/3. .75 with c=.5
+            'phi': 18.5, # 
             'beta': 1.,
-            'lr_attn': .4/lr_scale,  # .05. # scale by n_units*k
-            'lr_nn': .9/lr_scale,  # scale by n_units*k
-            'lr_clusters': .05,
+            'lr_attn': .15, # this scales at grad computation now
+            'lr_nn': .0075/lr_scale,  # scale by n_units*k
+            'lr_clusters': .01,
             'lr_clusters_group': .1,
             'k': k
-            }
+            }        
+        
         # trying with higher c - flipping 1& 6
         # - works well - needs lr_attn to be v slow, then type 6>1 (flipped) 
         # params = {
@@ -964,8 +968,18 @@ for i in range(niter):
         #     'lr_clusters_group': .1,
         #     'k': k
         #     }
-
-
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 3.5, # low = 1; med = 2.2; high = 3.5+
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 4.5, # 
+            'beta': 1.,
+            'lr_attn': .001,
+            'lr_nn': .01/lr_scale,  # scale by n_units*k
+            'lr_clusters': .01,
+            'lr_clusters_group': .1,
+            'k': k
+            }        
 
         # # new local attn + cluster comp
         # params = {
