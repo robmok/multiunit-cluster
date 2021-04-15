@@ -127,8 +127,9 @@ class MultiUnitCluster(nn.Module):
                         self.attn.data / torch.sum(self.attn.data))
         elif self.attn_type[0:4] == 'unit':
             self.attn = (
-                torch.nn.Parameter(torch.ones([n_units, n_dims],
-                                              dtype=torch.float) * (1 / n_dims)))
+                torch.nn.Parameter(
+                    torch.ones([n_units, n_dims], dtype=torch.float)
+                    * (1 / n_dims)))
             # normalize attn to 1, in case not set correctly above
             self.attn.data = (
                 self.attn.data /
@@ -214,10 +215,19 @@ def train(model, inputs, output, n_epochs, shuffle=False):
 
     # save accuracy
     itrl = 0
-    trial_acc = torch.zeros(len(inputs) * n_epochs)
+    n_trials = len(inputs) * n_epochs
+    trial_acc = torch.zeros(n_trials)
     epoch_acc = torch.zeros(n_epochs)
-    trial_ptarget = torch.zeros(len(inputs) * n_epochs)
+    trial_ptarget = torch.zeros(n_trials)
     epoch_ptarget = torch.zeros(n_epochs)
+
+    # randomly lesion n units at ntimepoints
+    # pr_lesion_trials = .005  # tmp - for now, 1 trial
+    # lesion_trials = torch.randint(n_trials,
+    #                               (int(n_trials * pr_lesion_trials), ))
+    lesion_trials = torch.tensor(20)
+    
+    n_lesions = 10  # number of units to lesion / remove weights
 
     model.train()
     for epoch in range(n_epochs):
@@ -243,8 +253,13 @@ def train(model, inputs, output, n_epochs, shuffle=False):
             active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0,
                                   dtype=torch.bool)
 
-            if torch.sum(model.fc1.weight == 0) == 0:  # no units to recruit
-                warnings.warn("No more units to recruit")
+            # lesion trials
+            if torch.any(itrl == lesion_trials):
+                # find active ws, randomly turn off n units (n_lesions)
+                w_ind = np.nonzero(active_ws)
+                l = w_ind[torch.randint(w_ind.numel(), (n_lesions, ))]
+                with torch.no_grad():
+                    model.fc1.weight[:, l] = 0
 
             # find units with largest activation that are connected
             dim_dist = abs(x - model.units_pos)
@@ -458,10 +473,10 @@ def train(model, inputs, output, n_epochs, shuffle=False):
                 # however, if replacing units, old units will have a grad
                 # TODO
                 # - problem looks like the losers have high act now (so act_1
-                # can be negative, screws things up....)
+                # can be negative, screws things up sometimes....)
 
                 # if model.attn_type[-5:] == 'local':
-                #     win_ind = win_mask[0]
+                #     win_ind = win_mask[0],
                 #     lose_ind = (win_mask[0] == 0) & active_ws
 
                 #     # gradient based on activation of winners minus losers
@@ -509,6 +524,9 @@ def train(model, inputs, output, n_epochs, shuffle=False):
             # model.winners_trace.append(model.units_pos[model.winning_units][0])
 
             itrl += 1
+
+            if torch.sum(model.fc1.weight == 0) == 0:  # no units to recruit
+                warnings.warn("No more units to recruit")
 
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
@@ -631,7 +649,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 2
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -818,7 +836,7 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-        n_units = 1000
+        n_units = 500
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
         k = .05  # top k%. so .05 = top 5%
@@ -829,12 +847,12 @@ for i in range(niter):
         # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.,  # w/ attn grad normalized, c can be large now
+            'c': .8,  # w/ attn grad normalized, c can be large now
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 12.5,
+            'phi': 10.5,
             'beta': 1.,
             'lr_attn': .15,  # this scales at grad computation now
-            'lr_nn': .015/lr_scale,  # scale by n_units*k
+            'lr_nn': .025/lr_scale,  # scale by n_units*k
             'lr_clusters': .01,
             'lr_clusters_group': .1,
             'k': k
@@ -843,18 +861,18 @@ for i in range(niter):
         # # trying with higher c - flipping 1& 6
         # # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
         # # now type II also can be slow, types 3-5 faster - as brad predicted
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.5, 
-            'beta': 1.,
-            'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
-            'lr_nn': .02/lr_scale,  # scale by n_units*k
-            'lr_clusters': .01,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 1.5, 
+        #     'beta': 1.,
+        #     'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
+        #     'lr_nn': .02/lr_scale,  # scale by n_units*k
+        #     'lr_clusters': .01,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
         # # new local attn + cluster comp
         # params = {
@@ -873,7 +891,7 @@ for i in range(niter):
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True)
+            model, inputs, output, n_epochs, shuffle=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
