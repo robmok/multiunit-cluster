@@ -223,10 +223,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
     # randomly lesion n units at ntimepoints
     if lesions:
+        model.lesion_units = []  # save which units were lesioned
         if lesions['gen_rand_lesions_trials']:
             lesion_trials = (
                 torch.randint(n_trials,
-                              int(n_trials * lesions['pr_lesion_trials']), ))
+                              (int(n_trials * lesions['pr_lesion_trials']),)))
+            model.lesion_trials = lesion_trials  # save which were lesioned
         else:
             lesion_trials = lesions['lesion_trials']
 
@@ -261,6 +263,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     w_ind = np.nonzero(active_ws)
                     les = w_ind[torch.randint(w_ind.numel(),
                                               (lesions['n_lesions'],))]
+                    model.lesion_units.append(les)
                     with torch.no_grad():
                         model.fc1.weight[:, les] = 0
 
@@ -734,8 +737,8 @@ params = {
 # pr_lesion_trials value, if False then set lesion_trials.
 lesions = {
     'n_lesions': 10,  # n_lesions per event
-    'gen_rand_lesions_trials': False,  # generate lesion events at random times
-    'pr_lesion_trials': .005,  # if True, set this
+    'gen_rand_lesions_trials': True,  # generate lesion events at random times
+    'pr_lesion_trials': .01,  # if True, set this
     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
     }
 
@@ -743,9 +746,6 @@ model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
     model, inputs, output, n_epochs, shuffle=False, lesions=lesions)
-
-# print(epoch_acc)
-# print(epoch_ptarget)
 
 # active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
 # # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
@@ -765,19 +765,6 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
 plt.plot(1 - epoch_ptarget.detach())
 plt.ylim([0, .5])
 plt.show()
-
-# plt.plot(1 - trial_ptarget.detach()[0:16])
-# plt.ylim([0, 1])
-
-# if problem == 0:
-#     pt = []
-# pt.append(1 - epoch_ptarget.detach())
-
-# figname = os.path.join(wd,
-#                        'SHJ_prt_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
-#                            problem, k, n_units, params['lr_attn'], n_epochs))
-# plt.savefig(figname)
-# plt.show()
 
 # # attention weights
 plt.plot(torch.stack(model.attn_trace, dim=0))
@@ -802,7 +789,9 @@ plt.show()
 # plt.show()
 
 
-# plt.plot(torch.stack(pt).T)
+# explore lesion units ++ 
+# model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0
+
 
 # %% shj cluster_wta
 
