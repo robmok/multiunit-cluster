@@ -197,7 +197,7 @@ class MultiUnitCluster(nn.Module):
         return out, pr
 
 
-def train(model, inputs, output, n_epochs, shuffle=False):
+def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
     criterion = nn.CrossEntropyLoss()
 
@@ -222,12 +222,13 @@ def train(model, inputs, output, n_epochs, shuffle=False):
     epoch_ptarget = torch.zeros(n_epochs)
 
     # randomly lesion n units at ntimepoints
-    # pr_lesion_trials = .005  # tmp - for now, 1 trial
-    # lesion_trials = torch.randint(n_trials,
-    #                               (int(n_trials * pr_lesion_trials), ))
-    lesion_trials = torch.tensor(20)
-    
-    n_lesions = 10  # number of units to lesion / remove weights
+    if lesions:
+        if lesions['gen_rand_lesions_trials']:
+            lesion_trials = (
+                torch.randint(n_trials,
+                              int(n_trials * lesions['pr_lesion_trials']), ))
+        else:
+            lesion_trials = lesions['lesion_trials']
 
     model.train()
     for epoch in range(n_epochs):
@@ -254,12 +255,14 @@ def train(model, inputs, output, n_epochs, shuffle=False):
                                   dtype=torch.bool)
 
             # lesion trials
-            if torch.any(itrl == lesion_trials):
-                # find active ws, randomly turn off n units (n_lesions)
-                w_ind = np.nonzero(active_ws)
-                l = w_ind[torch.randint(w_ind.numel(), (n_lesions, ))]
-                with torch.no_grad():
-                    model.fc1.weight[:, l] = 0
+            if lesions:
+                if torch.any(itrl == lesion_trials):
+                    # find active ws, randomly turn off n units (n_lesions)
+                    w_ind = np.nonzero(active_ws)
+                    les = w_ind[torch.randint(w_ind.numel(),
+                                              (lesions['n_lesions'],))]
+                    with torch.no_grad():
+                        model.fc1.weight[:, les] = 0
 
             # find units with largest activation that are connected
             dim_dist = abs(x - model.units_pos)
@@ -726,10 +729,20 @@ params = {
     'k': k
     }
 
+# lesioning: n_lesions per event, generate lesion
+# events at random times or not (True/False), if True then set
+# pr_lesion_trials value, if False then set lesion_trials.
+lesions = {
+    'n_lesions': 10,  # n_lesions per event
+    'gen_rand_lesions_trials': False,  # generate lesion events at random times
+    'pr_lesion_trials': .005,  # if True, set this
+    'lesion_trials': torch.tensor([20])  # if False, set lesion trials
+    }
+
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=False)
+    model, inputs, output, n_epochs, shuffle=False, lesions=lesions)
 
 # print(epoch_acc)
 # print(epoch_ptarget)
