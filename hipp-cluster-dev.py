@@ -675,7 +675,7 @@ output = output.repeat(2).T
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 1000
+n_units = 500
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -721,20 +721,19 @@ params = {
 # shj params
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1., # w/ attn grad normalized, c can be large now
+    'c': 1.,  # w/ attn grad normalized, c can be large now
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 12.5,
     'beta': 1.,
-    'lr_attn': .15, # this scales at grad computation now
+    'lr_attn': .15,  # this scales at grad computation now
     'lr_nn': .015/lr_scale,  # scale by n_units*k
     'lr_clusters': .01,
     'lr_clusters_group': .1,
     'k': k
     }
 
-# lesioning: n_lesions per event, generate lesion
-# events at random times or not (True/False), if True then set
-# pr_lesion_trials value, if False then set lesion_trials.
+# lesioning
+# lesions = None  # if no lesions
 lesions = {
     'n_lesions': 10,  # n_lesions per event
     'gen_rand_lesions_trials': True,  # generate lesion events at random times
@@ -756,10 +755,9 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 print(model.recruit_units_trl)
 # print(len(model.recruit_units_trl))
 
-
-wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
-
-# plot for several k values (.01, .05, .1, .2?), several n_units (1, 1000, 10000, 1000000) - for n=1, k doesn't matter
+# wd='/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
+# plot for several k values (.01, .05, .1, .2?)
+# several n_units (1, 1000, 10000, 1000000) - for n=1, k doesn't matter
 
 # pr target
 plt.plot(1 - epoch_ptarget.detach())
@@ -791,7 +789,6 @@ plt.show()
 
 # explore lesion units ++ 
 # model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0
-
 
 # %% shj cluster_wta
 
