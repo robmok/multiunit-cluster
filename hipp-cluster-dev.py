@@ -288,7 +288,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
             win_mask[:, win_ind] = True
             # this goes into forward. if ~active, no out
-            model.winning_units = torch.zeros(n_units, dtype=torch.bool)
+            model.winning_units = torch.zeros(model.n_units, dtype=torch.bool)
             model.winning_units[win_ind] = True
 
             # save acts
@@ -449,7 +449,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                 # recruit n_mispredicted units
                 active_ws[recruit_ind] = True  # set ws to active
-                model.winning_units = torch.zeros(n_units, dtype=torch.bool)
+                model.winning_units = (
+                    torch.zeros(model.n_units, dtype=torch.bool))
                 model.winning_units[recruit_ind] = True
                 # keep units that predicted correctly
                 # - should work, but haven't tested since it happens rarely with currently structures
