@@ -231,8 +231,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
         for x, target in zip(inputs_, output_):
 
             # testing
-            x=inputs_[np.mod(itrl-8, 8)]
-            target=output_[np.mod(itrl-8, 8)]
+            # x=inputs_[np.mod(itrl-8, 8)]
+            # target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
             # target=output_[itrl]
 
@@ -267,7 +267,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # define winner mask
             win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
             win_mask[:, win_ind] = True
-            model.winning_units = win_mask[0].clone()  # goes to forward.~active=no out
+            model.winning_units = (
+                win_mask[0].clone())  # goes to forward.~active=no out
 
             # learn
             optimizer.zero_grad()
