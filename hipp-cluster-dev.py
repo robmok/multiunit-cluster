@@ -114,10 +114,6 @@ class MultiUnitCluster(nn.Module):
         # randomly scatter
         self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
 
-        # # cluster positions as trainable parameters
-        # self.clusters = torch.nn.Parameter(
-        #     torch.zeros([n_units, n_dims], dtype=torch.float))
-
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type[0:4] == 'dime':
             self.attn = (torch.nn.Parameter(
@@ -154,7 +150,12 @@ class MultiUnitCluster(nn.Module):
             self.fc1.weight.mul_(self.mask)
 
     def forward(self, x):
-        # compute activations of clusters here. stim x clusterpos x attn
+
+        # get active units
+        active_ws = (
+            torch.sum(abs(self.fc1.weight) > 0, axis=0, dtype=torch.bool))
+
+        # compute activations. stim x unit_pos x attn
 
         # distance measure. *attn works for both dimensional or unit-based
         dim_dist = abs(x - self.units_pos)
@@ -163,14 +164,9 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
-        # edited self.winning_units as index to active_ws - since normalize by all active units, not just winners.
-        # pretty sure previous was wrong. but this also doesn't work as expected...
-        active_ws = torch.sum(abs(self.fc1.weight) > 0, axis=0,
-                              dtype=torch.bool)
         norm_units = False
         if norm_units:
             beta = self.params['beta']
-
             act.data[active_ws] = (
                 (act.data[active_ws]**beta) /
                 (torch.sum(act.data[active_ws]**beta)))
@@ -179,12 +175,7 @@ class MultiUnitCluster(nn.Module):
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
-        # self.units_act_trace.append(units_output.detach().clone())
         self.units_act_trace.append(units_output[active_ws].detach().clone())
-
-        # save attn weights
-        if not self.attn_type[-5] == 'local':
-            self.attn_trace.append(self.attn.detach().clone())
 
         # association weights / NN
         out = self.fc1(units_output)
@@ -205,13 +196,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     p_fc1 = {'params': model.fc1.parameters()}
     if model.attn_type[-5:] != 'local':
         p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
-        params = [p_fc1, p_attn]
+        prms = [p_fc1, p_attn]
     else:
-        params = [p_fc1]
+        prms = [p_fc1]
 
     # model.params['lr_clusters'], model.params['lr_clusters_group'],
 
-    optimizer = optim.SGD(params, lr=model.params['lr_nn'])  # , momentum=0.)
+    optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # , momentum=0.)
 
     # save accuracy
     itrl = 0
@@ -221,15 +212,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     trial_ptarget = torch.zeros(n_trials)
     epoch_ptarget = torch.zeros(n_epochs)
 
-    # randomly lesion n units at ntimepoints
+    # lesion units during learning
     if lesions:
         model.lesion_units = []  # save which units were lesioned
-        if lesions['gen_rand_lesions_trials']:
+        if lesions['gen_rand_lesions_trials']:  # lesion at randomly timepoints
             lesion_trials = (
                 torch.randint(n_trials,
                               (int(n_trials * lesions['pr_lesion_trials']),)))
             model.lesion_trials = lesion_trials  # save which were lesioned
-        else:
+        else:  # lesion at pre-specified timepoints
             lesion_trials = lesions['lesion_trials']
 
     model.train()
@@ -244,14 +235,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             output_ = output
         for x, target in zip(inputs_, output_):
 
-            # TMP - testing
+            # # testing
             # x=inputs_[np.mod(itrl-8, 8)]
             # target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
             # target=output_[itrl]
 
-            # find winners
-            # first: only connected units (assoc ws ~0) can be winners
+            # get active units
             # - any weight > 0 = connected/active unit (so sum over out dim)
             active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0,
                                   dtype=torch.bool)
@@ -267,7 +257,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     with torch.no_grad():
                         model.fc1.weight[:, les] = 0
 
-            # find units with largest activation that are connected
+            # find winners:largest acts that are connected (active_ws)
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
@@ -290,9 +280,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # this goes into forward. if ~active, no out
             model.winning_units = torch.zeros(model.n_units, dtype=torch.bool)
             model.winning_units[win_ind] = True
-
-            # save acts
-            # model.units_act_trace.append(act[win_ind].detach().clone())
 
             # learn
             optimizer.zero_grad()
@@ -333,30 +320,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    # act_1 = (
-                    #     _compute_act(
-                    #         (torch.sum(model.attn *
-                    #                 (abs(x - model.units_pos[win_ind])
-                    #                 ** model.params['r']), axis=1) **
-                    #           (1/model.params['r'])), model.params['c'],
-                    #         model.params['p']) - 
-
-                    #     torch.mean(_compute_act(  # mean or sum? - mean might make more sense here, many more losers. However, losers smaller acts, so sum is needed to counteract the winners (in Cluster this is the case)
-                    #         (torch.sum(model.attn *
-                    #                     (abs(x - model.units_pos[lose_ind])
-                    #                     ** model.params['r']), axis=1) **
-                    #           (1/model.params['r'])), model.params['c'],
-                    #         model.params['p']))
-                    #     )
-
-                    # compute gradient
-                    # for i in range(len(act_1)):
-                    #     act_1[i].backward(retain_graph=True)
-                    # if len(act_1):  # if any
-                    #     # model.attn.grad = model.attn.grad / len(act_1)  # - ah, this makes the gradients smaller. commenting it out makes it look good..
-                    #     model.attn.data += (
-                    #         model.params['lr_attn'] * model.attn.grad)
-
                     # new - sum of winners minus sum of losers - faster
                     act_1 = (
                         torch.sum(_compute_act(
@@ -376,12 +339,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     # compute gradient
                     act_1.backward(retain_graph=True)
-                    # model.attn.data += (
-                    #     model.params['lr_attn'] * model.attn.grad)
                     # divide grad by n active units (scales to any n_units)
                     model.attn.data += (
                         model.params['lr_attn'] *
-                        (model.attn.grad / model.n_units))  # torch.sum(active_ws)
+                        (model.attn.grad / model.n_units))
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -394,6 +355,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         model.attn.data /
                         torch.sum(model.attn.data, dim=1, keepdim=True)
                         )
+
+                # save updated attn ws
+                model.attn_trace.append(model.attn.detach().clone())
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
@@ -410,8 +374,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     model.params['lr_clusters_group'])
                 model.units_pos[win_ind] += update
 
-                # save updated attn weights, unit pos
-                # model.attn_trace.append(model.attn.detach().clone())
+                # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             # save acc per trial
@@ -510,6 +473,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 #         model.params['lr_attn'] *
                 #         (model.attn.grad / model.n_units))
 
+                # save updated attn ws
+                model.attn_trace.append(model.attn.detach().clone())
+
                 # update units positions - double update rule
                 update = (
                     (x - model.units_pos[model.winning_units]) *
@@ -525,6 +491,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     model.params['lr_clusters_group'])
                 model.units_pos[model.winning_units] += update
 
+                # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             # tmp
@@ -549,8 +516,7 @@ def train_unsupervised(model, inputs, n_epochs):
         inputs_ = inputs[shuffle_ind]
         # inputs_ = inputs
         for x in inputs_:
-            # find winners
-            # find units with largest activation - all connected
+            # find winners with largest activation - all connected
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
@@ -656,7 +622,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -734,13 +700,13 @@ params = {
     }
 
 # lesioning
-# lesions = None  # if no lesions
-lesions = {
-    'n_lesions': 10,  # n_lesions per event
-    'gen_rand_lesions_trials': True,  # generate lesion events at random times
-    'pr_lesion_trials': .01,  # if True, set this
-    'lesion_trials': torch.tensor([20])  # if False, set lesion trials
-    }
+lesions = None  # if no lesions
+# lesions = {
+#     'n_lesions': 10,  # n_lesions per event
+#     'gen_rand_lesions_trials': True,  # generate lesion events at random times
+#     'pr_lesion_trials': .01,  # if True, set this
+#     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
+#     }
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -858,21 +824,21 @@ for i in range(niter):
             'k': k
             }
     
-        # # trying with higher c - flipping 1& 6
-        # # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
-        # # now type II also can be slow, types 3-5 faster - as brad predicted
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.5, 
-        #     'beta': 1.,
-        #     'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
-        #     'lr_nn': .02/lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .01,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
+        # trying with higher c - flipping 1& 6
+        # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
+        # now type II also can be slow, types 3-5 faster - as brad predicted
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1.5, 
+            'beta': 1.,
+            'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
+            'lr_nn': .025/lr_scale,  # scale by n_units*k
+            'lr_clusters': .01,
+            'lr_clusters_group': .1,
+            'k': k
+            }
 
         # # new local attn + cluster comp
         # params = {

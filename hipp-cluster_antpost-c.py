@@ -58,18 +58,6 @@ class MultiUnitCluster(nn.Module):
         # free params
         if params:
             self.params = params
-        else:
-            self.params = {
-                'r': 1,  # 1=city-block, 2=euclid
-                'c': 2,  # node specificity
-                'p': 1,  # alcove: p=1 exp, p=2 gauss
-                'phi': 1,  # response parameter, non-negative
-                'lr_attn': .25,
-                'lr_nn': .25,
-                'lr_clusters': .15,
-                'lr_clusters_group': .95,
-                'k': k
-                }
 
         # units
         self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
@@ -162,13 +150,23 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
-    if model.attn_type[-5:] != 'local':
-        p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
-        params = [p_fc1, p_attn]
-    else:
-        params = [p_fc1]
 
-    optimizer = optim.SGD(params, lr=model.params['lr_nn'])  # , momentum=0.)
+    prms = []
+    for i in range(model.n_banks):
+        if model.attn_type[-5:] != 'local':
+            p_attn = {'params': [model.attn],  # TODO edit above - 2 sets of attn ws
+                      'lr': model.params[i]['lr_attn']}
+            prms.extend([p_fc1, p_attn])
+        else:
+            prms.append(p_fc1)
+
+    # hmm, probably need both into here..
+    optimizer = optim.SGD(prms, lr=model.prms['lr_nn'])  # , momentum=0.)
+
+
+
+
+
 
     # save accuracy
     itrl = 0
@@ -460,4 +458,64 @@ def _compute_act(dist, c, p):
 # %%
 
 
+
+
+# model details
+attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
+n_units = 500
+# n_dims = inputs.shape[1]
+loss_type = 'cross_entropy'
+
+# top k%. so .05 = top 5%
+k = .05
+
+# SHJ
+# - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
+
+# trials, etc.
+n_epochs = 16
+
+# new local attn - scaling lr
+lr_scale = (n_units * k) / 1
+
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': .9, # w/ attn grad normalized, c can be large now
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 18.5,
+#     'beta': 1.,
+#     'lr_attn': .15, # this scales at grad computation now
+#     'lr_nn': .01/lr_scale,  # scale by n_units*k
+#     'lr_clusters': .01,
+#     'lr_clusters_group': .1,
+#     'k': k
+#     }
+
+# shj params - low c
+params = [{
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .8,  # w/ attn grad normalized, c can be large now
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 10.5,
+    'beta': 1.,
+    'lr_attn': .15,  # this scales at grad computation now
+    'lr_nn': .025/lr_scale,  # scale by n_units*k
+    'lr_clusters': .01,
+    'lr_clusters_group': .1,
+    'k': k
+    }]
+
+# high c - append additional banks of units with diff params
+params.append({
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1.5, 
+    'beta': 1.,
+    'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
+    'lr_nn': params[0]['lr_nn'],  # keep the same for now
+    'lr_clusters': .01,
+    'lr_clusters_group': .1,
+    'k': k
+    })
 
