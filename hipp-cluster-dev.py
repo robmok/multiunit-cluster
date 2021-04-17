@@ -147,8 +147,8 @@ class MultiUnitCluster(nn.Module):
         self.winning_units = torch.zeros(n_units, dtype=torch.bool)
         # self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
         # # do i need this? - i think no, just to make starting weights 0
-        with torch.no_grad():
-            self.fc1.weight.mul_(self.mask)
+        # with torch.no_grad():
+        #     self.fc1.weight.mul_(self.mask)
 
     def forward(self, x):
 
