@@ -78,6 +78,7 @@ class MultiUnitCluster(nn.Module):
         self.n_units = n_units
         self.n_dims = n_dims
         self.softmax = nn.Softmax(dim=0)
+        self.active_units = torch.zeros(n_units, dtype=torch.bool)
         # history
         self.attn_trace = []
         self.units_pos_trace = []
@@ -151,10 +152,6 @@ class MultiUnitCluster(nn.Module):
 
     def forward(self, x):
 
-        # get active units
-        active_ws = (
-            torch.sum(abs(self.fc1.weight) > 0, axis=0, dtype=torch.bool))
-
         # compute activations. stim x unit_pos x attn
 
         # distance measure. *attn works for both dimensional or unit-based
@@ -167,15 +164,15 @@ class MultiUnitCluster(nn.Module):
         norm_units = False
         if norm_units:
             beta = self.params['beta']
-            act.data[active_ws] = (
-                (act.data[active_ws]**beta) /
-                (torch.sum(act.data[active_ws]**beta)))
+            act.data[self.active_units] = (
+                (act.data[self.active_units]**beta) /
+                (torch.sum(act.data[self.active_units]**beta)))
 
         units_output = act * self.winning_units
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
-        self.units_act_trace.append(units_output[active_ws].detach().clone())
+        self.units_act_trace.append(units_output[self.active_units].detach().clone())
 
         # association weights / NN
         out = self.fc1(units_output)
@@ -199,8 +196,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
         prms = [p_fc1, p_attn]
     else:
         prms = [p_fc1]
-
-    # model.params['lr_clusters'], model.params['lr_clusters_group'],
 
     optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # , momentum=0.)
 
@@ -235,33 +230,28 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             output_ = output
         for x, target in zip(inputs_, output_):
 
-            # # testing
-            # x=inputs_[np.mod(itrl-8, 8)]
-            # target=output_[np.mod(itrl-8, 8)]
+            # testing
+            x=inputs_[np.mod(itrl-8, 8)]
+            target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
             # target=output_[itrl]
-
-            # get active units
-            # - any weight > 0 = connected/active unit (so sum over out dim)
-            active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0,
-                                  dtype=torch.bool)
 
             # lesion trials
             if lesions:
                 if torch.any(itrl == lesion_trials):
                     # find active ws, randomly turn off n units (n_lesions)
-                    w_ind = np.nonzero(active_ws)
+                    w_ind = np.nonzero(model.active_units)
                     les = w_ind[torch.randint(w_ind.numel(),
                                               (lesions['n_lesions'],))]
                     model.lesion_units.append(les)
                     with torch.no_grad():
                         model.fc1.weight[:, les] = 0
 
-            # find winners:largest acts that are connected (active_ws)
+            # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
-            act[~active_ws] = 0  # not connected, no act
+            act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
             _, win_ind = torch.topk(act,
@@ -277,9 +267,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # define winner mask
             win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
             win_mask[:, win_ind] = True
-            # this goes into forward. if ~active, no out
-            model.winning_units = torch.zeros(model.n_units, dtype=torch.bool)
-            model.winning_units[win_ind] = True
+            model.winning_units = win_mask[0].clone()  # goes to forward.~active=no out
 
             # learn
             optimizer.zero_grad()
@@ -315,12 +303,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     # NEW changing win_ind - wta winner only
                     # - only works with wta
-                    win_ind = win_mask[0]  # wta_mask[0] / ind[0][0] both work
-                    lose_ind = (win_mask[0] == 0) & active_ws
+                    win_ind = model.winning_units
+                    lose_ind = (model.winning_units == 0) & model.active_units
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    # new - sum of winners minus sum of losers - faster
                     act_1 = (
                         torch.sum(_compute_act(
                             (torch.sum(model.attn *
@@ -384,8 +371,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # Recruit cluster, and update model
             if (torch.tensor(recruit) and
                 torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
-                # 1st trial: select closest k inactive units
-                if itrl == 0:  # no active weights / 1st trial
+
+                # 1st trial - select closest k inactive units
+                if itrl == 0:
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
                     _, recruit_ind = (
@@ -394,6 +382,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
+
                 # recruit and REPLACE k units that mispredicted
                 else:
                     mispred_units = torch.argmax(
@@ -403,7 +392,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     n_mispred_units = len(mispred_units)
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
-                    act[active_ws] = 0  # REMOVE active units
+                    act[model.active_units] = 0  # REMOVE all active units
+                    # find closest units excluding the active units to recruit
                     _, recruit_ind = (
                         torch.topk(act, n_mispred_units))
                     # since topk takes top even if all 0s, remove the 0 acts
@@ -411,16 +401,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
 
                 # recruit n_mispredicted units
-                active_ws[recruit_ind] = True  # set ws to active
-                model.winning_units = (
-                    torch.zeros(model.n_units, dtype=torch.bool))
+                model.active_units[recruit_ind] = True  # set ws to active
+                model.winning_units[:] = 0  # clear
                 model.winning_units[recruit_ind] = True
                 # keep units that predicted correctly
                 # - should work, but haven't tested since it happens rarely with currently structures
                 if itrl > 0:
                     model.winning_units[win_ind[~mispred_units]] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
-                # model.mask[:, active_ws] = True  # new clus weights
+                # model.mask[:, model.active_units] = True  # new clus weights
                 model.recruit_units_trl.append(itrl)
 
                 # go through update again after cluster added
@@ -429,7 +418,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
                 loss.backward()
                 with torch.no_grad():
-                    win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
+                    win_mask[:] = 0  # clear
                     win_mask[:, model.winning_units] = True  # update w winners
                     model.fc1.weight.grad.mul_(win_mask)
                     if model.attn_type == 'unit':
@@ -447,7 +436,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                 # if model.attn_type[-5:] == 'local':
                 #     win_ind = win_mask[0],
-                #     lose_ind = (win_mask[0] == 0) & active_ws
+                #     lose_ind = (win_mask[0] == 0) & model.active_units
 
                 #     # gradient based on activation of winners minus losers
                 #     act_1 = (
@@ -622,7 +611,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -713,10 +702,9 @@ model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
     model, inputs, output, n_epochs, shuffle=False, lesions=lesions)
 
-# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-# # print(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2))
-# print(np.unique(np.around(model.units_pos.detach().numpy()[active_ws], decimals=2), axis=0))
-# # print(np.unique(np.around(model.attn.detach().numpy()[active_ws], decimals=2), axis=0))
+# # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
+# print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
+# # print(np.unique(np.around(model.attn.detach().numpy()[model.active_units], decimals=2), axis=0))
 # print(model.attn)
 
 print(model.recruit_units_trl)
@@ -740,7 +728,7 @@ plt.plot(torch.stack(model.attn_trace, dim=0))
 plt.show()
 
 # # unit positions
-# results = torch.stack(model.units_pos_trace, dim=0)[-1, active_ws]
+# results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
 # plt.scatter(results[:, 0], results[:, 1])
 # # plt.xlim([-1, 1])
 # # plt.ylim([-1, 1])
@@ -1035,11 +1023,9 @@ for i in plot_trials[0:-1]:
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
-active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-
 # group
-plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 1])
-# plt.scatter(results[-1, active_ws, 0], results[-1, active_ws, 2])
+plt.scatter(results[-1, model.active_units, 0], results[-1, model.active_units, 1])
+# plt.scatter(results[-1, model.active_units, 0], results[-1, model.active_units, 2])
 plt.xlim([-.1, 1.1])
 plt.ylim([-.1, 1.1])    
 plt.show()
@@ -1049,7 +1035,7 @@ plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
                             dtype=torch.long)
 
 for i in plot_trials[0:-1]:
-    plt.scatter(results[i, active_ws, 0], results[i, active_ws, 1])
+    plt.scatter(results[i, model.active_units, 0], results[i, model.active_units, 1])
     # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
     plt.xlim([-.05, 1.05])
     plt.ylim([-.05, 1.05])
@@ -1071,8 +1057,8 @@ plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 1, :])
 plt.show()
 
 # # unit-based attn
-# active_ws = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-# active_ws_ind = torch.nonzero(active_ws)
+# model.active_units = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
+# active_ws_ind = torch.nonzero(model.active_units)
 
 # for i in active_ws_ind:
 #     plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
