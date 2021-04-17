@@ -138,6 +138,9 @@ class MultiUnitCluster(nn.Module):
         self.fc1.weight = torch.nn.Parameter(torch.zeros([n_classes, n_units]))
 
         # mask for NN
+        # - probably don't need this
+        # - below I used win_mask to define this, then used win_mask to create
+        # model.winning_units... actually probably can just have one.
         self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
 
         # mask for updating attention weights based on winning units
@@ -145,10 +148,10 @@ class MultiUnitCluster(nn.Module):
         # trial, since active is define by connection weight ~=0
         # mask for winning clusters
         self.winning_units = torch.zeros(n_units, dtype=torch.bool)
-        # self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
+
         # # do i need this? - i think no, just to make starting weights 0
         # with torch.no_grad():
-        #     self.fc1.weight.mul_(self.mask)
+        #     self.fc1.weight.mul_(self.winning_units)
 
     def forward(self, x):
 
@@ -265,10 +268,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             #     model.act_trace.append(act[win_ind][0].detach().clone())
 
             # define winner mask
-            win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
-            win_mask[:, win_ind] = True
-            model.winning_units = (
-                win_mask[0].clone())  # goes to forward.~active=no out
+            model.winning_units[:] = 0  # clear
+            model.winning_units[win_ind] = True  # goes to forward function
+            win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
             # learn
             optimizer.zero_grad()
@@ -410,7 +412,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 if itrl > 0:
                     model.winning_units[win_ind[~mispred_units]] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
-                # model.mask[:, model.active_units] = True  # new clus weights
                 model.recruit_units_trl.append(itrl)
 
                 # go through update again after cluster added
@@ -520,8 +521,12 @@ def train_unsupervised(model, inputs, n_epochs):
                 win_ind = win_ind[act[win_ind] != 0]
 
             # define winner mask
-            win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
-            win_mask[:, win_ind] = True
+            # win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
+            # win_mask[:, win_ind] = True
+            # above is old code, below is new. test. actually.. need this?
+            model.winning_units[:] = 0  # clear
+            model.winning_units[win_ind] = True  # goes to forward function
+            win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
             # learn
             # update units - double update rule
