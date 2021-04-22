@@ -38,13 +38,16 @@ import warnings
 
 
 class MultiUnitCluster(nn.Module):
-    def __init__(self, n_units, n_dims, attn_type, k, params=None):
+    def __init__(self, n_units, n_dims, n_banks, attn_type, k, params=None):
         super(MultiUnitCluster, self).__init__()
         self.attn_type = attn_type
         self.n_units = n_units
+        self.n_total_units = n_units
         self.n_dims = n_dims
+        self.n_banks = n_banks
         self.softmax = nn.Softmax(dim=0)
-        self.active_units = torch.zeros(n_units, dtype=torch.bool)
+        self.active_units = torch.zeros(self.n_total_units, dtype=torch.bool)
+
         # history
         self.attn_trace = []
         self.units_pos_trace = []
@@ -59,7 +62,6 @@ class MultiUnitCluster(nn.Module):
         self.act_trace = []
 
         # free params
-        # - can estimate all, but probably don't need to include some (e.g. r)
         if params:
             self.params = params
         else:
@@ -76,10 +78,12 @@ class MultiUnitCluster(nn.Module):
                 }
 
         # units
-        self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
+        self.units_pos = torch.zeros(
+            [self.n_total_units, n_dims], dtype=torch.float)
 
         # randomly scatter
-        self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
+        self.units_pos = torch.rand(
+            [self.n_total_units, n_dims], dtype=torch.float)
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type[0:4] == 'dime':
@@ -91,7 +95,7 @@ class MultiUnitCluster(nn.Module):
         elif self.attn_type[0:4] == 'unit':
             self.attn = (
                 torch.nn.Parameter(
-                    torch.ones([n_units, n_dims], dtype=torch.float)
+                    torch.ones([self.n_total_units, n_dims], dtype=torch.float)
                     * (1 / n_dims)))
             # normalize attn to 1, in case not set correctly above
             self.attn.data = (
@@ -100,14 +104,15 @@ class MultiUnitCluster(nn.Module):
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
-        self.fc1 = nn.Linear(n_units, n_classes, bias=False)
-        self.fc1.weight = torch.nn.Parameter(torch.zeros([n_classes, n_units]))
+        self.fc1 = nn.Linear(self.n_total_units, n_classes, bias=False)
+        self.fc1.weight = torch.nn.Parameter(
+            torch.zeros([n_classes, self.n_total_units]))
 
         # mask for updating attention weights based on winning units
         # - winning_units is like active_units before, but winning on that
         # trial, since active is define by connection weight ~=0
         # mask for winning clusters
-        self.winning_units = torch.zeros(n_units, dtype=torch.bool)
+        self.winning_units = torch.zeros(self.n_total_units, dtype=torch.bool)
 
         # # do i need this? - i think no, just to make starting weights 0
         # with torch.no_grad():
@@ -123,13 +128,6 @@ class MultiUnitCluster(nn.Module):
 
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
-
-        norm_units = False
-        if norm_units:
-            beta = self.params['beta']
-            act.data[self.active_units] = (
-                (act.data[self.active_units]**beta) /
-                (torch.sum(act.data[self.active_units]**beta)))
 
         units_output = act * self.winning_units
 
@@ -156,22 +154,19 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
 
-    prms = []
-    for i in range(model.n_banks):
-        if model.attn_type[-5:] != 'local':
-            p_attn = {'params': [model.attn],  # TODO edit above - 2 sets of attn ws
-                      'lr': model.params[i]['lr_attn']}
-            prms.extend([p_fc1, p_attn])
-        else:
-            prms.append(p_fc1)
+    # prms = []
+    # for i in range(model.n_banks):
+    #     if model.attn_type[-5:] != 'local':
+    #         p_attn = {'params': [model.attn],  # TODO edit above - 2 sets of attn ws
+    #                   'lr': model.params[i]['lr_attn']}
+    #         prms.extend([p_fc1, p_attn])
+    #     else:
+    #         prms.append(p_fc1)
 
-    # hmm, probably need both into here..
+    # actually, for local attn, just need p_fc1 with all units connected
+    prms = [p_fc1]
+
     optimizer = optim.SGD(prms, lr=model.prms['lr_nn'])  # , momentum=0.)
-
-
-
-
-
 
     # save accuracy
     itrl = 0
@@ -228,8 +223,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
-            _, win_ind = torch.topk(act,
-                                    int(model.n_units * model.params['k']))
+            _, win_ind = (
+                torch.topk(act, int(model.n_total_units * model.params['k']))
+                )
             # since topk takes top even if all 0s, remove the 0 acts
             if torch.any(act[win_ind] == 0):
                 win_ind = win_ind[act[win_ind] != 0]
@@ -303,7 +299,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     # divide grad by n active units (scales to any n_units)
                     model.attn.data += (
                         model.params['lr_attn']
-                        * (model.attn.grad / model.n_units))
+                        * (model.attn.grad / model.n_total_units))
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -354,7 +350,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         dist, model.params['c'], model.params['p'])
                     _, recruit_ind = (
                         torch.topk(act,
-                                   int(model.n_units * model.params['k'])))
+                                   int(model.n_total_units * model.params['k'])))
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
@@ -436,7 +432,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 #     # divide grad by n active units (scales to any n_units)
                 #     model.attn.data += (
                 #         model.params['lr_attn'] *
-                #         (model.attn.grad / model.n_units))
+                #         (model.attn.grad / model.n_total_units))
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -497,16 +493,18 @@ def _compute_act(dist, c, p):
 # %%
 
 
-
-
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
 n_units = 500
 # n_dims = inputs.shape[1]
+n_dims = 3
 loss_type = 'cross_entropy'
 
 # top k%. so .05 = top 5%
 k = .05
+
+# n banks of units
+n_banks = 2
 
 # SHJ
 # - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
@@ -557,4 +555,7 @@ params.append({
     'lr_clusters_group': .1,
     'k': k
     })
+
+model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
+
 
