@@ -141,7 +141,7 @@ class MultiUnitCluster(nn.Module):
         # - probably don't need this
         # - below I used win_mask to define this, then used win_mask to create
         # model.winning_units... actually probably can just have one.
-        self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
+        # self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
 
         # mask for updating attention weights based on winning units
         # - winning_units is like active_units before, but winning on that
@@ -175,7 +175,8 @@ class MultiUnitCluster(nn.Module):
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
-        self.units_act_trace.append(units_output[self.active_units].detach().clone())
+        self.units_act_trace.append(
+            units_output[self.active_units].detach().clone())
 
         # association weights / NN
         out = self.fc1(units_output)
