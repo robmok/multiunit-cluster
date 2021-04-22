@@ -118,6 +118,13 @@ class MultiUnitCluster(nn.Module):
         # with torch.no_grad():
         #     self.fc1.weight.mul_(self.winning_units)
 
+        # masks for each model - in order to only update one model at a time
+        self.mask = torch.zeros(self.n_total_units, dtype=torch.bool)
+
+        for ibank in range(n_banks):
+            # index 0:n_units for first bank. then n_units:n_units*2..
+            
+
     def forward(self, x):
 
         # compute activations. stim x unit_pos x attn
@@ -166,7 +173,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     # actually, for local attn, just need p_fc1 with all units connected
     prms = [p_fc1]
 
-    optimizer = optim.SGD(prms, lr=model.prms['lr_nn'])  # , momentum=0.)
+    optimizer = optim.SGD(prms, lr=model.params[0]['lr_nn'])  # same lr now
 
     # save accuracy
     itrl = 0
@@ -200,8 +207,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
         for x, target in zip(inputs_, output_):
 
             # testing
-            # x=inputs_[np.mod(itrl-8, 8)]
-            # target=output_[np.mod(itrl-8, 8)]
+            x=inputs_[np.mod(itrl-8, 8)]
+            target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
             # target=output_[itrl]
 
@@ -217,6 +224,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         model.fc1.weight[:, les] = 0
 
             # find winners:largest acts that are connected (model.active_units)
+            # - 2+ models. model.attn needs to be n sets of attn weighst
+            # - model.params also are now indexed. e.g. model.params[0]['r']
+            # EITHER can loop over each model and update it separately
+            # OR select two winners... ah not a gd idea since could be from diff models.
+            # --> ok, probably loop.
+            # in that case, need set up the masks, and loop over those indices
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
