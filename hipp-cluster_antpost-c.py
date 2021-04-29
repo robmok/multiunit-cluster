@@ -35,14 +35,12 @@ import torch.optim as optim
 import warnings
 
 
-
-
 class MultiUnitCluster(nn.Module):
     def __init__(self, n_units, n_dims, n_banks, attn_type, k, params=None):
         super(MultiUnitCluster, self).__init__()
         self.attn_type = attn_type
         self.n_units = n_units
-        self.n_total_units = n_units
+        self.n_total_units = n_units * n_banks
         self.n_dims = n_dims
         self.n_banks = n_banks
         self.softmax = nn.Softmax(dim=0)
@@ -87,20 +85,14 @@ class MultiUnitCluster(nn.Module):
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type[0:4] == 'dime':
-            self.attn = (torch.nn.Parameter(
-                torch.ones(n_dims, dtype=torch.float) * (1 / n_dims)))
-            # normalize attn to 1, in case not set correctly above
-            self.attn.data = (
-                        self.attn.data / torch.sum(self.attn.data))
-        elif self.attn_type[0:4] == 'unit':
             self.attn = (
                 torch.nn.Parameter(
-                    torch.ones([self.n_total_units, n_dims], dtype=torch.float)
-                    * (1 / n_dims)))
+                    torch.ones([n_dims, n_banks], dtype=torch.float)
+                    * (1 / 3))
+            )
             # normalize attn to 1, in case not set correctly above
-            self.attn.data = (
-                self.attn.data /
-                torch.sum(self.attn.data, dim=1, keepdim=True))
+            self.attn.data = (self.attn.data
+                              / torch.sum(self.attn.data, dim=0).T)
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
@@ -119,17 +111,21 @@ class MultiUnitCluster(nn.Module):
         #     self.fc1.weight.mul_(self.winning_units)
 
         # masks for each model - in order to only update one model at a time
-        self.mask = torch.zeros(self.n_total_units, dtype=torch.bool)
-
+        self.mask = torch.zeros([n_banks, self.n_total_units],
+                                dtype=torch.bool)
+        bank_ind = (
+            torch.linspace(0, self.n_total_units, n_banks+1, dtype=torch.int)
+            )
+        # mask[ibank] will only include units from that bank.
         for ibank in range(n_banks):
-            # index 0:n_units for first bank. then n_units:n_units*2..
-            
+            self.mask[ibank, bank_ind[ibank]:bank_ind[ibank + 1]] = True
 
     def forward(self, x):
 
         # compute activations. stim x unit_pos x attn
 
         # distance measure. *attn works for both dimensional or unit-based
+        # TODO - need to check if this works now with two banks of attn ws
         dim_dist = abs(x - self.units_pos)
         dist = _compute_dist(dim_dist, self.attn, self.params['r'])
 
