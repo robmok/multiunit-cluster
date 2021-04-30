@@ -45,7 +45,7 @@ class MultiUnitCluster(nn.Module):
         self.n_banks = n_banks
         self.softmax = nn.Softmax(dim=0)
         self.active_units = torch.zeros(
-            [n_banks, self.n_total_units], dtype=torch.bool)
+            [self.n_total_units, n_banks], dtype=torch.bool)
 
         # history
         self.attn_trace = []
@@ -112,14 +112,14 @@ class MultiUnitCluster(nn.Module):
         #     self.fc1.weight.mul_(self.winning_units)
 
         # masks for each bank - in order to only update one model at a time
-        self.bmask = torch.zeros([n_banks, self.n_total_units],
+        self.bmask = torch.zeros([self.n_total_units, n_banks],
                                  dtype=torch.bool)
         bank_ind = (
             torch.linspace(0, self.n_total_units, n_banks+1, dtype=torch.int)
             )
         # mask[ibank] will only include units from that bank.
         for ibank in range(n_banks):
-            self.bmask[ibank, bank_ind[ibank]:bank_ind[ibank + 1]] = True
+            self.bmask[bank_ind[ibank]:bank_ind[ibank + 1], ibank] = True
 
     def forward(self, x):
 
@@ -224,11 +224,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
-            act[~model.active_units.T] = 0  # not connected, no act
+            act[~model.active_units] = 0  # not connected, no act
 
             # bank mask
             # - extra safe: eg. at start no units, dont recruit from wrong bank
-            act[~model.bmask.T] = -.01  # negative so never win
+            act[~model.bmask] = -.01  # negative so never win
 
             # get top k winners
             _, win_ind = (
@@ -254,12 +254,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
             # n_banks model - edited up to here
-
-            # TODO / checl - above i had to transpose act. revisit to check
-            # if better to change the tensor orientation (now unit x nbanks)
-            # - note: this is partly due to when going thru compute_dist/act
-            # things might have changed (because loop over banks / multiplying by
-            # c param as a tensor in _compute_act, etc.)
 
             # learn
             optimizer.zero_grad()
@@ -503,19 +497,22 @@ def _compute_dist(dim_dist, attn_w, r):
     else:
         # compute distances weighted by 2 banks of attn weights
         # - all dists are computed but for each bank, only n_units shd be used
-        d = torch.zeros([model.n_total_units, model.n_banks])
+        d = torch.zeros([model.n_banks, model.n_total_units])
         for ibank in range(model.n_banks):
-            d[:, ibank] = (
+            d[ibank] = (
                 torch.sum(attn_w[ibank] * (dim_dist**r), axis=1) ** (1/r)
                 )
     return d
 
 
 def _compute_act(dist, c, p):
-    """ dist is n_total_units x n_banks, and params['c'] size is n_banks, so
-    can just multiple by banks
     """
-    return torch.tensor(c) * torch.exp(-torch.tensor(c) * dist)  # sustain-like
+    dist is n_banks x n_total_units, and params['c'] size is n_banks, so
+    can just multiple by banks
+
+    sustain activation function
+    """
+    return torch.tensor(c) * torch.exp(-torch.tensor(c) * dist)
 
 # %%
 
