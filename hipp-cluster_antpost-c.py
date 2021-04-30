@@ -221,12 +221,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         model.fc1.weight[:, les] = 0
 
             # find winners:largest acts that are connected (model.active_units)
-            # - 2+ models. model.attn needs to be n sets of attn weighst
-            # - model.params also are now indexed. e.g. model.params[0]['r']
-            # EITHER can loop over each model and update it separately
-            # OR select two winners... ah not a gd idea since could be from diff models.
-            # --> ok, probably loop.
-            # in that case, need set up the masks, and loop over those indices
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
@@ -238,7 +232,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # to recruit from wrong bank
             act[~model.bmask.T] = -.01  # negative so never win
 
-            # # get top k winners
+            # get top k winners
             _, win_ind = (
                 torch.topk(act, int(model.n_total_units * model.params['k']),
                            dim=0)
@@ -252,17 +246,16 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         win_ind[act[win_ind[:, ibank], ibank] != 0, ibank]
                         )
 
-
             # if itrl > 0:  # checking
             #     model.dist_trace.append(dist[win_ind][0].detach().clone())
             #     model.act_trace.append(act[win_ind][0].detach().clone())
 
             # define winner mask
             model.winning_units[:] = 0  # clear
-            # for ibank in range(model.n_banks):
-            #     model.winning_units[ibank, win_ind[:, ibank]] = True  # goes to forward function
             model.winning_units[win_ind] = True  # goes to forward function
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
+
+            # n_banks model - edited up to here
 
             # learn
             optimizer.zero_grad()
