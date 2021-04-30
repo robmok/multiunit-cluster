@@ -44,8 +44,7 @@ class MultiUnitCluster(nn.Module):
         self.n_dims = n_dims
         self.n_banks = n_banks
         self.softmax = nn.Softmax(dim=0)
-        self.active_units = torch.zeros(
-            [self.n_total_units, n_banks], dtype=torch.bool)
+        self.active_units = torch.zeros(self.n_total_units, dtype=torch.bool)
 
         # history
         self.attn_trace = []
@@ -112,14 +111,14 @@ class MultiUnitCluster(nn.Module):
         #     self.fc1.weight.mul_(self.winning_units)
 
         # masks for each bank - in order to only update one model at a time
-        self.bmask = torch.zeros([self.n_total_units, n_banks],
+        self.bmask = torch.zeros([n_banks, self.n_total_units],
                                  dtype=torch.bool)
         bank_ind = (
             torch.linspace(0, self.n_total_units, n_banks+1, dtype=torch.int)
             )
         # mask[ibank] will only include units from that bank.
         for ibank in range(n_banks):
-            self.bmask[bank_ind[ibank]:bank_ind[ibank + 1], ibank] = True
+            self.bmask[ibank, bank_ind[ibank]:bank_ind[ibank + 1]] = True
 
     def forward(self, x):
 
@@ -132,8 +131,8 @@ class MultiUnitCluster(nn.Module):
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
-        # added bmask to remove acts in the wrong bank
-        units_output = act.T * self.winning_units * self.bmask
+        # bmask - remove acts in wrong bank, sum over banks (0s for wrong bank)
+        units_output = torch.sum(act * self.winning_units * self.bmask, axis=0)
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
@@ -145,8 +144,10 @@ class MultiUnitCluster(nn.Module):
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
         self.fc1_act_trace.append(out.detach().clone())
 
+        print(out)
         # convert to response probability
-        pr = self.softmax(self.params['phi'] * out)
+        pr = [self.softmax(self.params['phi'][0] * out),
+              self.softmax(self.params['phi'][1] * out)]
 
         return out, pr
 
@@ -170,14 +171,14 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     # actually, for local attn, just need p_fc1 with all units connected
     prms = [p_fc1]
 
-    optimizer = optim.SGD(prms, lr=model.params[0]['lr_nn'])  # same lr now
+    optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # same lr now
 
     # save accuracy
     itrl = 0
     n_trials = len(inputs) * n_epochs
     trial_acc = torch.zeros(n_trials)
     epoch_acc = torch.zeros(n_epochs)
-    trial_ptarget = torch.zeros(n_trials)
+    trial_ptarget = torch.zeros([model.n_banks, n_trials])
     epoch_ptarget = torch.zeros(n_epochs)
 
     # lesion units during learning
@@ -224,7 +225,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
-            act[~model.active_units] = 0  # not connected, no act
+            act[:, ~model.active_units] = 0  # not connected, no act
 
             # bank mask
             # - extra safe: eg. at start no units, dont recruit from wrong bank
@@ -233,16 +234,25 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # get top k winners
             _, win_ind = (
                 torch.topk(act, int(model.n_total_units * model.params['k']),
-                           dim=0)
+                           dim=1)
                 )
 
             # since topk takes top even if all 0s, remove the 0 acts
             # - indexing a bit confusing now since multiple banks, but works
+            win_ind_tmp = []
             for ibank in range(model.n_banks):
-                if torch.any(act[win_ind[:, ibank], ibank] == 0):
-                    win_ind = (
-                        win_ind[act[win_ind[:, ibank], ibank] != 0, ibank]
+                if torch.any(act[ibank, win_ind[ibank]] == 0):
+                    win_ind_tmp.append(
+                        win_ind[ibank, act[ibank, win_ind[ibank]] != 0]
                         )
+            # this assumes there will be the same number per bank
+            # TODO - may need to think if need allow diff numbers
+            # TODO - also not sure if this works other than 1st trial. if other
+            # units ok, will there be 0 units? maybe this is ok?... ++
+            win_ind = torch.zeros([model.n_banks, len(win_ind_tmp[0])])
+            for ibank in range(model.n_banks):
+                win_ind[ibank] = win_ind_tmp[ibank]
+
 
             # if itrl > 0:  # checking
             #     model.dist_trace.append(dist[win_ind][0].detach().clone())
@@ -250,11 +260,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # define winner mask
             model.winning_units[:] = 0  # clear
-            model.winning_units[win_ind] = True  # goes to forward function
+            if win_ind.numel() > 0:
+                model.winning_units[win_ind] = True  # goes to forward function
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
-
-            # n_banks model - edited up to here
-
+    
             # learn
             optimizer.zero_grad()
             out, pr = model.forward(x)
@@ -263,8 +272,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # zero out gradient for masked connections
             with torch.no_grad():
                 model.fc1.weight.grad.mul_(win_mask)
-                if model.attn_type == 'unit':  # mask other clusters' attn
-                    model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
+                # if model.attn_type == 'unit':  # mask other clusters' attn
+                #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
 
             # if local attn - clear attn grad computed above
             if model.attn_type[-5:] == 'local':
@@ -324,11 +333,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     model.attn.data = (
                         model.attn.data / torch.sum(model.attn.data)
                         )
-                elif model.attn_type[0:4] == 'unit':
-                    model.attn.data = (
-                        model.attn.data
-                        / torch.sum(model.attn.data, dim=1, keepdim=True)
-                        )
+                # elif model.attn_type[0:4] == 'unit':
+                #     model.attn.data = (
+                #         model.attn.data
+                #         / torch.sum(model.attn.data, dim=1, keepdim=True)
+                #         )
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -354,7 +363,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # save acc per trial
             trial_acc[itrl] = torch.argmax(out.data) == target
-            trial_ptarget[itrl] = pr[target]
+            for ibank in range(model.n_banks):
+                trial_ptarget[ibank, itrl] = pr[ibank][target]
 
             # Recruit cluster, and update model
             if (torch.tensor(recruit) and
@@ -364,14 +374,25 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 if itrl == 0:
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
+                    act[~model.bmask] = -.01  # negative so never win
+
                     _, recruit_ind = (
                         torch.topk(act,
-                                   int(model.n_total_units * model.params['k'])))
-                    # since topk takes top even if all 0s, remove the 0 acts
-                    if torch.any(act[recruit_ind] == 0):
-                        recruit_ind = recruit_ind[act[recruit_ind] != 0]
+                                   int(model.n_total_units
+                                       * model.params['k']), dim=1)
+                        )
 
-                # recruit and REPLACE k units that mispredicted
+                    # since topk takes top even if all 0s, remove the 0 acts   
+                    # TO DO - fix according to what i did above
+                    for ibank in range(model.n_banks):
+                        if torch.any(act[ibank, recruit_ind[ibank]] == 0):
+                            recruit_ind[ibank] = (
+                                recruit_ind[ibank,
+                                            act[ibank, recruit_ind[ibank]]
+                                            != 0]
+                                )
+
+                # recruit and REPLACE k units that mispredicted - still to do
                 else:
                     mispred_units = torch.argmax(
                         model.fc1.weight[:, win_ind].detach(), dim=0) != target
@@ -380,7 +401,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     n_mispred_units = len(mispred_units)
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
-                    act[model.active_units] = 0  # REMOVE all active units
+                    act[:, model.active_units] = 0  # REMOVE all active units
                     # find closest units excluding the active units to recruit
                     _, recruit_ind = (
                         torch.topk(act, n_mispred_units))
@@ -409,8 +430,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     win_mask[:] = 0  # clear
                     win_mask[:, model.winning_units] = True  # update w winners
                     model.fc1.weight.grad.mul_(win_mask)
-                    if model.attn_type == 'unit':
-                        model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
+                    # if model.attn_type == 'unit':
+                    #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
                 if model.attn_type[-5:] == 'local':
                     model.attn.grad[:] = 0  # clear grad
 
@@ -490,17 +511,18 @@ def _compute_dist(dim_dist, attn_w, r):
     # since sqrt of 0 returns nan for gradient, need this bit
     # e.g. euclid, can't **(1/2)
     if r > 1:
-        d = torch.zeros(len(dim_dist))
-        ind = torch.sum(dim_dist, axis=1) > 0
-        dim_dist_tmp = dim_dist[ind]
-        d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
+        # d = torch.zeros(len(dim_dist))
+        # ind = torch.sum(dim_dist, axis=1) > 0
+        # dim_dist_tmp = dim_dist[ind]
+        # d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
+        pass
     else:
         # compute distances weighted by 2 banks of attn weights
         # - all dists are computed but for each bank, only n_units shd be used
-        d = torch.zeros([model.n_banks, model.n_total_units])
+        d = torch.zeros([model.n_total_units, model.n_banks])
         for ibank in range(model.n_banks):
-            d[ibank] = (
-                torch.sum(attn_w[ibank] * (dim_dist**r), axis=1) ** (1/r)
+            d[:, ibank] = (
+                torch.sum(attn_w[:, ibank] * (dim_dist**r), axis=1) ** (1/r)
                 )
     return d
 
@@ -512,7 +534,8 @@ def _compute_act(dist, c, p):
 
     sustain activation function
     """
-    return torch.tensor(c) * torch.exp(-torch.tensor(c) * dist)
+    return torch.transpose(
+        torch.tensor(c) * torch.exp(-torch.tensor(c) * dist), 0, 1)
 
 # %%
 
