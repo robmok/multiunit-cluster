@@ -125,15 +125,15 @@ class MultiUnitCluster(nn.Module):
 
         # compute activations. stim x unit_pos x attn
 
-        # distance measure. *attn works for both dimensional or unit-based
-        # TODO - need to check if this works now with two banks of attn ws
+        # distance measure
         dim_dist = abs(x - self.units_pos)
         dist = _compute_dist(dim_dist, self.attn, self.params['r'])
 
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(dist, self.params['c'], self.params['p'])
 
-        units_output = act * self.winning_units
+        # added bmask to remove acts in the wrong bank
+        units_output = act.T * self.winning_units * self.bmask
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
@@ -227,9 +227,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             act[~model.active_units.T] = 0  # not connected, no act
 
             # bank mask
-            # - maybe zero-ing inactive units above would work already
-            # - but maybe extra safe here - when start, no units - don't want
-            # to recruit from wrong bank
+            # - extra safe: eg. at start no units, dont recruit from wrong bank
             act[~model.bmask.T] = -.01  # negative so never win
 
             # get top k winners
@@ -256,6 +254,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
             # n_banks model - edited up to here
+
+            # TODO / checl - above i had to transpose act. revisit to check
+            # if better to change the tensor orientation (now unit x nbanks)
+            # - note: this is partly due to when going thru compute_dist/act
+            # things might have changed (because loop over banks / multiplying by
+            # c param as a tensor in _compute_act, etc.)
 
             # learn
             optimizer.zero_grad()
