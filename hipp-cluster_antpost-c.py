@@ -44,7 +44,8 @@ class MultiUnitCluster(nn.Module):
         self.n_dims = n_dims
         self.n_banks = n_banks
         self.softmax = nn.Softmax(dim=0)
-        self.active_units = torch.zeros(self.n_total_units, dtype=torch.bool)
+        self.active_units = torch.zeros(
+            [n_banks, self.n_total_units], dtype=torch.bool)
 
         # history
         self.attn_trace = []
@@ -110,15 +111,15 @@ class MultiUnitCluster(nn.Module):
         # with torch.no_grad():
         #     self.fc1.weight.mul_(self.winning_units)
 
-        # masks for each model - in order to only update one model at a time
-        self.mask = torch.zeros([n_banks, self.n_total_units],
-                                dtype=torch.bool)
+        # masks for each bank - in order to only update one model at a time
+        self.bmask = torch.zeros([n_banks, self.n_total_units],
+                                 dtype=torch.bool)
         bank_ind = (
             torch.linspace(0, self.n_total_units, n_banks+1, dtype=torch.int)
             )
         # mask[ibank] will only include units from that bank.
         for ibank in range(n_banks):
-            self.mask[ibank, bank_ind[ibank]:bank_ind[ibank + 1]] = True
+            self.bmask[ibank, bank_ind[ibank]:bank_ind[ibank + 1]] = True
 
     def forward(self, x):
 
@@ -229,15 +230,28 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
-            act[~model.active_units] = 0  # not connected, no act
+            act[~model.active_units.T] = 0  # not connected, no act
 
-            # get top k winners
+            # bank mask
+            # - maybe zero-ing inactive units above would work already
+            # - but maybe extra safe here - when start, no units - don't want
+            # to recruit from wrong bank
+            act[~model.bmask.T] = -.01  # negative so never win
+
+            # # get top k winners
             _, win_ind = (
-                torch.topk(act, int(model.n_total_units * model.params['k']))
+                torch.topk(act, int(model.n_total_units * model.params['k']),
+                           dim=0)
                 )
+
             # since topk takes top even if all 0s, remove the 0 acts
-            if torch.any(act[win_ind] == 0):
-                win_ind = win_ind[act[win_ind] != 0]
+            # - indexing a bit confusing now since multiple banks, but works
+            for ibank in range(model.n_banks):
+                if torch.any(act[win_ind[:, ibank], ibank] == 0):
+                    win_ind = (
+                        win_ind[act[win_ind[:, ibank], ibank] != 0, ibank]
+                        )
+
 
             # if itrl > 0:  # checking
             #     model.dist_trace.append(dist[win_ind][0].detach().clone())
@@ -245,6 +259,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # define winner mask
             model.winning_units[:] = 0  # clear
+            # for ibank in range(model.n_banks):
+            #     model.winning_units[ibank, win_ind[:, ibank]] = True  # goes to forward function
             model.winning_units[win_ind] = True  # goes to forward function
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
@@ -488,18 +504,51 @@ def _compute_dist(dim_dist, attn_w, r):
         dim_dist_tmp = dim_dist[ind]
         d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
     else:
-        d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
+        # compute distances weighted by 2 banks of attn weights
+        # - all dists are computed but for each bank, only n_units shd be used
+        d = torch.zeros([model.n_total_units, model.n_banks])
+        for ibank in range(model.n_banks):
+            d[:, ibank] = (
+                torch.sum(attn_w[ibank] * (dim_dist**r), axis=1) ** (1/r)
+                )
     return d
 
 
 def _compute_act(dist, c, p):
-    """ c = 1  # ALCOVE - specificity of the node - free param
-        p = 2  # p=1 exp, p=2 gauss
+    """ dist is n_total_units x n_banks, and params['c'] size is n_banks, so
+    can just multiple by banks
     """
-    # return torch.exp(-c * (dist**p))
-    return c * torch.exp(-c * dist)  # sustain-like
+    return torch.tensor(c) * torch.exp(-torch.tensor(c) * dist)  # sustain-like
 
 # %%
+
+
+six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 1], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 0], [1, 1, 1, 0]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 0], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 0]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 1, 0],
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]],
+
+                ]
+
+# set problem
+problem = 4
+stim = six_problems[problem]
+stim = torch.tensor(stim, dtype=torch.float)
+inputs = stim[:, 0:-1]
+output = stim[:, -1].long()  # integer
 
 
 # model details
@@ -556,7 +605,7 @@ params.append({
     'r': 1,  # 1=city-block, 2=euclid
     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
     'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1.5, 
+    'phi': 1.5,
     'beta': 1.,
     'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
     'lr_nn': params[0]['lr_nn'],  # keep the same for now
@@ -564,6 +613,20 @@ params.append({
     'lr_clusters_group': .1,
     'k': k
     })
+
+# merged - some kept same across banks
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': [.8, 3.5],  #
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': [10.5, 1.5],
+    'beta': 1,
+    'lr_attn': [.15, .002],  # this scales at grad computation now
+    'lr_nn': .025/lr_scale,  # scale by n_units*k - keep the same for now
+    'lr_clusters': [.01, .01],
+    'lr_clusters_group': [.1, .1],
+    'k': k
+    }
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 
