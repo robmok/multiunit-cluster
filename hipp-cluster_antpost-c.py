@@ -179,7 +179,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     trial_acc = torch.zeros(n_trials)
     epoch_acc = torch.zeros(n_epochs)
     trial_ptarget = torch.zeros([model.n_banks, n_trials])
-    epoch_ptarget = torch.zeros(n_epochs)
+    epoch_ptarget = torch.zeros([model.n_banks, n_epochs])
 
     # lesion units during learning
     if lesions:
@@ -239,20 +239,20 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # since topk takes top even if all 0s, remove the 0 acts
             # - indexing a bit confusing now since multiple banks, but works
-            win_ind_tmp = []
-            for ibank in range(model.n_banks):
-                if torch.any(act[ibank, win_ind[ibank]] == 0):
+            if torch.any(act[:, win_ind] == 0):
+                win_ind_tmp = []
+                for ibank in range(model.n_banks):
                     win_ind_tmp.append(
                         win_ind[ibank, act[ibank, win_ind[ibank]] != 0]
                         )
-            # this assumes there will be the same number per bank
-            # TODO - may need to think if need allow diff numbers
-            # TODO - also not sure if this works other than 1st trial. if other
-            # units ok, will there be 0 units? maybe this is ok?... ++
-            win_ind = torch.zeros([model.n_banks, len(win_ind_tmp[0])])
-            for ibank in range(model.n_banks):
-                win_ind[ibank] = win_ind_tmp[ibank]
 
+                # this assumes there will be the same number per bank
+                # TODO - think if need allow diff numbers
+                # TODO - not sure if this works other than 1st trial. if other
+                # units ok, will there be 0 units? maybe this is ok?... ++
+                win_ind = torch.zeros([model.n_banks, len(win_ind_tmp[0])])
+                for ibank in range(model.n_banks):
+                    win_ind[ibank] = win_ind_tmp[ibank]
 
             # if itrl > 0:  # checking
             #     model.dist_trace.append(dist[win_ind][0].detach().clone())
@@ -260,10 +260,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # define winner mask
             model.winning_units[:] = 0  # clear
-            if win_ind.numel() > 0:
+            if win_ind.numel() > 0:  # only 1st trial = 0?
                 model.winning_units[win_ind] = True  # goes to forward function
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
-    
+
             # learn
             optimizer.zero_grad()
             out, pr = model.forward(x)
@@ -382,17 +382,23 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                        * model.params['k']), dim=1)
                         )
 
-                    # since topk takes top even if all 0s, remove the 0 acts   
-                    # TO DO - fix according to what i did above
-                    for ibank in range(model.n_banks):
-                        if torch.any(act[ibank, recruit_ind[ibank]] == 0):
-                            recruit_ind[ibank] = (
-                                recruit_ind[ibank,
-                                            act[ibank, recruit_ind[ibank]]
-                                            != 0]
+                    # since topk takes top even if all 0s, remove the 0 acts
+                    # - shouldn't happen since 1st trial, but in case
+                    if torch.any(act[:, recruit_ind] == 0):
+                        r_ind_tmp = []
+                        for ibank in range(model.n_banks):
+                            r_ind_tmp.append(
+                                recruit_ind[
+                                    ibank, act[ibank, recruit_ind[ibank]] != 0]
                                 )
+                        # this assumes there will be the same number per bank
+                        recruit_ind = torch.zeros([model.n_banks,
+                                                   len(r_ind_tmp[0])])
+                        for ibank in range(model.n_banks):
+                            recruit_ind[ibank] = r_ind_tmp[ibank]
 
-                # recruit and REPLACE k units that mispredicted - still to do
+                # recruit and REPLACE k units that mispredicted
+                # - still to do
                 else:
                     mispred_units = torch.argmax(
                         model.fc1.weight[:, win_ind].detach(), dim=0) != target
@@ -437,57 +443,27 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                 optimizer.step()
 
-                # for recruited units, gradient is zero
-                # however, if replacing units, old units will have a grad
-                # TODO
-                # - problem looks like the losers have high act now (so act_1
-                # can be negative, screws things up sometimes....)
-
-                # if model.attn_type[-5:] == 'local':
-                #     win_ind = win_mask[0],
-                #     lose_ind = (win_mask[0] == 0) & model.active_units
-
-                #     # gradient based on activation of winners minus losers
-                #     act_1 = (
-                #         torch.sum(_compute_act(
-                #             (torch.sum(model.attn *
-                #                         (abs(x - model.units_pos[win_ind])
-                #                         ** model.params['r']), axis=1) **
-                #               (1/model.params['r'])), model.params['c'],
-                #             model.params['p'])) -
-
-                #         torch.sum(_compute_act(
-                #             (torch.sum(model.attn *
-                #                         (abs(x - model.units_pos[lose_ind])
-                #                         ** model.params['r']), axis=1) **
-                #               (1/model.params['r'])), model.params['c'],
-                #             model.params['p']))
-                #         )
-
-                #     # compute gradient
-                #     act_1.backward(retain_graph=True)
-                #     # divide grad by n active units (scales to any n_units)
-                #     model.attn.data += (
-                #         model.params['lr_attn'] *
-                #         (model.attn.grad / model.n_total_units))
+                # TODO - local attn update? omitted for now
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
 
-                # update units positions - double update rule
-                update = (
-                    (x - model.units_pos[model.winning_units])
-                    * model.params['lr_clusters']
-                    )
-                model.units_pos[model.winning_units] += update
+                # update units pos w multiple banks - double update rule
+                for ibank in range(model.n_banks):
+                    units_ind = model.winning_units & model.bmask[ibank]
+                    update = (
+                        (x - model.units_pos[units_ind])
+                        * model.params['lr_clusters'][ibank]
+                        )
+                    model.units_pos[units_ind] += update
 
-                # - step 2 - winners update towards self
-                winner_mean = torch.mean(
-                    model.units_pos[model.winning_units], axis=0)
-                update = (
-                    (winner_mean - model.units_pos[model.winning_units])
-                    * model.params['lr_clusters_group'])
-                model.units_pos[model.winning_units] += update
+                    # - step 2 - winners update towards self
+                    winner_mean = torch.mean(
+                        model.units_pos[units_ind], axis=0)
+                    update = (
+                        (winner_mean - model.units_pos[units_ind])
+                        * model.params['lr_clusters_group'][ibank])
+                    model.units_pos[units_ind] += update
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
@@ -502,7 +478,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
-        epoch_ptarget[epoch] = trial_ptarget[itrl-len(inputs):itrl].mean()
+        for ibank in range(model.n_banks):
+            epoch_ptarget[ibank, epoch] = (
+                trial_ptarget[ibank, itrl-len(inputs):itrl].mean()
+                )
 
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget
 
