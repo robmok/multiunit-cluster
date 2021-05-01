@@ -312,20 +312,36 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    act_1 = (
-                        torch.sum(_compute_act(
-                            (torch.sum(model.attn
-                                       * (abs(x - model.units_pos[win_ind])
-                                          ** model.params['r']), axis=1)
-                             ** (1/model.params['r'])), model.params['c'],
-                            model.params['p']))
+                    # act_1 = (
+                    #     torch.sum(_compute_act(
+                    #         (torch.sum(model.attn
+                    #                     * (abs(x - model.units_pos[win_ind])
+                    #                       ** model.params['r']), axis=1)
+                    #           ** (1/model.params['r'])), model.params['c'],
+                    #         model.params['p']))
 
-                        - torch.sum(_compute_act(
-                            (torch.sum(model.attn
-                                       * (abs(x - model.units_pos[lose_ind])
-                                          ** model.params['r']), axis=1)
-                             ** (1/model.params['r'])), model.params['c'],
-                            model.params['p']))
+                    #     - torch.sum(_compute_act(
+                    #         (torch.sum(model.attn
+                    #                     * (abs(x - model.units_pos[lose_ind])
+                    #                       ** model.params['r']), axis=1)
+                    #           ** (1/model.params['r'])), model.params['c'],
+                    #         model.params['p']))
+                    #     )
+
+                    act_1 = (
+                        torch.sum(
+                            _compute_act(
+                                _compute_dist(
+                                    abs(x - model.units_pos[win_ind]),
+                                    model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
+
+                        - torch.sum(
+                            _compute_act(
+                                _compute_dist(
+                                    abs(x - model.units_pos[lose_ind]),
+                                    model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
                         )
 
                     # compute gradient

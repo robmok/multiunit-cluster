@@ -305,18 +305,18 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     act_1 = (
                         torch.sum(
                             _compute_act(
-                                _compute_dist(x - model.units_pos[win_ind],
-                                              model.attn, model.params['r']),
+                                _compute_dist(
+                                    abs(x - model.units_pos[win_ind]),
+                                    model.attn, model.params['r']),
                                 model.params['c'], model.params['p']))
 
                         - torch.sum(
                             _compute_act(
-                                _compute_dist(abs(x - model.units_pos[lose_ind]),
-                                              model.attn, model.params['r']),
+                                _compute_dist(
+                                    abs(x - model.units_pos[lose_ind]),
+                                    model.attn, model.params['r']),
                                 model.params['c'], model.params['p']))
                         )
-
-                    # ABOVE WORKS - can just have compute_dist in function in cluster and original hpc
 
                     # compute gradient
                     act_1.backward(retain_graph=True)
