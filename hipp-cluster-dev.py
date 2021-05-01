@@ -469,7 +469,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 #         (model.attn.grad / model.n_units))
 
                 # save updated attn ws
-                model.attn_trace.append(model.attn.detach().clone())
+                # model.attn_trace.append(model.attn.detach().clone())
 
                 # update units positions - double update rule
                 update = (

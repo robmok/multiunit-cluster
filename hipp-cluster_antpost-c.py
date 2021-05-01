@@ -30,7 +30,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # import itertools as it
 import warnings
 
@@ -144,7 +144,6 @@ class MultiUnitCluster(nn.Module):
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
         self.fc1_act_trace.append(out.detach().clone())
 
-        print(out)
         # convert to response probability
         pr = [self.softmax(self.params['phi'][0] * out),
               self.softmax(self.params['phi'][1] * out)]
@@ -303,22 +302,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    # act_1 = (
-                    #     torch.sum(_compute_act(
-                    #         (torch.sum(model.attn
-                    #                    * (abs(x - model.units_pos[win_ind])
-                    #                       ** model.params['r']), axis=1)
-                    #          ** (1/model.params['r'])), model.params['c'],
-                    #         model.params['p']))
-
-                    #     - torch.sum(_compute_act(
-                    #         (torch.sum(model.attn
-                    #                    * (abs(x - model.units_pos[lose_ind])
-                    #                       ** model.params['r']), axis=1)
-                    #          ** (1/model.params['r'])), model.params['c'],
-                    #         model.params['p']))
-                    #     )
-
                     act_1 = (
                         torch.sum(
                             _compute_act(
@@ -332,13 +315,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                               model.attn, model.params['r']),
                                 model.params['c'], model.params['p']))
                         )
-                    
+
                     # ABOVE WORKS - can just have compute_dist in function in cluster and original hpc
 
                     # compute gradient
                     act_1.backward(retain_graph=True)
                     # divide grad by n active units (scales to any n_units)
-                    # - should work multiplying by 2 attn lrs - CHECK
+                    # - should work multiplying by 2 attn lrs - CHECK later
                     model.attn.data += (
                         torch.tensor(model.params['lr_attn'])
                         * (model.attn.grad / model.n_total_units))
@@ -348,7 +331,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 # sum attention weights to 1
                 if model.attn_type[0:4] == 'dime':
                     model.attn.data = (
-                        model.attn.data / torch.sum(model.attn.data)
+                        model.attn.data / torch.sum(model.attn.data, dim=0).T
                         )
                 # elif model.attn_type[0:4] == 'unit':
                 #     model.attn.data = (
@@ -359,21 +342,22 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
 
-                # update units - double update rule
-                # - step 1 - winners update towards input
-                update = (
-                    (x - model.units_pos[win_ind])
-                    * model.params['lr_clusters']
-                    )
-                model.units_pos[win_ind] += update
+                # update units pos w multiple banks - double update rule
+                for ibank in range(model.n_banks):
+                    units_ind = model.winning_units & model.bmask[ibank]
+                    update = (
+                        (x - model.units_pos[units_ind])
+                        * model.params['lr_clusters'][ibank]
+                        )
+                    model.units_pos[units_ind] += update
 
-                # - step 2 - winners update towards self
-                winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
-                update = (
-                    (winner_mean - model.units_pos[win_ind])
-                    * model.params['lr_clusters_group']
-                    )
-                model.units_pos[win_ind] += update
+                    # - step 2 - winners update towards self
+                    winner_mean = torch.mean(
+                        model.units_pos[units_ind], axis=0)
+                    update = (
+                        (winner_mean - model.units_pos[units_ind])
+                        * model.params['lr_clusters_group'][ibank])
+                    model.units_pos[units_ind] += update
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
@@ -417,20 +401,34 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 # recruit and REPLACE k units that mispredicted
                 # - still to do
                 else:
+                    # this works only if same number in each bank
+                    # TODO - think if need allow diff numbers (e.g. with list)
                     mispred_units = torch.argmax(
                         model.fc1.weight[:, win_ind].detach(), dim=0) != target
 
                     # select closest n_mispredicted inactive units
-                    n_mispred_units = len(mispred_units)
+                    n_mispred_units = mispred_units.shape[1]  # per bank
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
+                    act[~model.bmask] = -.01  # negative so never win
                     act[:, model.active_units] = 0  # REMOVE all active units
                     # find closest units excluding the active units to recruit
                     _, recruit_ind = (
                         torch.topk(act, n_mispred_units))
                     # since topk takes top even if all 0s, remove the 0 acts
-                    if torch.any(act[recruit_ind] == 0):
-                        recruit_ind = recruit_ind[act[recruit_ind] != 0]
+                    # - again, to be safe
+                    if torch.any(act[:, recruit_ind] == 0):
+                        r_ind_tmp = []
+                        for ibank in range(model.n_banks):
+                            r_ind_tmp.append(
+                                recruit_ind[
+                                    ibank, act[ibank, recruit_ind[ibank]] != 0]
+                                )
+                        # this assumes there will be the same number per bank
+                        recruit_ind = torch.zeros([model.n_banks,
+                                                   len(r_ind_tmp[0])])
+                        for ibank in range(model.n_banks):
+                            recruit_ind[ibank] = r_ind_tmp[ibank]
 
                 # recruit n_mispredicted units
                 model.active_units[recruit_ind] = True  # set ws to active
@@ -463,7 +461,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 # TODO - local attn update? omitted for now
 
                 # save updated attn ws
-                model.attn_trace.append(model.attn.detach().clone())
+                # model.attn_trace.append(model.attn.detach().clone())
 
                 # update units pos w multiple banks - double update rule
                 for ibank in range(model.n_banks):
@@ -643,4 +641,20 @@ params = {
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 
+model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+    model, inputs, output, n_epochs, shuffle=False)
 
+# pr target
+plt.plot(1 - epoch_ptarget.T.detach())
+plt.ylim([0, .5])
+plt.show()
+
+# attention weights
+fig, ax = plt.subplots(1, 2)
+ax[0].plot(torch.stack(model.attn_trace, dim=0)[:, :, 0])
+ax[0].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
+                torch.stack(model.attn_trace, dim=0).max()+.01])
+ax[1].plot(torch.stack(model.attn_trace, dim=0)[:, :, 1])
+ax[1].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
+                torch.stack(model.attn_trace, dim=0).max()+.01])
+plt.show()
