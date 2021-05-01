@@ -303,27 +303,44 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    act_1 = (
-                        torch.sum(_compute_act(
-                            (torch.sum(model.attn
-                                       * (abs(x - model.units_pos[win_ind])
-                                          ** model.params['r']), axis=1)
-                             ** (1/model.params['r'])), model.params['c'],
-                            model.params['p']))
+                    # act_1 = (
+                    #     torch.sum(_compute_act(
+                    #         (torch.sum(model.attn
+                    #                    * (abs(x - model.units_pos[win_ind])
+                    #                       ** model.params['r']), axis=1)
+                    #          ** (1/model.params['r'])), model.params['c'],
+                    #         model.params['p']))
 
-                        - torch.sum(_compute_act(
-                            (torch.sum(model.attn
-                                       * (abs(x - model.units_pos[lose_ind])
-                                          ** model.params['r']), axis=1)
-                             ** (1/model.params['r'])), model.params['c'],
-                            model.params['p']))
+                    #     - torch.sum(_compute_act(
+                    #         (torch.sum(model.attn
+                    #                    * (abs(x - model.units_pos[lose_ind])
+                    #                       ** model.params['r']), axis=1)
+                    #          ** (1/model.params['r'])), model.params['c'],
+                    #         model.params['p']))
+                    #     )
+
+                    act_1 = (
+                        torch.sum(
+                            _compute_act(
+                                _compute_dist(x - model.units_pos[win_ind],
+                                              model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
+
+                        - torch.sum(
+                            _compute_act(
+                                _compute_dist(abs(x - model.units_pos[lose_ind]),
+                                              model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
                         )
+                    
+                    # ABOVE WORKS - can just have compute_dist in function in cluster and original hpc
 
                     # compute gradient
                     act_1.backward(retain_graph=True)
                     # divide grad by n active units (scales to any n_units)
+                    # - should work multiplying by 2 attn lrs - CHECK
                     model.attn.data += (
-                        model.params['lr_attn']
+                        torch.tensor(model.params['lr_attn'])
                         * (model.attn.grad / model.n_total_units))
 
                 # ensure attention are non-negative
@@ -498,7 +515,7 @@ def _compute_dist(dim_dist, attn_w, r):
     else:
         # compute distances weighted by 2 banks of attn weights
         # - all dists are computed but for each bank, only n_units shd be used
-        d = torch.zeros([model.n_total_units, model.n_banks])
+        d = torch.zeros([len(dim_dist), model.n_banks])
         for ibank in range(model.n_banks):
             d[:, ibank] = (
                 torch.sum(attn_w[:, ibank] * (dim_dist**r), axis=1) ** (1/r)
