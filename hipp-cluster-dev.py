@@ -189,7 +189,8 @@ class MultiUnitCluster(nn.Module):
         return out, pr
 
 
-def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
+def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
+          lesions=None):
 
     criterion = nn.CrossEntropyLoss()
 
@@ -223,8 +224,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             lesion_trials = lesions['lesion_trials']
 
     model.train()
+
+    if shuffle_seed:
+        torch.manual_seed(shuffle_seed)
+
     for epoch in range(n_epochs):
-        # torch.manual_seed(5)
         if shuffle:
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
@@ -718,7 +722,7 @@ params = {
 lesions = None  # if no lesions
 # lesions = {
 #     'n_lesions': 10,  # n_lesions per event
-#     'gen_rand_lesions_trials': True,  # generate lesion events at random times
+#     'gen_rand_lesions_trials': False,  # generate lesion events at random times
 #     'pr_lesion_trials': .01,  # if True, set this
 #     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
 #     }
@@ -1104,4 +1108,54 @@ plt.show()
 
 # plt.plot(xx-xx1)
 # plt.plot(yy-yy1)
+
+
+# %% lesioning experiments
+
+lesions = {
+    'n_lesions': 10,  # n_lesions per event
+    'gen_rand_lesions_trials': False,  # generate lesion events at random times
+    'pr_lesion_trials': .01,  # if True, set this
+    'lesion_trials': torch.tensor([20])  # if False, set lesion trials
+    }
+
+shuffle_seed = 5
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+
+model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+    model, inputs, output, n_epochs, shuffle=True, shuffle_seed=shuffle_seed,
+    lesions=lesions)
+
+
+# things to save
+print(model.recruit_units_trl)
+# print(len(model.recruit_units_trl))
+
+# pr target
+plt.plot(1 - epoch_ptarget.detach())
+plt.ylim([0, .5])
+plt.show()
+
+# attention weights
+plt.plot(torch.stack(model.attn_trace, dim=0))
+plt.show()
+
+
+# for All: need 1 simulation with lesions vs no lesions - w same shuffled seq
+# - feed in a random number for seed: shuffle_seed = torch.randperm(n_sims)
+
+
+
+
+# expt 1: n_lesions [per event] - number of units
+# - manipulation n_lesions
+# - manpulate k value and n_total units. will be affects by k most, but of course n_total interacts
+# - fix: lesion_trials at 1 time point (across a few sims, different time pt) 
+# - fix: 
+# save for each sim: model.recruit_units_trl, len(model.recruit_units_trl),
+# epoch_ptarget.detach(), model.attn_trace
+
+# expt 2: n_lesions [per event] - number of units
+
 
