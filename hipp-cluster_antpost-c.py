@@ -139,14 +139,21 @@ class MultiUnitCluster(nn.Module):
         self.units_act_trace.append(
             units_output[self.active_units].detach().clone())
 
-        # association weights / NN
-        out = self.fc1(units_output)
-        self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        self.fc1_act_trace.append(out.detach().clone())
+        # output across all banks / full model
+        out = [self.fc1(units_output)]
+        pr = []
 
-        # convert to response probability
-        pr = [self.softmax(self.params['phi'][0] * out),
-              self.softmax(self.params['phi'][1] * out)]
+        # get outputs for nbanks
+        for ibank in range(self.n_banks):
+            units_output_tmp = units_output.clone()
+            units_output_tmp[~self.bmask[ibank]] = 0  # rmv other bank units
+
+            # out & convert to response probability
+            out.append(self.fc1(units_output_tmp))
+            pr.append(self.softmax(model.params['phi'][ibank] * out[ibank+1]))
+
+        self.fc1_w_trace.append(self.fc1.weight.detach().clone())
+        self.fc1_act_trace.append(out)
 
         return out, pr
 
@@ -232,7 +239,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # get top k winners
             _, win_ind = (
-                torch.topk(act, int(model.n_total_units * model.params['k']),
+                torch.topk(act, int(model.n_units * model.params['k']),
                            dim=1)
                 )
 
@@ -266,7 +273,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # learn
             optimizer.zero_grad()
             out, pr = model.forward(x)
-            loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+            loss = criterion(out[0].unsqueeze(0), target.unsqueeze(0))
             loss.backward()
             # zero out gradient for masked connections
             with torch.no_grad():
@@ -280,8 +287,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # update model - if inc/recruit a cluster, don't update here
             # if incorrect, recruit
-            if ((not torch.argmax(out.data) == target) or
-               (torch.all(out.data == 0))):  # if incorrect
+            if ((not torch.argmax(out[0].data) == target) or
+               (torch.all(out[0].data == 0))):  # if incorrect
                 recruit = True
             else:
                 recruit = False
@@ -363,7 +370,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             # save acc per trial
-            trial_acc[itrl] = torch.argmax(out.data) == target
+            trial_acc[itrl] = torch.argmax(out[0].data) == target
             for ibank in range(model.n_banks):
                 trial_ptarget[ibank, itrl] = pr[ibank][target]
 
@@ -379,7 +386,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     _, recruit_ind = (
                         torch.topk(act,
-                                   int(model.n_total_units
+                                   int(model.n_units
                                        * model.params['k']), dim=1)
                         )
 
@@ -445,7 +452,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 # go through update again after cluster added
                 optimizer.zero_grad()
                 out, pr = model.forward(x)
-                loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
+                loss = criterion(out[0].unsqueeze(0), target.unsqueeze(0))
                 loss.backward()
                 with torch.no_grad():
                     win_mask[:] = 0  # clear
@@ -555,7 +562,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -628,9 +635,9 @@ params.append({
 # merged - some kept same across banks
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': [.8, 3.5],  #
+    'c': [.8, 3.5],
     'p': 1,  # p=1 exp, p=2 gauss
-    'phi': [10.5, 1.5],
+    'phi': [1.5, 1.5],
     'beta': 1,
     'lr_attn': [.15, .002],  # this scales at grad computation now
     'lr_nn': .025/lr_scale,  # scale by n_units*k - keep the same for now

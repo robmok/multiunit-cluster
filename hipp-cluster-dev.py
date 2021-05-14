@@ -1163,3 +1163,21 @@ plt.show()
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
+n_sims = 100
+shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
+
+# shuffle_seeds[isim]
+
+
+# lesions = {
+#     'n_lesions': 10,  # n_lesions per event
+#     'gen_rand_lesions_trials': False,  # generate lesion events at random times
+#     'pr_lesion_trials': .01,  # if True, set this
+#     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
+#     }
+
+# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+
+# model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+#     model, inputs, output, n_epochs, shuffle=True, shuffle_seed=shuffle_seed,
+#     lesions=lesions)
