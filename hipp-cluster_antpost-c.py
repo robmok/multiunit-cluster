@@ -635,11 +635,11 @@ params.append({
 # merged - some kept same across banks
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': [.8, 3.5],
+    'c': [1.5, 3.5],  # flips works with this even with same phi! prev [.8, 3.5]
     'p': 1,  # p=1 exp, p=2 gauss
-    'phi': [1.5, 1.5],
+    'phi': [1.5, 1.5],  # can flip work if phi is same? so 2 banks are competiting at the outputs
     'beta': 1,
-    'lr_attn': [.15, .002],  # this scales at grad computation now
+    'lr_attn': [.25, .002],  # this scales at grad computation now
     'lr_nn': .025/lr_scale,  # scale by n_units*k - keep the same for now
     'lr_clusters': [.01, .01],
     'lr_clusters_group': [.1, .1],
