@@ -1144,18 +1144,22 @@ plt.show()
 
 # for All: need 1 simulation with lesions vs no lesions - w same shuffled seq
 # - feed in a random number for seed: shuffle_seed = torch.randperm(n_sims)
+# or torch.randperm(n_sims*5)[:n_sims] to get more nums so diff over other sims
+# - HMMM you might also want the same shuffle over a set of sims, if randomly
+# lesioning units or random time points!
 
 
-
-
-# expt 1: n_lesions [per event] - number of units
+# expt 1: n_lesions [single lesionevent] - number of units. and timing of event
 # - manipulation n_lesions
 # - manpulate k value and n_total units. will be affects by k most, but of course n_total interacts
+# - fix / manipulate: shuffle - seed the same num across a set of sims, then
+# seed another num for another set; run nset sims. this is to test same shuffle
+# different lesions (since they are random which units get lesioned)
 # - fix: lesion_trials at 1 time point (across a few sims, different time pt) 
-# - fix: 
 # save for each sim: model.recruit_units_trl, len(model.recruit_units_trl),
 # epoch_ptarget.detach(), model.attn_trace
 
-# expt 2: n_lesions [per event] - number of units
-
+# expt 2: n lesion events, and timing
+# - first, do nlesions early, middle, late. then also do random.
+# e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
