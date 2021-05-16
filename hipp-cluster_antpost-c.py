@@ -141,9 +141,10 @@ class MultiUnitCluster(nn.Module):
 
         # output across all banks / full model
         out = [self.fc1(units_output)]
-        pr = []
+        # get pr for the average phi value for the full model's pr
+        pr = [self.softmax(np.mean(model.params['phi']) * out[0])]
 
-        # get outputs for nbanks
+        # get outputs for each nbank
         for ibank in range(self.n_banks):
             units_output_tmp = units_output.clone()
             units_output_tmp[~self.bmask[ibank]] = 0  # rmv other bank units
@@ -184,8 +185,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     n_trials = len(inputs) * n_epochs
     trial_acc = torch.zeros(n_trials)
     epoch_acc = torch.zeros(n_epochs)
-    trial_ptarget = torch.zeros([model.n_banks, n_trials])
-    epoch_ptarget = torch.zeros([model.n_banks, n_epochs])
+    trial_ptarget = torch.zeros([model.n_banks + 1, n_trials])
+    epoch_ptarget = torch.zeros([model.n_banks + 1, n_epochs])
 
     # lesion units during learning
     if lesions:
@@ -371,7 +372,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # save acc per trial
             trial_acc[itrl] = torch.argmax(out[0].data) == target
-            for ibank in range(model.n_banks):
+            for ibank in range(model.n_banks + 1):
                 trial_ptarget[ibank, itrl] = pr[ibank][target]
 
             # Recruit cluster, and update model
@@ -500,7 +501,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
-        for ibank in range(model.n_banks):
+        for ibank in range(model.n_banks + 1):
             epoch_ptarget[ibank, epoch] = (
                 trial_ptarget[ibank, itrl-len(inputs):itrl].mean()
                 )
