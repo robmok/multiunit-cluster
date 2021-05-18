@@ -261,10 +261,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 for ibank in range(model.n_banks):
                     win_ind[ibank] = win_ind_tmp[ibank]
 
-            # if itrl > 0:  # checking
-            #     model.dist_trace.append(dist[win_ind][0].detach().clone())
-            #     model.act_trace.append(act[win_ind][0].detach().clone())
-
             # define winner mask
             model.winning_units[:] = 0  # clear
             if win_ind.numel() > 0:  # only 1st trial = 0?
@@ -300,16 +296,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             else:
                 optimizer.step()
 
-                # if use local attention update - gradient ascent to unit acts
                 if model.attn_type[-5:] == 'local':
 
-                    # NEW changing win_ind - wta winner only
-                    # - only works with wta
+                    # wta only
                     win_ind = model.winning_units
                     lose_ind = (model.winning_units == 0) & model.active_units
 
-                    # compute gradient based on activation of winners *minus*
-                    # losing units.
+                    # compute grad based on act of winners *minus* losers
                     act_1 = (
                         torch.sum(
                             _compute_act(
@@ -341,11 +334,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     model.attn.data = (
                         model.attn.data / torch.sum(model.attn.data, dim=0).T
                         )
-                # elif model.attn_type[0:4] == 'unit':
-                #     model.attn.data = (
-                #         model.attn.data
-                #         / torch.sum(model.attn.data, dim=1, keepdim=True)
-                #         )
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -407,7 +395,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                             recruit_ind[ibank] = r_ind_tmp[ibank]
 
                 # recruit and REPLACE k units that mispredicted
-                # - still to do
                 else:
                     # this works only if same number in each bank
                     # TODO - think if need allow diff numbers (e.g. with list)
@@ -490,9 +477,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
-
-            # tmp
-            # model.winners_trace.append(model.units_pos[model.winning_units][0])
 
             itrl += 1
 
