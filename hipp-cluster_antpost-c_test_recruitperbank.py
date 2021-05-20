@@ -11,6 +11,13 @@ a time - currently updating all banks.
 
 - Test: use threshold - different loss thresholds each
 
+Issues
+
+- coding issue - win_ind output of ktop function, then later used differently..
+- maybe because previous either recruit or not, can have overlapping
+variable names. 
+- might be worth redoing rather than just editing old code.
+
 @author: robert.mok
 """
 

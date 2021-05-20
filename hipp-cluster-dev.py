@@ -807,7 +807,7 @@ for i in range(niter):
 
     # six problems
 
-    for problem in [0, 5]: #range(6):  # np.array([4]):
+    for problem in range(6):  # [0, 5]: #  np.array([4]):
 
         stim = six_problems[problem]
         stim = torch.tensor(stim, dtype=torch.float)
@@ -1112,6 +1112,24 @@ plt.show()
 
 # %% lesioning experiments
 
+problem = 4
+stim = six_problems[problem]
+stim = torch.tensor(stim, dtype=torch.float)
+inputs = stim[:, 0:-1]
+output = stim[:, -1].long()  # integer
+# 16 per trial
+inputs = inputs.repeat(2, 1)
+output = output.repeat(2).T
+
+# model details
+attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
+n_units = 500
+n_dims = inputs.shape[1]
+loss_type = 'cross_entropy'
+k = .05  # top k%
+
+n_epochs = 16
+
 lesions = {
     'n_lesions': 10,  # n_lesions per event
     'gen_rand_lesions_trials': False,  # generate lesion events at random times
@@ -1121,25 +1139,23 @@ lesions = {
 
 shuffle_seed = 5
 
-model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
-model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=True, shuffle_seed=shuffle_seed,
-    lesions=lesions)
+# model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+#     model, inputs, output, n_epochs, shuffle=True, shuffle_seed=shuffle_seed,
+#     lesions=lesions)
 
-
-# things to save
-print(model.recruit_units_trl)
+# print(model.recruit_units_trl)
 # print(len(model.recruit_units_trl))
 
-# pr target
-plt.plot(1 - epoch_ptarget.detach())
-plt.ylim([0, .5])
-plt.show()
+# # pr target
+# plt.plot(1 - epoch_ptarget.detach())
+# plt.ylim([0, .5])
+# plt.show()
 
-# attention weights
-plt.plot(torch.stack(model.attn_trace, dim=0))
-plt.show()
+# # attention weights
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# plt.show()
 
 
 # for All: need 1 simulation with lesions vs no lesions - w same shuffled seq
@@ -1163,21 +1179,99 @@ plt.show()
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
-n_sims = 100
+n_sims = 1
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # shuffle_seeds[isim]
 
+# things to manipulate
+n_units = [20, 50, 100]
+k = [.05]
+n_lesions = [0, 10, 20]
+lesion_trials = [[20]]  # , [40], [60]]  # 1 per lesion, but do at diff times
 
-# lesions = {
-#     'n_lesions': 10,  # n_lesions per event
-#     'gen_rand_lesions_trials': False,  # generate lesion events at random times
-#     'pr_lesion_trials': .01,  # if True, set this
-#     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
-#     }
 
-# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+sim_ps = []
+pt = []
+recruit_trial = []
+attn_trace = []
 
-# model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-#     model, inputs, output, n_epochs, shuffle=True, shuffle_seed=shuffle_seed,
-#     lesions=lesions)
+# can add loop for problem in range(6)
+
+for sim_prms in it.product(n_units, k, n_lesions, lesion_trials):
+    for isim in range(n_sims):
+
+        sim_ps.append(sim_prms)
+
+        # shj params
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 1.,  # w/ attn grad normalized, c can be large now
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 12.5,
+            'beta': 1.,
+            'lr_attn': .15,  # this scales at grad computation now
+            'lr_nn': .015/(sim_prms[0] * sim_prms[1]),  # scale by n_units*k
+            'lr_clusters': .01,
+            'lr_clusters_group': .1,
+            'k': sim_prms[1],
+            }
+
+        model = MultiUnitCluster(sim_prms[0], n_dims, attn_type, sim_prms[1],
+                                 params=params)
+
+        lesions = {
+            'n_lesions': sim_prms[2],  # n_lesions per event
+            'gen_rand_lesions_trials': False,  # lesion events at random times
+            'pr_lesion_trials': .01,  # if True, set this
+            'lesion_trials': torch.tensor(sim_prms[3])  # if False, set this
+            }
+
+        model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+            model, inputs, output, n_epochs, shuffle=True,
+            shuffle_seed=shuffle_seeds[isim], lesions=lesions)
+
+        pt.append(1 - epoch_ptarget.detach())
+        recruit_trial.append(model.recruit_units_trl)
+        attn_trace.append(torch.stack(model.attn_trace, dim=0))
+
+
+
+
+
+
+plt.plot(torch.stack(pt[0:3]).T)  # .mean(axis=0).T)
+plt.ylim([0., 0.55])
+plt.gca().legend(('0 lesions','10 lesions','20 lesions'))
+plt.show()
+
+plt.plot(torch.stack(pt[3:6]).T)  # .mean(axis=0).T)
+plt.ylim([0., 0.55])
+plt.show()
+
+plt.plot(torch.stack(pt[6:9]).T)  # .mean(axis=0).T)
+plt.ylim([0., 0.55])
+plt.show()
+
+# attn
+# TODO - why different number of trials
+# plt.plot(torch.stack(attn_trace[0:3]))  # .mean(axis=0).T)
+# plt.ylim([0., 0.55])
+# plt.show()
+
+# next: organise how to index
+# - including: average over n_sims
+
+
+
+
+# plt.gca().legend(('0 lesions','n lesions','n lesions'))
+# plt.show()
+
+
+
+# For plotting, make df?
+
+# import pandas as pd
+# df_sum = pd.DataFrame(columns=['acc', 'k', 'n_uni'ts, 'n_lesions', 'lesion trials', 'sim_num'])
+
