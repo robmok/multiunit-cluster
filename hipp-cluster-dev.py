@@ -1230,39 +1230,58 @@ pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
-plt.title('20 units')
+plt.title('Type {}, 20 units'.format(problem + 1))
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
-plt.title('100 units')
+plt.title('Type {}, 100 units'.format(problem + 1))
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
-plt.title('500 units')
+plt.title('Type {}, 500 units'.format(problem + 1))
+plt.show()
+
+# attn
+attns = torch.stack(attn_trace)
+
+# 20 units
+attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
+fig, ax = plt.subplots(1, 3)
+for iplt in range(len_p):
+    ax[iplt].plot(torch.stack(attn_plot)[:, :, iplt].T)
+    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
+                       torch.stack(attn_plot).max() + .01])
+plt.show()
+
+# 100 units
+attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
+fig, ax = plt.subplots(1, 3)
+for iplt in range(len_p):
+    ax[iplt].plot(torch.stack(attn_plot)[:, :, iplt].T)
+    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
+                       torch.stack(attn_plot).max() + .01])
+plt.show()
+
+# 500 units
+attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
+fig, ax = plt.subplots(1, 3)
+for iplt in range(len_p):
+    ax[iplt].plot(torch.stack(attn_plot)[:, :, iplt].T)
+    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
+                       torch.stack(attn_plot).max() + .01])
 plt.show()
 
 
 
-# attn
-# TODO - why different number of trials
-# plt.plot(torch.stack(attn_trace[0:3]))  # .mean(axis=0).T)
-# plt.ylim([0., 0.55])
-# plt.show()
-
-# next: organise how to index
-# - including: average over n_sims
 
 
 
-
-# plt.gca().legend(('0 lesions','n lesions','n lesions'))
-# plt.show()
 
 
 
