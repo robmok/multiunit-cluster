@@ -1179,7 +1179,7 @@ shuffle_seed = 5
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
-n_sims = 1
+n_sims = 10
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # shuffle_seeds[isim]
@@ -1188,7 +1188,7 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 n_units = [20, 50, 100]
 k = [.05]
 n_lesions = [0, 10, 20]
-lesion_trials = [[20]]  # , [40], [60]]  # 1 per lesion, but do at diff times
+lesion_trials = np.array([[40]])  # , [40], [60]]  # 1 per lesion, but do at diff times
 
 
 sim_ps = []
@@ -1240,18 +1240,29 @@ for sim_prms in it.product(n_units, k, n_lesions, lesion_trials):
 
 
 
-plt.plot(torch.stack(pt[0:3]).T)  # .mean(axis=0).T)
+# plt.plot(torch.stack(pt[0:3]).T)  # .mean(axis=0).T)
+# plt.ylim([0., 0.55])
+# plt.gca().legend(('0 lesions','10 lesions','20 lesions'))
+# plt.show()
+
+# plt.plot(torch.stack(pt[3:6]).T)  # .mean(axis=0).T)
+# plt.ylim([0., 0.55])
+# plt.show()
+
+# plt.plot(torch.stack(pt[6:9]).T)  # .mean(axis=0).T)
+# plt.ylim([0., 0.55])
+# plt.show()
+
+
+# with n_sims
+plt.plot(torch.stack([torch.stack(pt[0:n_sims]).mean(axis=0),
+                      torch.stack(pt[n_sims:n_sims*2]).mean(axis=0),
+                      torch.stack(pt[n_sims*2:n_sims*3]).mean(axis=0)]).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions','10 lesions','20 lesions'))
+plt.title('20 units')
 plt.show()
 
-plt.plot(torch.stack(pt[3:6]).T)  # .mean(axis=0).T)
-plt.ylim([0., 0.55])
-plt.show()
-
-plt.plot(torch.stack(pt[6:9]).T)  # .mean(axis=0).T)
-plt.ylim([0., 0.55])
-plt.show()
 
 # attn
 # TODO - why different number of trials
