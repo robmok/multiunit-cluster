@@ -1185,11 +1185,10 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 # shuffle_seeds[isim]
 
 # things to manipulate
-n_units = [20, 50, 100]
+n_units = [20, 100, 500]
 k = [.05]
 n_lesions = [0, 10, 20]
 lesion_trials = np.array([[40]])  # , [40], [60]]  # 1 per lesion, but do at diff times
-
 
 sim_ps = []
 pt = []
@@ -1235,33 +1234,45 @@ for sim_prms in it.product(n_units, k, n_lesions, lesion_trials):
         recruit_trial.append(model.recruit_units_trl)
         attn_trace.append(torch.stack(model.attn_trace, dim=0))
 
-
-
-
-
+# %%
 
 # plt.plot(torch.stack(pt[0:3]).T)  # .mean(axis=0).T)
 # plt.ylim([0., 0.55])
 # plt.gca().legend(('0 lesions','10 lesions','20 lesions'))
 # plt.show()
 
-# plt.plot(torch.stack(pt[3:6]).T)  # .mean(axis=0).T)
-# plt.ylim([0., 0.55])
-# plt.show()
-
-# plt.plot(torch.stack(pt[6:9]).T)  # .mean(axis=0).T)
-# plt.ylim([0., 0.55])
-# plt.show()
-
 
 # with n_sims
-plt.plot(torch.stack([torch.stack(pt[0:n_sims]).mean(axis=0),
-                      torch.stack(pt[n_sims:n_sims*2]).mean(axis=0),
-                      torch.stack(pt[n_sims*2:n_sims*3]).mean(axis=0)]).T)
+# - it goes backwards from how sim_prms are ordered. so 
+
+pts = torch.stack(pt)
+
+ind_sims = []
+for i in range(len(pt) // n_sims):
+    ind_sims.append(torch.arange(i * n_sims, (i + 1) * n_sims))
+
+# average over sims and plot
+pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(0, 3)]  # specify sims
+plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
-plt.gca().legend(('0 lesions','10 lesions','20 lesions'))
+plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
 plt.title('20 units')
 plt.show()
+
+pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(3, 6)]
+plt.plot(torch.stack(pt_plot).T)
+plt.ylim([0., 0.55])
+plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
+plt.title('100 units')
+plt.show()
+
+pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(6, 9)]
+plt.plot(torch.stack(pt_plot).T)
+plt.ylim([0., 0.55])
+plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
+plt.title('500 units')
+plt.show()
+
 
 
 # attn
