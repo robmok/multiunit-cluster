@@ -1158,7 +1158,7 @@ lesions = {
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
-n_sims = 1
+n_sims = 20
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # things to manipulate
@@ -1265,6 +1265,7 @@ plt.title('Type {}, {} units'.format(problem + 1, n_units[3]))
 plt.show()
 
 # attn
+# - are these interpretable if averaged over?
 attns = torch.stack(attn_trace)
 
 ylims = (attns.min() - .01, attns.max() + .01)
@@ -1318,9 +1319,7 @@ plt.show()
 recr_n = torch.tensor(
     [len(recruit_trial[i]) for i in range(len(recruit_trial))],  # count
     dtype=torch.float)
-
 ylims = (recr_n.min() - 1, recr_n.max() + 1)
-
 
 fig, ax, = plt.subplots(1, 4)
 recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
