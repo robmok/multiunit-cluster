@@ -464,8 +464,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                 # TODO - local attn update? omitted for now
 
-                # save updated attn ws
-                # model.attn_trace.append(model.attn.detach().clone())
+                # save updated attn ws - save even if not update
+                model.attn_trace.append(model.attn.detach().clone())
 
                 # update units pos w multiple banks - double update rule
                 for ibank in range(model.n_banks):
