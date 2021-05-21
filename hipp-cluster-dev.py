@@ -1158,7 +1158,7 @@ lesions = {
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
-n_sims = 10
+n_sims = 1
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # things to manipulate
@@ -1166,8 +1166,8 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 # higher act... feature/bug? could be feature: learning, hpc synpase overturn)
 n_units = [20, 500, 1000, 5000]  # [20, 100, 500]
 k = [.05]
-n_lesions = [0, 10, 20]
-lesion_trials = np.array([[40]])  # , [40], [60]]  # 1 per lesion, but do at diff times
+n_lesions = [0, 25, 50]
+lesion_trials = np.array([[60]])  # [60]]  # 1 per lesion, but do at diff times
 
 sim_ps = []
 pt = []
@@ -1176,7 +1176,7 @@ attn_trace = []
 
 # can add loop for problem in range(6)
 
-for sim_prms in it.product(lesion_trials, n_lesions, k, n_units):  # orig: (n_units, k, n_lesions, lesion_trials
+for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
     for isim in range(n_sims):
 
         sim_ps.append(sim_prms)
@@ -1189,20 +1189,20 @@ for sim_prms in it.product(lesion_trials, n_lesions, k, n_units):  # orig: (n_un
             'phi': 12.5,
             'beta': 1.,
             'lr_attn': .15,  # this scales at grad computation now
-            'lr_nn': .015/(sim_prms[3] * sim_prms[2]),  # scale by n_units*k
+            'lr_nn': .015/(sim_prms[0] * sim_prms[1]),  # scale by n_units*k
             'lr_clusters': .01,
             'lr_clusters_group': .1,
-            'k': sim_prms[2],
+            'k': sim_prms[1],
             }
 
-        model = MultiUnitCluster(sim_prms[3], n_dims, attn_type, sim_prms[2],
+        model = MultiUnitCluster(sim_prms[0], n_dims, attn_type, sim_prms[1],
                                  params=params)
 
         lesions = {
-            'n_lesions': sim_prms[1],  # n_lesions per event
+            'n_lesions': sim_prms[3],  # n_lesions per event
             'gen_rand_lesions_trials': False,  # lesion events at random times
             'pr_lesion_trials': .01,  # if True, set this
-            'lesion_trials': torch.tensor(sim_prms[0])  # if False, set this
+            'lesion_trials': torch.tensor(sim_prms[2])  # if False, set this
             }
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -1215,10 +1215,12 @@ for sim_prms in it.product(lesion_trials, n_lesions, k, n_units):  # orig: (n_un
 
 # %% plot
 
-pts = torch.stack(pt)
-
+# index to average over sims
 ind_sims = [torch.arange(i * n_sims, (i + 1) * n_sims)
             for i in range(len(pt) // n_sims)]
+
+# pt
+pts = torch.stack(pt)
 
 # average over sims and plot
 # - specify sims by how sim_prms are ordered. so 'range' is indexing n_units,
@@ -1229,42 +1231,53 @@ len_p = len(n_lesions)
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
-plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
+plt.gca().legend(('{} lesions'.format(n_lesions[0]),
+                  '{} lesions'.format(n_lesions[1]),
+                  '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[0]))
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
-plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
+plt.gca().legend(('{} lesions'.format(n_lesions[0]),
+                  '{} lesions'.format(n_lesions[1]),
+                  '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[1]))
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
-plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
+plt.gca().legend(('{} lesions'.format(n_lesions[0]),
+                  '{} lesions'.format(n_lesions[1]),
+                  '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[2]))
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
-plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
+plt.gca().legend(('{} lesions'.format(n_lesions[0]),
+                  '{} lesions'.format(n_lesions[1]),
+                  '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[3]))
 plt.show()
 
-
 # attn
 attns = torch.stack(attn_trace)
+
+ylims = (attns.min() - .01, attns.max() + .01)
 
 # 20 units
 attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
 fig, ax = plt.subplots(1, 3)
 for iplt in range(len_p):
     ax[iplt].plot(torch.stack(attn_plot)[iplt])
-    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
-                       torch.stack(attn_plot).max() + .01])
+    ax[iplt].set_ylim(ylims)
+    ax[iplt].set_title('{} units, {} lesions'.format(n_units[0],
+                                                     n_lesions[iplt]),
+                       fontsize=10)
 plt.show()
 
 # 100 units
@@ -1272,8 +1285,10 @@ attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
 fig, ax = plt.subplots(1, 3)
 for iplt in range(len_p):
     ax[iplt].plot(torch.stack(attn_plot)[iplt])
-    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
-                       torch.stack(attn_plot).max() + .01])
+    ax[iplt].set_ylim(ylims)
+    ax[iplt].set_title('{} units, {} lesions'.format(n_units[1],
+                                                     n_lesions[iplt]),
+                       fontsize=10)
 plt.show()
 
 # 500 units
@@ -1281,8 +1296,10 @@ attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
 fig, ax = plt.subplots(1, 3)
 for iplt in range(len_p):
     ax[iplt].plot(torch.stack(attn_plot)[iplt])
-    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
-                       torch.stack(attn_plot).max() + .01])
+    ax[iplt].set_ylim(ylims)
+    ax[iplt].set_title('{} units, {} lesions'.format(n_units[2],
+                                                     n_lesions[iplt]),
+                       fontsize=10)
 plt.show()
 
 
@@ -1290,14 +1307,42 @@ attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
 fig, ax = plt.subplots(1, 3)
 for iplt in range(len_p):
     ax[iplt].plot(torch.stack(attn_plot)[iplt])
-    ax[iplt].set_ylim([torch.stack(attn_plot).min() - .01,
-                       torch.stack(attn_plot).max() + .01])
+    ax[iplt].set_ylim(ylims)
+    ax[iplt].set_title('{} units, {} lesions'.format(n_units[3],
+                                                     n_lesions[iplt]),
+                       fontsize=10)
 plt.show()
 
 
+# recruit clusters
+recr_n = torch.tensor(
+    [len(recruit_trial[i]) for i in range(len(recruit_trial))],  # count
+    dtype=torch.float)
+
+ylims = (recr_n.min() - 1, recr_n.max() + 1)
 
 
+fig, ax, = plt.subplots(1, 4)
+recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
+ax[0].plot(['0 lesions', '10 lesions', '20 lesions'],
+           torch.stack(recr_plot), 'o--')
+ax[0].set_ylim(ylims)
 
+recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
+ax[1].plot(['0 lesions', '10 lesions', '20 lesions'],
+           torch.stack(recr_plot), 'o--')
+ax[1].set_ylim(ylims)
+
+recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
+ax[2].plot(['0 lesions', '10 lesions', '20 lesions'],
+           torch.stack(recr_plot), 'o--')
+ax[2].set_ylim(ylims)
+
+recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
+ax[3].plot(['0 lesions', '10 lesions', '20 lesions'],
+           torch.stack(recr_plot), 'o--')
+ax[3].set_ylim(ylims)
+plt.show()
 
 
 # For plotting, make df?

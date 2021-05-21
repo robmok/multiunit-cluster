@@ -556,7 +556,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -584,47 +584,6 @@ n_epochs = 16
 
 # new local attn - scaling lr
 lr_scale = (n_units * k) / 1
-
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .9, # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 18.5,
-#     'beta': 1.,
-#     'lr_attn': .15, # this scales at grad computation now
-#     'lr_nn': .01/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .01,
-#     'lr_clusters_group': .1,
-#     'k': k
-#     }
-
-# shj params - low c
-params = [{
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .8,  # w/ attn grad normalized, c can be large now
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 10.5,
-    'beta': 1.,
-    'lr_attn': .15,  # this scales at grad computation now
-    'lr_nn': .025/lr_scale,  # scale by n_units*k
-    'lr_clusters': .01,
-    'lr_clusters_group': .1,
-    'k': k
-    }]
-
-# high c - append additional banks of units with diff params
-params.append({
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1.5,
-    'beta': 1.,
-    'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
-    'lr_nn': params[0]['lr_nn'],  # keep the same for now
-    'lr_clusters': .01,
-    'lr_clusters_group': .1,
-    'k': k
-    })
 
 # merged - some kept same across banks
 params = {
