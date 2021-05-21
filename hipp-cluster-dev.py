@@ -1234,39 +1234,34 @@ for sim_prms in it.product(n_units, k, n_lesions, lesion_trials):
         recruit_trial.append(model.recruit_units_trl)
         attn_trace.append(torch.stack(model.attn_trace, dim=0))
 
-# %%
-
-# plt.plot(torch.stack(pt[0:3]).T)  # .mean(axis=0).T)
-# plt.ylim([0., 0.55])
-# plt.gca().legend(('0 lesions','10 lesions','20 lesions'))
-# plt.show()
-
-
-# with n_sims
-# - it goes backwards from how sim_prms are ordered. so 
+# %% plot
 
 pts = torch.stack(pt)
 
-ind_sims = []
-for i in range(len(pt) // n_sims):
-    ind_sims.append(torch.arange(i * n_sims, (i + 1) * n_sims))
+ind_sims = [torch.arange(i * n_sims, (i + 1) * n_sims)
+            for i in range(len(pt) // n_sims)]
 
 # average over sims and plot
-pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(0, 3)]  # specify sims
+# - specify sims by how sim_prms are ordered. so 'range' is indexing n_units,
+# plotting by n_lesions
+len_p = len(n_units)
+
+# 20 units
+pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
 plt.title('20 units')
 plt.show()
 
-pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(3, 6)]
+pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
 plt.title('100 units')
 plt.show()
 
-pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(6, 9)]
+pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
 plt.plot(torch.stack(pt_plot).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('0 lesions', '10 lesions', '20 lesions'))
