@@ -488,8 +488,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 #         model.params['lr_attn'] *
                 #         (model.attn.grad / model.n_units))
 
-                # save updated attn ws
-                # model.attn_trace.append(model.attn.detach().clone())
+                # save updated attn ws - even if don't update
+                model.attn_trace.append(model.attn.detach().clone())
 
                 # update units positions - double update rule
                 update = (
@@ -1139,25 +1139,6 @@ lesions = {
 
 shuffle_seed = 5
 
-# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
-
-# model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-#     model, inputs, output, n_epochs, shuffle=True, shuffle_seed=shuffle_seed,
-#     lesions=lesions)
-
-# print(model.recruit_units_trl)
-# print(len(model.recruit_units_trl))
-
-# # pr target
-# plt.plot(1 - epoch_ptarget.detach())
-# plt.ylim([0, .5])
-# plt.show()
-
-# # attention weights
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# plt.show()
-
-
 # for All: need 1 simulation with lesions vs no lesions - w same shuffled seq
 # - feed in a random number for seed: shuffle_seed = torch.randperm(n_sims)
 # or torch.randperm(n_sims*5)[:n_sims] to get more nums so diff over other sims
@@ -1181,8 +1162,6 @@ shuffle_seed = 5
 
 n_sims = 10
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
-
-# shuffle_seeds[isim]
 
 # things to manipulate
 n_units = [20, 100, 500]
