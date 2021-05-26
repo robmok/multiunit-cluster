@@ -1112,7 +1112,7 @@ plt.show()
 
 # %% lesioning experiments
 
-problem = 0
+problem = 1
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -1123,10 +1123,8 @@ output = output.repeat(2).T
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 500
 n_dims = inputs.shape[1]
 loss_type = 'cross_entropy'
-k = .05  # top k%
 
 n_epochs = 16
 
@@ -1164,7 +1162,7 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 # things to manipulate
 #  - with 5000/8000 recovers - actually even better (recruit extra cluster so
 # higher act... feature/bug? could be feature: learning, hpc synpase overturn)
-n_units = [20, 500, 1000, 5000]  # [20, 100, 500]
+n_units = [20, 100, 1000, 5000]  # [20, 100, 500]
 k = [.05]
 n_lesions = [0, 25, 50]
 lesion_trials = np.array([[60]])  # [60]]  # 1 per lesion, but do at diff times
@@ -1215,6 +1213,13 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
 
 # %% plot
 
+saveplots = 0
+
+plt.rcdefaults()
+
+maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
+
 # index to average over sims
 ind_sims = [torch.arange(i * n_sims, (i + 1) * n_sims)
             for i in range(len(pt) // n_sims)]
@@ -1235,6 +1240,12 @@ plt.gca().legend(('{} lesions'.format(n_lesions[0]),
                   '{} lesions'.format(n_lesions[1]),
                   '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[0]))
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_pt_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[0],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
@@ -1244,7 +1255,14 @@ plt.gca().legend(('{} lesions'.format(n_lesions[0]),
                   '{} lesions'.format(n_lesions[1]),
                   '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[1]))
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_pt_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[1],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
+
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
 plt.plot(torch.stack(pt_plot).T)
@@ -1253,6 +1271,12 @@ plt.gca().legend(('{} lesions'.format(n_lesions[0]),
                   '{} lesions'.format(n_lesions[1]),
                   '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[2]))
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_pt_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[2],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
@@ -1262,6 +1286,12 @@ plt.gca().legend(('{} lesions'.format(n_lesions[0]),
                   '{} lesions'.format(n_lesions[1]),
                   '{} lesions'.format(n_lesions[2])))
 plt.title('Type {}, {} units'.format(problem + 1, n_units[3]))
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_pt_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[3],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
 
 # attn
@@ -1279,7 +1309,14 @@ for iplt in range(len_p):
     ax[iplt].set_title('{} units, {} lesions'.format(n_units[0],
                                                      n_lesions[iplt]),
                        fontsize=10)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_attn_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[0],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
+
 
 # 100 units
 attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
@@ -1290,6 +1327,12 @@ for iplt in range(len_p):
     ax[iplt].set_title('{} units, {} lesions'.format(n_units[1],
                                                      n_lesions[iplt]),
                        fontsize=10)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_attn_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[1],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
 
 # 500 units
@@ -1301,8 +1344,13 @@ for iplt in range(len_p):
     ax[iplt].set_title('{} units, {} lesions'.format(n_units[2],
                                                      n_lesions[iplt]),
                        fontsize=10)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_attn_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[2],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
-
 
 attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
 fig, ax = plt.subplots(1, 3)
@@ -1312,36 +1360,54 @@ for iplt in range(len_p):
     ax[iplt].set_title('{} units, {} lesions'.format(n_units[3],
                                                      n_lesions[iplt]),
                        fontsize=10)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_attn_type{}_trl{}_{}units_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_units[3],
+                               n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
 
-
 # recruit clusters
+plt.style.use('seaborn-darkgrid')
 recr_n = torch.tensor(
     [len(recruit_trial[i]) for i in range(len(recruit_trial))],  # count
     dtype=torch.float)
 ylims = (recr_n.min() - 1, recr_n.max() + 1)
 
-fig, ax, = plt.subplots(1, 4)
+fig, ax, = plt.subplots(2, 2)
 recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(0, len_p)]
-ax[0].plot(['0 lesions', '10 lesions', '20 lesions'],
-           torch.stack(recr_plot), 'o--')
-ax[0].set_ylim(ylims)
+ax[0, 0].plot(['0 lesions', '10 lesions', '20 lesions'],
+              torch.stack(recr_plot), 'o--')
+ax[0, 0].set_title('{} units'.format(n_units[0]))
+ax[0, 0].set_ylim(ylims)
 
 recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
-ax[1].plot(['0 lesions', '10 lesions', '20 lesions'],
-           torch.stack(recr_plot), 'o--')
-ax[1].set_ylim(ylims)
+ax[0, 1].plot(['0 lesions', '10 lesions', '20 lesions'],
+              torch.stack(recr_plot), 'o--')
+ax[0, 1].set_title('{} units'.format(n_units[1]))
+ax[0, 1].set_ylim(ylims)
 
 recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(len_p*2, len_p*3)]
-ax[2].plot(['0 lesions', '10 lesions', '20 lesions'],
-           torch.stack(recr_plot), 'o--')
-ax[2].set_ylim(ylims)
+ax[1, 0].plot(['0 lesions', '10 lesions', '20 lesions'],
+              torch.stack(recr_plot), 'o--')
+ax[1, 0].set_title('{} units'.format(n_units[2]))
+ax[1, 0].set_ylim(ylims)
 
 recr_plot = [recr_n[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
-ax[3].plot(['0 lesions', '10 lesions', '20 lesions'],
-           torch.stack(recr_plot), 'o--')
-ax[3].set_ylim(ylims)
+ax[1, 1].plot(['0 lesions', '10 lesions', '20 lesions'],
+              torch.stack(recr_plot), 'o--')
+ax[1, 1].set_title('{} units'.format(n_units[3]))
+ax[1, 1].set_ylim(ylims)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'lesion_recruit_type{}_trl{}_{}sims'.format(
+                               problem+1, lesion_trials[0, 0], n_sims))
+    plt.savefig(figname, dpi=100)
 plt.show()
+
+# back to default
+plt.rcdefaults()
 
 
 # For plotting, make df?
