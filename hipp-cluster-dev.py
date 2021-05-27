@@ -425,9 +425,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
- 
-                    print(mispred_units.sum())
-                    print(len(recruit_ind))
 
                 # recruit n_mispredicted units
                 model.active_units[recruit_ind] = True  # set ws to active
@@ -1115,7 +1112,7 @@ plt.show()
 
 # %% lesioning experiments
 
-problem = 0
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -1159,7 +1156,7 @@ lesions = {
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
-n_sims = 10
+n_sims = 20
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # things to manipulate

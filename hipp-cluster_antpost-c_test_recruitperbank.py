@@ -439,7 +439,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                         # select closest n_mispredicted inactive units
                         # n_mispred_units = mispred_units.shape[1]  # per bank
-                        n_mispred_units = len(mispred_units)
+                        n_mispred_units = mispred_units.sum()  # fixed
                         act = _compute_act(
                             dist, model.params['c'], model.params['p'])
                         act[~model.bmask] = -.01  # negative so never win

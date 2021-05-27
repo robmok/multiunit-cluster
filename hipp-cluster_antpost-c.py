@@ -568,7 +568,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 3
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -610,14 +610,15 @@ params = {
     'k': k
     }
 
-# testing
+# testing type 1 vs 6
+# - flips for type 1
 params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': [1.5, 2.5],  # 
-    'p': 1,  # p=1 exp, p=2 gauss
+    'r': 1,
+    'c': [1.5, 2.5],  # [1.5, 2.5] / [1.5, 3.5]
+    'p': 1,
     'phi': [1.5, 1.5],
     'beta': 1,
-    'lr_attn': [.25, .02],
+    'lr_attn': [.25, .02],  # [.25, .02]
     'lr_nn': .025/lr_scale,
     'lr_clusters': [.01, .01],
     'lr_clusters_group': [.1, .1],
