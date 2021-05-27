@@ -302,7 +302,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     # win_ind = model.winning_units
                     # lose_ind = (model.winning_units == 0) & model.active_units
                     for ibank in range(model.n_banks):
-                    
+
                         win_ind = (model.winning_units
                                    & model.bmask[ibank].squeeze())
                         lose_ind = (
@@ -310,24 +310,28 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                             & model.active_units
                             & model.bmask[ibank].squeeze()
                             )
-    
+
                         # compute grad based on act of winners *minus* losers
                         act_1 = (
                             torch.sum(
                                 _compute_act(
                                     _compute_dist(
                                         abs(x - model.units_pos[win_ind]),
-                                        model.attn, model.params['r']),
-                                    model.params['c'], model.params['p']))
-    
+                                        model.attn[:, ibank],
+                                        model.params['r']),
+                                    model.params['c'][ibank],
+                                    model.params['p']))
+
                             - torch.sum(
                                 _compute_act(
                                     _compute_dist(
                                         abs(x - model.units_pos[lose_ind]),
-                                        model.attn, model.params['r']),
-                                    model.params['c'], model.params['p']))
+                                        model.attn[:, ibank],
+                                        model.params['r']),
+                                    model.params['c'][ibank],
+                                    model.params['p']))
                             )
-    
+
                         # compute gradient
                         act_1.backward(retain_graph=True)
                         # divide grad by n active units (scales to any n_units)
@@ -513,12 +517,16 @@ def _compute_dist(dim_dist, attn_w, r):
         pass
     else:
         # compute distances weighted by 2 banks of attn weights
-        # - all dists are computed but for each bank, only n_units shd be used
-        d = torch.zeros([len(dim_dist), model.n_banks])
-        for ibank in range(model.n_banks):
-            d[:, ibank] = (
-                torch.sum(attn_w[:, ibank] * (dim_dist**r), axis=1) ** (1/r)
-                )
+        if len(attn_w.shape) > 1:  # if more than 1 bank
+            # - all dists computed but for each bank, only n_units shd be used
+            d = torch.zeros([len(dim_dist), model.n_banks])
+            for ibank in range(model.n_banks):
+                d[:, ibank] = (
+                    torch.sum(attn_w[:, ibank] * (dim_dist**r), axis=1)
+                    ** (1/r)
+                    )
+        else:
+            d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
     return d
 
 
@@ -529,8 +537,12 @@ def _compute_act(dist, c, p):
 
     sustain activation function
     """
-    return torch.transpose(
-        torch.tensor(c) * torch.exp(-torch.tensor(c) * dist), 0, 1)
+    if torch.tensor(c).numel() > 1:
+        act = torch.transpose(
+            torch.tensor(c) * torch.exp(-torch.tensor(c) * dist), 0, 1)
+    else:
+        act = c * torch.exp(-c * dist)
+    return act
 
 # %%
 
@@ -577,7 +589,6 @@ k = .05
 n_banks = 2
 
 # SHJ
-# - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
 
 # trials, etc.
 n_epochs = 16
@@ -588,9 +599,9 @@ lr_scale = (n_units * k) / 1
 # merged - some kept same across banks
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': [1.5, 3.5],  # flips works with this even with same phi! prev [.8, 3.5]
+    'c': [1.5, 3.5],  # flips works with this even w same phi! prev [.8, 3.5]
     'p': 1,  # p=1 exp, p=2 gauss
-    'phi': [1.5, 1.5],  # can flip work if phi is same? so 2 banks are competiting at the outputs
+    'phi': [1.5, 1.5],  # can flip work if phi is same - so 2 banks are competiting at the outputs. yes
     'beta': 1,
     'lr_attn': [.25, .002],  # this scales at grad computation now
     'lr_nn': .025/lr_scale,  # scale by n_units*k - keep the same for now
@@ -598,6 +609,20 @@ params = {
     'lr_clusters_group': [.1, .1],
     'k': k
     }
+
+# testing
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': [1.5, 1.5],  # 
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.25, .25],
+#     'lr_nn': .025/lr_scale,
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 

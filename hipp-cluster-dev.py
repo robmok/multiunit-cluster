@@ -1112,7 +1112,7 @@ plt.show()
 
 # %% lesioning experiments
 
-problem = 1
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -1316,7 +1316,6 @@ if saveplots:
                                n_sims))
     plt.savefig(figname, dpi=100)
 plt.show()
-
 
 # 100 units
 attn_plot = [attns[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
