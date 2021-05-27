@@ -611,18 +611,18 @@ params = {
     }
 
 # testing
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': [1.5, 1.5],  # 
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.25, .25],
-#     'lr_nn': .025/lr_scale,
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': [1.5, 2.5],  # 
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': [1.5, 1.5],
+    'beta': 1,
+    'lr_attn': [.25, .02],
+    'lr_nn': .025/lr_scale,
+    'lr_clusters': [.01, .01],
+    'lr_clusters_group': [.1, .1],
+    'k': k
+    }
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 
