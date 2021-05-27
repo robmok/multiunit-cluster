@@ -415,7 +415,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         model.fc1.weight[:, win_ind].detach(), dim=0) != target
 
                     # select closest n_mispredicted inactive units
-                    n_mispred_units = len(mispred_units)
+                    n_mispred_units = mispred_units.sum()  # fixed- had len before!
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
                     act[model.active_units] = 0  # REMOVE all active units
@@ -425,6 +425,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
+ 
+                    print(mispred_units.sum())
+                    print(len(recruit_ind))
 
                 # recruit n_mispredicted units
                 model.active_units[recruit_ind] = True  # set ws to active
@@ -1156,7 +1159,7 @@ lesions = {
 # - first, do nlesions early, middle, late. then also do random.
 # e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
-n_sims = 20
+n_sims = 10
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # things to manipulate
