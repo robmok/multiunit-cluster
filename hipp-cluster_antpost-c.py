@@ -522,10 +522,9 @@ def _compute_dist(dim_dist, attn_w, r):
 
 def _compute_act(dist, c, p):
     """
-    dist is n_banks x n_total_units, and params['c'] size is n_banks, so
+    - dist is n_banks x n_total_units, and params['c'] size is n_banks, so
     can just multiple by banks
-
-    sustain activation function
+    - sustain activation function
     """
     if torch.tensor(c).numel() > 1:
         act = torch.transpose(
