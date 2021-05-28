@@ -1112,7 +1112,7 @@ plt.show()
 
 # %% lesioning experiments
 
-problem = 5
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]

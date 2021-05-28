@@ -166,16 +166,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
 
-    # prms = []
-    # for i in range(model.n_banks):
-    #     if model.attn_type[-5:] != 'local':
-    #         p_attn = {'params': [model.attn],  # TODO edit above - 2 sets of attn ws
-    #                   'lr': model.params[i]['lr_attn']}
-    #         prms.extend([p_fc1, p_attn])
-    #     else:
-    #         prms.append(p_fc1)
-
-    # actually, for local attn, just need p_fc1 with all units connected
+    # for local attn, just need p_fc1 with all units connected
     prms = [p_fc1]
 
     optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # same lr now
@@ -303,8 +294,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     # lose_ind = (model.winning_units == 0) & model.active_units
                     for ibank in range(model.n_banks):
 
-                        win_ind = (model.winning_units
-                                   & model.bmask[ibank].squeeze())
+                        win_ind_b = (model.winning_units
+                                     & model.bmask[ibank].squeeze())
                         lose_ind = (
                             (model.winning_units == 0)
                             & model.active_units
@@ -316,7 +307,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                             torch.sum(
                                 _compute_act(
                                     _compute_dist(
-                                        abs(x - model.units_pos[win_ind]),
+                                        abs(x - model.units_pos[win_ind_b]),
                                         model.attn[:, ibank],
                                         model.params['r']),
                                     model.params['c'][ibank],
@@ -335,7 +326,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         # compute gradient
                         act_1.backward(retain_graph=True)
                         # divide grad by n active units (scales to any n_units)
-                        # - should work multiplying by 2 attn lrs - CHECK later
                         model.attn.data[:, ibank] += (
                             torch.tensor(model.params['lr_attn'][ibank])
                             * (model.attn.grad[:, ibank] / model.n_units))  # should this be n_units per bank? edited now, but was n_total_units before
@@ -378,7 +368,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # Recruit cluster, and update model
             if (torch.tensor(recruit) and
-                torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
+                    torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
 
                 # 1st trial - select closest k inactive units
                 if itrl == 0:
@@ -568,7 +558,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 3
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
