@@ -236,26 +236,27 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 )
 
             # since topk takes top even if all 0s, remove the 0 acts
-            # - indexing a bit confusing now since multiple banks, but works
             if torch.any(act[:, win_ind] == 0):
                 win_ind_tmp = []
                 for ibank in range(model.n_banks):
                     win_ind_tmp.append(
                         win_ind[ibank, act[ibank, win_ind[ibank]] != 0]
                         )
+                # win_ind as list so can have diff n per bank
+                win_ind = win_ind_tmp
+            else:
+                win_ind = win_ind.tolist()
 
-                # this assumes there will be the same number per bank
-                # TODO - think if need allow diff numbers
-                # TODO - not sure if this works other than 1st trial. if other
-                # units ok, will there be 0 units? maybe this is ok?... ++
-                win_ind = torch.zeros([model.n_banks, len(win_ind_tmp[0])])
-                for ibank in range(model.n_banks):
-                    win_ind[ibank] = win_ind_tmp[ibank]
+            win_ind_flat = [item for sublist in win_ind for item in sublist]
+
+            # win_ind = torch.zeros([model.n_banks, len(win_ind_tmp[0])])
+            # for ibank in range(model.n_banks):
+            #     win_ind[ibank] = win_ind_tmp[ibank]
 
             # define winner mask
             model.winning_units[:] = 0  # clear
-            if win_ind.numel() > 0:  # only 1st trial = 0?
-                model.winning_units[win_ind] = True  # goes to forward function
+            if len(win_ind_flat) > 0:  # only 1st trial = 0?
+                model.winning_units[win_ind_flat] = True  # goes to forward
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
             # learn
@@ -381,63 +382,96 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                    int(model.n_units
                                        * model.params['k']), dim=1)
                         )
+                    
+                    recruit_ind = recruit_ind.tolist()
 
                     # since topk takes top even if all 0s, remove the 0 acts
                     # - shouldn't happen since 1st trial, but in case
-                    if torch.any(act[:, recruit_ind] == 0):
-                        r_ind_tmp = []
-                        for ibank in range(model.n_banks):
-                            r_ind_tmp.append(
-                                recruit_ind[
-                                    ibank, act[ibank, recruit_ind[ibank]] != 0]
-                                )
-                        # this assumes there will be the same number per bank
-                        recruit_ind = torch.zeros([model.n_banks,
-                                                   len(r_ind_tmp[0])])
-                        for ibank in range(model.n_banks):
-                            recruit_ind[ibank] = r_ind_tmp[ibank]
+                    # if torch.any(act[:, recruit_ind] == 0):
+                    #     r_ind_tmp = []
+                    #     for ibank in range(model.n_banks):
+                    #         r_ind_tmp.append(
+                    #             recruit_ind[
+                    #                 ibank, act[ibank, recruit_ind[ibank]] != 0]
+                    #             )
+                    #     # this assumes there will be the same number per bank
+                    #     recruit_ind = torch.zeros([model.n_banks,
+                    #                                len(r_ind_tmp[0])])
+                    #     for ibank in range(model.n_banks):
+                    #         recruit_ind[ibank] = r_ind_tmp[ibank]
 
                 # recruit and REPLACE k units that mispredicted
                 else:
                     # this works only if same number in each bank
                     # TODO - think if need allow diff numbers (e.g. with list)
-                    mispred_units = torch.argmax(
-                        model.fc1.weight[:, win_ind].detach(), dim=0) != target
+                    # mispred_units = torch.argmax(
+                    #     model.fc1.weight[:, win_ind].detach(), dim=0) != target
+
+                    mispred_units = [
+                        torch.argmax(
+                            model.fc1.weight[:, win_ind[ibank]].detach(),
+                            dim=0) != target for ibank in range(model.n_banks)
+                        ]
 
                     # select closest n_mispredicted inactive units
-                    n_mispred_units = mispred_units.shape[1]  # per bank
+                    # n_mispred_units = mispred_units.shape[1]  # per bank
+                    n_mispred_units = [len(mispred_units[ibank])
+                                       for ibank in range(model.n_banks)]
+
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
                     act[~model.bmask] = -.01  # negative so never win
                     act[:, model.active_units] = 0  # REMOVE all active units
                     # find closest units excluding the active units to recruit
-                    _, recruit_ind = (
-                        torch.topk(act, n_mispred_units))
-                    # since topk takes top even if all 0s, remove the 0 acts
-                    # - again, to be safe
-                    if torch.any(act[:, recruit_ind] == 0):
-                        r_ind_tmp = []
-                        for ibank in range(model.n_banks):
-                            r_ind_tmp.append(
-                                recruit_ind[
-                                    ibank, act[ibank, recruit_ind[ibank]] != 0]
-                                )
-                        # this assumes there will be the same number per bank
-                        recruit_ind = torch.zeros([model.n_banks,
-                                                   len(r_ind_tmp[0])])
-                        for ibank in range(model.n_banks):
-                            recruit_ind[ibank] = r_ind_tmp[ibank]
+                    recruit_ind_tmp = []
+                    for ibank in range(model.n_banks):
+                        _, recruit_ind = (
+                            torch.topk(act[ibank], n_mispred_units[ibank])
+                            )
+                        recruit_ind_tmp.append(recruit_ind)
+
+                    recruit_ind = recruit_ind_tmp  # list
+
+                # flatten
+                recruit_ind_flat = [item for sublist in recruit_ind
+                                    for item in sublist]
+
+                # since topk takes top even if all 0s, remove the 0 acts
+                if torch.any(act[:, recruit_ind_flat] == 0):
+                    r_ind_tmp = []
+                    for ibank in range(model.n_banks):
+                        # r_ind_tmp.append(
+                        #     recruit_ind[
+                        #         ibank, act[ibank, recruit_ind[ibank]] != 0]
+                        #     )
+
+                        # indexing nonzero act units
+                        r_tmp = recruit_ind[ibank]
+                        act_nonzero = [act[ibank, recruit_ind[ibank]] != 0]
+                        r_ind_tmp.append(r_tmp[act_nonzero])
+
+                    # reassining recruit ind
+                    # - do i need recruit_ind or just flat is enough?
+                    recruit_ind = r_ind_tmp
+                    recruit_ind_flat = torch.stack(
+                        [item for sublist in recruit_ind
+                         for item in sublist])
 
                 # recruit n_mispredicted units
-                model.active_units[recruit_ind] = True  # set ws to active
+                model.active_units[recruit_ind_flat] = True  # set ws to active
                 model.winning_units[:] = 0  # clear
-                model.winning_units[recruit_ind] = True
+                model.winning_units[recruit_ind_flat] = True
                 # keep units that predicted correctly
-                # - should work, but haven't tested since it happens rarely
-                # with currently structures
                 if itrl > 0:
-                    model.winning_units[win_ind[~mispred_units]] = True
-                model.units_pos[recruit_ind] = x  # place at curr stim
+                    # model.winning_units[
+                    #     win_ind[ibank][~mispred_units[ibank]] = True
+                    for ibank in range(model.n_banks):
+                        not_mispred = (
+                            torch.tensor(win_ind[ibank])[~mispred_units[ibank]]
+                            )
+                        model.winning_units[not_mispred] = True
+
+                model.units_pos[recruit_ind_flat] = x  # place at curr stim
                 model.recruit_units_trl.append(itrl)
 
                 # go through update again after cluster added
