@@ -842,14 +842,14 @@ for i in range(niter):
             'k': k
             }
     
-        # trying with higher c - flipping 1& 6
+        # trying with higher c - flipping 1 & 6
         # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
         # now type II also can be slow, types 3-5 faster - as brad predicted
         params = {
             'r': 1,  # 1=city-block, 2=euclid
             'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.5, 
+            'phi': 1.5,
             'beta': 1.,
             'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
             'lr_nn': .025/lr_scale,  # scale by n_units*k
@@ -873,19 +873,19 @@ for i in range(niter):
             'k': k
             }
 
-        # # high c
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3.,
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.5, 
-        #     'beta': 1.,
-        #     'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
-        #     'lr_nn': .025/lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .01,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
+        # high c
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 3.,
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1.5, 
+            'beta': 1.,
+            'lr_attn': .002,
+            'lr_nn': .025/lr_scale,  # scale by n_units*k
+            'lr_clusters': .01,
+            'lr_clusters_group': .1,
+            'k': k
+            }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
