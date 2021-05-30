@@ -595,7 +595,7 @@ params = {
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': [1.5, 1.5],  # can flip work if phi is same - so 2 banks are competiting at the outputs. yes
     'beta': 1,
-    'lr_attn': [.25, .002],  # this scales at grad computation now
+    'lr_attn': [.25, .002],  # [.15, .02] also works
     'lr_nn': .025/lr_scale,  # scale by n_units*k - keep the same for now
     'lr_clusters': [.01, .01],
     'lr_clusters_group': [.1, .1],
@@ -616,6 +616,36 @@ params = {
     'lr_clusters_group': [.1, .1],
     'k': k
     }
+
+
+# # high c / low c from SHJ testing
+# params = {
+#     'r': 1,
+#     'c': [1.5, 2.5],  # [.8, 3.5],
+#     'p': 1,
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.15, .002],  # [.25, .02]
+#     'lr_nn': .025/lr_scale,
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
+
+# changing lr_attn and lr_nn, keeping phi constant
+# - need to code to have two different lr_nns...
+# params = {
+#     'r': 1,
+#     'c': [.8, 2.5],
+#     'p': 1,
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.15, .002],  # [.25, .02]
+#     'lr_nn': [.015/lr_scale, .025/lr_scale],
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 

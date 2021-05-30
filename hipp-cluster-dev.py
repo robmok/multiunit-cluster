@@ -845,9 +845,38 @@ for i in range(niter):
         # trying with higher c - flipping 1& 6
         # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
         # now type II also can be slow, types 3-5 faster - as brad predicted
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1.5, 
+            'beta': 1.,
+            'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
+            'lr_nn': .025/lr_scale,  # scale by n_units*k
+            'lr_clusters': .01,
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
+        # c param testing new - try to use same phi. adjust lr_nn
+        # low c
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .8,  # w/ attn grad normalized, c can be large now
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1.5,
+            'beta': 1.,
+            'lr_attn': .15,
+            'lr_nn': .15/lr_scale,  # scale by n_units*k
+            'lr_clusters': .01,
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
+        # # high c
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
+        #     'c': 3.,
         #     'p': 1,  # p=1 exp, p=2 gauss
         #     'phi': 1.5, 
         #     'beta': 1.,
@@ -855,20 +884,6 @@ for i in range(niter):
         #     'lr_nn': .025/lr_scale,  # scale by n_units*k
         #     'lr_clusters': .01,
         #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # # new local attn + cluster comp
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .01,  # .2
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 100,  # 200
-        #     'beta': 1.5,  # .1
-        #     'lr_attn': .4/lr_scale,  
-        #     'lr_nn': .3,
-        #     'lr_clusters': .01,
-        #     'lr_clusters_group': .15,
         #     'k': k
         #     }
 
@@ -902,15 +917,15 @@ shj = (
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
 
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj.T)
-ax[0].set_ylim([0., .55])
-ax[0].set_aspect(17)
-ax[1].plot(pt_all.mean(axis=0).T)
-ax[1].set_ylim([0., .55])
-ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-ax[1].set_aspect(17)
-plt.show()
+# fig, ax = plt.subplots(2, 1)
+# ax[0].plot(shj.T)
+# ax[0].set_ylim([0., .55])
+# ax[0].set_aspect(17)
+# ax[1].plot(pt_all.mean(axis=0).T)
+# ax[1].set_ylim([0., .55])
+# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+# ax[1].set_aspect(17)
+# plt.show()
 
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(shj.T, 'k')
