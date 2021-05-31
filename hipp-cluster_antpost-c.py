@@ -169,7 +169,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
     # for local attn, just need p_fc1 with all units connected
     prms = [p_fc1]
 
-    optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # same lr now
+    # optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # same lr now
+
+    # diff lr per bank - multiply by fc1.weight.grad by lr's below
+    optimizer = optim.SGD(prms, lr=1.)
 
     # save accuracy
     itrl = 0
@@ -264,8 +267,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             # zero out gradient for masked connections
             with torch.no_grad():
                 model.fc1.weight.grad.mul_(win_mask)
-                # if model.attn_type == 'unit':  # mask other clusters' attn
-                #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
+                # diff learning rates per bank (set lr_nn to 1 above)
+                for ibank in range(model.n_banks):
+                    model.fc1.weight.grad[:, model.bmask[ibank]] = (
+                        model.fc1.weight.grad[:, model.bmask[ibank]]
+                        * model.params['lr_nn'][ibank]
+                        )
 
             # if local attn - clear attn grad computed above
             if model.attn_type[-5:] == 'local':
@@ -452,8 +459,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     win_mask[:] = 0  # clear
                     win_mask[:, model.winning_units] = True  # update w winners
                     model.fc1.weight.grad.mul_(win_mask)
-                    # if model.attn_type == 'unit':
-                    #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
+                    # diff learning rates per bank (set lr_nn to 1 above)
+                    for ibank in range(model.n_banks):
+                        model.fc1.weight.grad[:, model.bmask[ibank]] = (
+                            model.fc1.weight.grad[:, model.bmask[ibank]]
+                            * model.params['lr_nn'][ibank]
+                            )
+
                 if model.attn_type[-5:] == 'local':
                     model.attn.grad[:] = 0  # clear grad
 
@@ -634,18 +646,18 @@ params = {
 
 # changing lr_attn and lr_nn, keeping phi constant
 # - need to code to have two different lr_nns...
-# params = {
-#     'r': 1,
-#     'c': [.8, 2.5],
-#     'p': 1,
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.15, .002],  # [.25, .02]
-#     'lr_nn': [.015/lr_scale, .025/lr_scale],
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
+params = {
+    'r': 1,
+    'c': [.8, 3.],
+    'p': 1,
+    'phi': [1.5, 1.5],
+    'beta': 1,
+    'lr_attn': [.15, .002],  # [.25, .02]
+    'lr_nn': [.15/lr_scale, .025/lr_scale],
+    'lr_clusters': [.01, .01],
+    'lr_clusters_group': [.1, .1],
+    'k': k
+    }
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 
