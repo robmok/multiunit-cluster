@@ -25,7 +25,7 @@ because those also need some differential attention weighting.
 @author: robert.mok
 """
 
-# import os
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -139,10 +139,26 @@ class MultiUnitCluster(nn.Module):
         self.units_act_trace.append(
             units_output[self.active_units].detach().clone())
 
+        # # output across all banks / full model
+        # out = [self.fc1(units_output)]
+        # # get pr for the average phi value for the full model's pr
+        # pr = [self.softmax(np.mean(model.params['phi']) * out[0])]
+
+        # # get outputs for each nbank
+        # for ibank in range(self.n_banks):
+        #     units_output_tmp = units_output.clone()
+        #     units_output_tmp[~self.bmask[ibank]] = 0  # rmv other bank units
+
+        #     # out & convert to response probability
+        #     out.append(self.fc1(units_output_tmp))
+        #     pr.append(self.softmax(self.params['phi'][ibank] * out[ibank+1]))
+
+        # include phi param into output        
         # output across all banks / full model
-        out = [self.fc1(units_output)]
-        # get pr for the average phi value for the full model's pr
-        pr = [self.softmax(np.mean(model.params['phi']) * out[0])]
+        out_b = []
+        pr_b = []
+
+        # convert to response probability
 
         # get outputs for each nbank
         for ibank in range(self.n_banks):
@@ -150,8 +166,19 @@ class MultiUnitCluster(nn.Module):
             units_output_tmp[~self.bmask[ibank]] = 0  # rmv other bank units
 
             # out & convert to response probability
-            out.append(self.fc1(units_output_tmp))
-            pr.append(self.softmax(model.params['phi'][ibank] * out[ibank+1]))
+            # - note pytorch takes this out and computes CE loss by combining
+            # nn.LogSoftmax() and nn.NLLLoss(), so logsoftmax is applied, no
+            # need to apply here
+            out_b.append(self.params['phi'][ibank]
+                         * self.fc1(units_output_tmp))
+            pr_b.append(self.softmax(self.params['phi'][ibank] * out_b[ibank]))
+
+        # add full model output to start
+        out = [sum(out_b)]
+        out.extend(out_b)
+
+        pr = [self.softmax(self.params['phi'][ibank] * sum(out_b))]
+        pr.extend(pr_b)
 
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
         self.fc1_act_trace.append(out)
@@ -550,6 +577,9 @@ def _compute_act(dist, c, p):
 
 # %%
 
+saveplots = 0
+maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
@@ -630,34 +660,100 @@ params = {
     }
 
 
-# # high c / low c from SHJ testing
-# params = {
-#     'r': 1,
-#     'c': [1.5, 2.5],  # [.8, 3.5],
-#     'p': 1,
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.15, .002],  # [.25, .02]
-#     'lr_nn': .025/lr_scale,
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
-
-# changing lr_attn and lr_nn, keeping phi constant
-# - need to code to have two different lr_nns...
+# high c / low c from SHJ testing
+# # - changing lr_attn and lr_nn, keeping phi constant
 params = {
     'r': 1,
-    'c': [.8, 3.],
+    'c': [1., 3.],  # c=.8/1. for type I. c=1. works better for type II.
     'p': 1,
     'phi': [1.5, 1.5],
     'beta': 1,
-    'lr_attn': [.15, .002],  # [.25, .02]
+    'lr_attn': [.35, .002],  # [.25, .02]  # .35 so type 2 wins (if shuffle)
     'lr_nn': [.15/lr_scale, .025/lr_scale],
     'lr_clusters': [.01, .01],
     'lr_clusters_group': [.1, .1],
     'k': k
     }
+
+# # testing - when low c overtakes high c for type 1
+# # - attn matters here - this is why type 1 wins. i guess point is if high c
+# # and low attn, can't win
+# # - can even have it equiv lr_nn
+# params = {
+#     'r': 1,
+#     'c': [.8, 2.5],  # .8/.9
+#     'p': 1,
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.15, .002],
+#     'lr_nn': [.15/lr_scale, .05/lr_scale],
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
+# # keeping lr_nn same
+# params = {
+#     'r': 1,
+#     'c': [1.35, 2.5],
+#     'p': 1,
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.15, .002],
+#     'lr_nn': [.15/lr_scale, .15/lr_scale],
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
+
+# testing - when high c overtakes low c for type 6
+# - attn doesn't matter here
+# - point is that high c should win - same attn, same lr_nn.
+# - of course higher lr_nn, low c wins, but that's forcing it
+# params = {
+#     'r': 1,
+#     'c': [1.01, 2.55],
+#     'p': 1,
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.15, .15],  # attn doesn't matter here
+#     'lr_nn': [.05/lr_scale, .05/lr_scale],
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
+
+
+# testing other types, 2-5
+# type 2: c=[1.25, 2.5],lr_attn=[.5, .002], lr_nn=[.15, .05]
+# type 3/4: c=[1.25, 2.5],lr_attn=[.5, .002], lr_nn=[.2, .05]
+# type 5: ... turns out recruits 4 clus only. lr_nn>.5 then recruits 5!?
+# - interaction between the two models is affecting recruitment?
+# - need to look further into this. but maybe need recruitment in separate
+# banks...
+# - OR this is interesting. having 2 banks allows you to solve the problem
+# differently. e.g. type 5 with a rulex like representation.
+
+# - hmm, when shuffle, 6 clus is more typical. and sometimes 1+.. CHECK
+# - plus, when shuffle, above params for type 3/4 also work
+
+
+# - seems attn doesn't matter much.. main lr_nn. 
+# i guess this might be because type I is only one when attn really drives acc
+# since in other cases, placing a cluster on them does a lot...?
+# params = {
+#     'r': 1,
+#     'c': [1.25, 2.5],
+#     'p': 1,
+#     'phi': [1.5, 1.5],
+#     'beta': 1,
+#     'lr_attn': [.005, .005],
+#     'lr_nn': [.2/lr_scale, .05/lr_scale],
+#     'lr_clusters': [.01, .01],
+#     'lr_clusters_group': [.1, .1],
+#     'k': k
+#     }
+
+# keeping lr_nn same - tested a bit, never work for type 2-5 that low c wins.
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 
@@ -667,14 +763,31 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 # pr target
 plt.plot(1 - epoch_ptarget.T.detach())
 plt.ylim([0, .5])
+plt.title('Type {}'.format(problem+1))
+plt.gca().legend(('total output',
+                  'c = {}'.format(model.params['c'][0]),
+                  'c = {}'.format(model.params['c'][1])
+                  ))
+
+if saveplots:
+    p = [model.params['c'][0], model.params['c'][1],
+         model.params['lr_attn'][0], model.params['lr_attn'][1],
+         model.params['lr_nn'][0], model.params['lr_nn'][1]]
+
+    figname = os.path.join(figdir,
+                           'nbanks_SHJ_type{}_c{}_{}_attn{}_{}_nn{}_{}'.format(
+                               problem+1, p[0], p[1], p[2], p[3], p[4], p[5]))
+    plt.savefig(figname + '.png', dpi=100)
 plt.show()
 
-# attention weights
-fig, ax = plt.subplots(1, 2)
-ax[0].plot(torch.stack(model.attn_trace, dim=0)[:, :, 0])
-ax[0].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
-                torch.stack(model.attn_trace, dim=0).max()+.01])
-ax[1].plot(torch.stack(model.attn_trace, dim=0)[:, :, 1])
-ax[1].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
-                torch.stack(model.attn_trace, dim=0).max()+.01])
-plt.show()
+
+# # attention weights
+# fig, ax = plt.subplots(1, 2)
+# ax[0].plot(torch.stack(model.attn_trace, dim=0)[:, :, 0])
+# ax[0].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
+#                 torch.stack(model.attn_trace, dim=0).max()+.01])
+# ax[1].plot(torch.stack(model.attn_trace, dim=0)[:, :, 1])
+# ax[1].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
+#                 torch.stack(model.attn_trace, dim=0).max()+.01])
+# plt.show()
+

@@ -78,6 +78,7 @@ class MultiUnitCluster(nn.Module):
         self.n_units = n_units
         self.n_dims = n_dims
         self.softmax = nn.Softmax(dim=0)
+        self.logsoftmax = nn.LogSoftmax(dim=0)
         self.active_units = torch.zeros(n_units, dtype=torch.bool)
         # history
         self.attn_trace = []
@@ -180,11 +181,19 @@ class MultiUnitCluster(nn.Module):
 
         # association weights / NN
         out = self.fc1(units_output)
-        self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        self.fc1_act_trace.append(out.detach().clone())
 
         # convert to response probability
+        # - this is what is given to out, since log softmax is taken
         pr = self.softmax(self.params['phi'] * out)
+
+        # include phi param into output
+        # - note pytorch takes this out and computes CE loss by combining
+        # nn.LogSoftmax() and nn.NLLLoss(), so logsoftmax is applied, no need
+        # to apply here
+        out = self.params['phi'] * out
+
+        self.fc1_w_trace.append(self.fc1.weight.detach().clone())
+        self.fc1_act_trace.append(out.detach().clone())
 
         return out, pr
 
@@ -641,7 +650,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -717,6 +726,35 @@ params = {
     'lr_clusters_group': .1,
     'k': k
     }
+
+# plotting to compare with nbank model
+# low c
+params = {
+    'r': 1,
+    'c': 1.,
+    'p': 1,
+    'phi': 1.5,
+    'beta': 1.,
+    'lr_attn': .35,
+    'lr_nn': .15/lr_scale,
+    'lr_clusters': .01,
+    'lr_clusters_group': .1,
+    'k': k
+    }
+# # high c
+# params = {
+#     'r': 1,
+#     'c': 3.,
+#     'p': 1,
+#     'phi': 1.5,
+#     'beta': 1.,
+#     'lr_attn': .002,
+#     'lr_nn': .025/lr_scale,
+#     'lr_clusters': .01,
+#     'lr_clusters_group': .1,
+#     'k': k
+#     }
+
 
 # lesioning
 lesions = None  # if no lesions
