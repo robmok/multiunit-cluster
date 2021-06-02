@@ -793,7 +793,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 20
+niter = 15
 
 n_banks = 2
 
@@ -824,14 +824,29 @@ for i in range(niter):
         output = output.repeat(2).T
         n_dims = inputs.shape[1]
 
+        # not bad
         params = {
             'r': 1,
             'c': [.75, 2.5],  # c=.8/1. for type I. c=1. works better for II.
             'p': 1,
-            'phi': [1.3, 1.15],
+            'phi': [1.3, 1.2],  # 1.2/1.1 for latter atm
             'beta': 1,
             'lr_attn': [.2, .002],  # [.25, .02]
-            'lr_nn': [.05/lr_scale, .01/lr_scale],
+            'lr_nn': [.05/lr_scale, .01/lr_scale],  # latter also tried .0075, not as gd tho
+            'lr_clusters': [.05, .05],
+            'lr_clusters_group': [.1, .1],
+            'k': k
+            }
+
+        # try more
+        params = {
+            'r': 1,
+            'c': [.75, 2.5],
+            'p': 1,
+            'phi': [1., 2.],
+            'beta': 1,
+            'lr_attn': [.2, .005],
+            'lr_nn': [.1/lr_scale, .002/lr_scale],
             'lr_clusters': [.05, .05],
             'lr_clusters_group': [.1, .1],
             'k': k
@@ -852,12 +867,12 @@ aspect = 40
 fig, ax = plt.subplots(1, 3)
 ax[0].plot(pt_all[:, :, 0].mean(axis=0).T)
 ax[0].set_ylim([0., .55])
-ax[0].set_aspect(aspect)
+# ax[0].set_aspect(aspect)
 ax[1].plot(pt_all[:, :, 1].mean(axis=0).T)
 ax[1].set_ylim([0., .55])
-ax[1].set_aspect(aspect)
+# ax[1].set_aspect(aspect)
 ax[2].plot(pt_all[:, :, 2].mean(axis=0).T)
 ax[2].set_ylim([0., .55])
-ax[2].set_aspect(aspect)
+# ax[2].set_aspect(aspect)
 ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
 plt.show()
