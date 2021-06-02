@@ -793,7 +793,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 1
+niter = 20
 
 n_banks = 2
 
@@ -826,13 +826,13 @@ for i in range(niter):
 
         params = {
             'r': 1,
-            'c': [1., 3.],  # c=.8/1. for type I. c=1. works better for II.
+            'c': [.75, 2.5],  # c=.8/1. for type I. c=1. works better for II.
             'p': 1,
-            'phi': [1.5, 1.5],
+            'phi': [1.3, 1.15],
             'beta': 1,
-            'lr_attn': [.35, .002],  # [.25, .02]
-            'lr_nn': [.15/lr_scale, .025/lr_scale],
-            'lr_clusters': [.01, .01],
+            'lr_attn': [.2, .002],  # [.25, .02]
+            'lr_nn': [.05/lr_scale, .01/lr_scale],
+            'lr_clusters': [.05, .05],
             'lr_clusters_group': [.1, .1],
             'k': k
             }
@@ -841,11 +841,12 @@ for i in range(niter):
                                  params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=False)
+            model, inputs, output, n_epochs, shuffle=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
         print(model.recruit_units_trl)
+        # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=1), axis=0))
 
 aspect = 40
 fig, ax = plt.subplots(1, 3)
