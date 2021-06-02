@@ -661,7 +661,7 @@ params = {
 
 
 # high c / low c from SHJ testing
-# # - changing lr_attn and lr_nn, keeping phi constant
+# - changing lr_attn and lr_nn, keeping phi constant
 params = {
     'r': 1,
     'c': [1., 3.],  # c=.8/1. for type I. c=1. works better for type II.
@@ -791,3 +791,72 @@ plt.show()
 #                 torch.stack(model.attn_trace, dim=0).max()+.01])
 # plt.show()
 
+# %% SHJ
+
+niter = 1
+
+n_banks = 2
+
+n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
+pt_all = torch.zeros([niter, 6, n_banks+1, n_epochs])
+
+# model details
+attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
+n_units = 500
+loss_type = 'cross_entropy'
+k = .05
+lr_scale = (n_units * k)
+
+# run multiple iterations
+for i in range(niter):
+
+    # six problems
+
+    for problem in range(6):  # [0, 5]: #  np.array([4]):
+
+        stim = six_problems[problem]
+        stim = torch.tensor(stim, dtype=torch.float)
+        inputs = stim[:, 0:-1]
+        output = stim[:, -1].long()  # integer
+
+        # 16 per trial
+        inputs = inputs.repeat(2, 1)
+        output = output.repeat(2).T
+        n_dims = inputs.shape[1]
+
+        params = {
+            'r': 1,
+            'c': [1., 3.],  # c=.8/1. for type I. c=1. works better for II.
+            'p': 1,
+            'phi': [1.5, 1.5],
+            'beta': 1,
+            'lr_attn': [.35, .002],  # [.25, .02]
+            'lr_nn': [.15/lr_scale, .025/lr_scale],
+            'lr_clusters': [.01, .01],
+            'lr_clusters_group': [.1, .1],
+            'k': k
+            }
+
+        model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k,
+                                 params=params)
+
+        model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+            model, inputs, output, n_epochs, shuffle=False)
+
+        pt_all[i, problem] = 1 - epoch_ptarget.detach()
+
+        print(model.recruit_units_trl)
+
+aspect = 40
+fig, ax = plt.subplots(1, 3)
+ax[0].plot(pt_all[:, :, 0].mean(axis=0).T)
+ax[0].set_ylim([0., .55])
+ax[0].set_aspect(aspect)
+ax[1].plot(pt_all[:, :, 1].mean(axis=0).T)
+ax[1].set_ylim([0., .55])
+ax[1].set_aspect(aspect)
+ax[2].plot(pt_all[:, :, 2].mean(axis=0).T)
+ax[2].set_ylim([0., .55])
+ax[2].set_aspect(aspect)
+ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+plt.show()
