@@ -804,7 +804,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 15
+niter = 5
 
 n_banks = 2
 
@@ -849,19 +849,19 @@ for i in range(niter):
             'k': k
             }
 
-        # # try more
-        # params = {
-        #     'r': 1,
-        #     'c': [.75, 2.5],
-        #     'p': 1,
-        #     'phi': [1., 2.],
-        #     'beta': 1,
-        #     'lr_attn': [.2, .005],
-        #     'lr_nn': [.1/lr_scale, .002/lr_scale],
-        #     'lr_clusters': [.05, .05],
-        #     'lr_clusters_group': [.1, .1],
-        #     'k': k
-        #     }
+        # try more - looking good
+        params = {
+            'r': 1,
+            'c': [.75, 2.5],
+            'p': 1,
+            'phi': [1., 2.],
+            'beta': 1,
+            'lr_attn': [.2, .005],
+            'lr_nn': [.1/lr_scale, .002/lr_scale],
+            'lr_clusters': [.05, .05],
+            'lr_clusters_group': [.1, .1],
+            'k': k
+            }
 
         model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k,
                                  params=params)
