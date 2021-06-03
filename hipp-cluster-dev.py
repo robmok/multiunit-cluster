@@ -180,17 +180,14 @@ class MultiUnitCluster(nn.Module):
             units_output[self.active_units].detach().clone())
 
         # association weights / NN
-        out = self.fc1(units_output)
-
-        # convert to response probability
-        # - this is what is given to out, since log softmax is taken
-        pr = self.softmax(self.params['phi'] * out)
-
-        # include phi param into output
+        # new - include phi param into output
         # - note pytorch takes this out and computes CE loss by combining
         # nn.LogSoftmax() and nn.NLLLoss(), so logsoftmax is applied, no need
-        # to apply here
-        out = self.params['phi'] * out
+        # to apply to out here
+        out = self.params['phi'] * self.fc1(units_output)
+
+        # convert to response probability
+        pr = self.softmax(self.params['phi'] * self.fc1(units_output))
 
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
         self.fc1_act_trace.append(out.detach().clone())

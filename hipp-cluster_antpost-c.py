@@ -153,12 +153,10 @@ class MultiUnitCluster(nn.Module):
         #     out.append(self.fc1(units_output_tmp))
         #     pr.append(self.softmax(self.params['phi'][ibank] * out[ibank+1]))
 
-        # include phi param into output        
+        # include phi param into output
         # output across all banks / full model
         out_b = []
         pr_b = []
-
-        # convert to response probability
 
         # get outputs for each nbank
         for ibank in range(self.n_banks):
@@ -168,16 +166,17 @@ class MultiUnitCluster(nn.Module):
             # out & convert to response probability
             # - note pytorch takes this out and computes CE loss by combining
             # nn.LogSoftmax() and nn.NLLLoss(), so logsoftmax is applied, no
-            # need to apply here
+            # need to apply to out here
             out_b.append(self.params['phi'][ibank]
                          * self.fc1(units_output_tmp))
+            # save for plotting - same as exp(out) since out is logsoftmaxed
             pr_b.append(self.softmax(self.params['phi'][ibank] * out_b[ibank]))
 
         # add full model output to start
         out = [sum(out_b)]
         out.extend(out_b)
 
-        pr = [self.softmax(self.params['phi'][ibank] * sum(out_b))]
+        pr = [self.softmax(sum(out_b))]
         pr.extend(pr_b)
 
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
@@ -602,7 +601,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -753,7 +752,19 @@ params = {
 #     'k': k
 #     }
 
-# keeping lr_nn same - tested a bit, never work for type 2-5 that low c wins.
+# new after fixed phi
+params = {
+    'r': 1,
+    'c': [.75, 2.5],  # c=.8/1. for type I. c=1. works better for II.
+    'p': 1,
+    'phi': [1.3, 1.2],  # 1.2/1.1 for latter atm
+    'beta': 1,
+    'lr_attn': [.2, .002],  # [.25, .02]
+    'lr_nn': [.05/lr_scale, .01/lr_scale],  # latter also tried .0075, not as gd tho
+    'lr_clusters': [.05, .05],
+    'lr_clusters_group': [.1, .1],
+    'k': k
+    }
 
 model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k, params=params)
 
@@ -838,19 +849,19 @@ for i in range(niter):
             'k': k
             }
 
-        # try more
-        params = {
-            'r': 1,
-            'c': [.75, 2.5],
-            'p': 1,
-            'phi': [1., 2.],
-            'beta': 1,
-            'lr_attn': [.2, .005],
-            'lr_nn': [.1/lr_scale, .002/lr_scale],
-            'lr_clusters': [.05, .05],
-            'lr_clusters_group': [.1, .1],
-            'k': k
-            }
+        # # try more
+        # params = {
+        #     'r': 1,
+        #     'c': [.75, 2.5],
+        #     'p': 1,
+        #     'phi': [1., 2.],
+        #     'beta': 1,
+        #     'lr_attn': [.2, .005],
+        #     'lr_nn': [.1/lr_scale, .002/lr_scale],
+        #     'lr_clusters': [.05, .05],
+        #     'lr_clusters_group': [.1, .1],
+        #     'k': k
+        #     }
 
         model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k,
                                  params=params)
