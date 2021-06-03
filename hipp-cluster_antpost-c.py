@@ -601,7 +601,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 5
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -838,9 +838,9 @@ for i in range(niter):
         # not bad
         params = {
             'r': 1,
-            'c': [.75, 2.5],  # c=.8/1. for type I. c=1. works better for II.
+            'c': [.75, 2.6],  # c=.8/1. for type I. c=1. works better for II.
             'p': 1,
-            'phi': [1.3, 1.2],  # 1.2/1.1 for latter atm
+            'phi': [1.3, 1.1],  # 1.2/1.1 for latter atm
             'beta': 1,
             'lr_attn': [.2, .002],  # [.25, .02]
             'lr_nn': [.05/lr_scale, .01/lr_scale],  # latter also tried .0075, not as gd tho
