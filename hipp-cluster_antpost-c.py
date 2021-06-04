@@ -256,6 +256,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
             # bank mask
             # - extra safe: eg. at start no units, dont recruit from wrong bank
+            # - also useful for "torch.any(act[:, recruit_ind_flat] == 0)"
+            # since there checking for 0 acts. these are not real 0s.
             act[~model.bmask] = -.01  # negative so never win
 
             # get top k winners
