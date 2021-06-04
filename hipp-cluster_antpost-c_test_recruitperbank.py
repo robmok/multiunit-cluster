@@ -290,7 +290,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             #     pass
             if torch.any(~recruit):  # if there is one bank ~recruit, update
 
-                optimizer.step()
+                # this is prob wrong? need to mask out bank that needs recruitment?
+                optimizer.step()  
 
                 upd_banks = torch.nonzero(~recruit) # which banks to upd
 

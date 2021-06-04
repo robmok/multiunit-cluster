@@ -304,12 +304,22 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             if not any(recruit):  # if no banks correct, all recruit (no upd)
                 pass
             else:  # if at least one bank correct (~recruit), update
+
+                rec_banks = torch.nonzero(torch.tensor(recruit))
+                upd_banks = torch.nonzero(~torch.tensor(recruit))
+
+                # remove nn updates for recruiting bank
+                for ibank in rec_banks:
+                    model.fc1.weight.grad[:, model.bmask[ibank].squeeze()] = 0
+
+                # update nn weights
                 optimizer.step()
 
                 if model.attn_type[-5:] == 'local':
 
                     # wta only
-                    for ibank in range(model.n_banks):
+                    # for ibank in range(model.n_banks):
+                    for ibank in upd_banks:
 
                         win_ind_b = (model.winning_units
                                      & model.bmask[ibank].squeeze())
@@ -325,7 +335,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                 _compute_act(
                                     _compute_dist(
                                         abs(x - model.units_pos[win_ind_b]),
-                                        model.attn[:, ibank],
+                                        model.attn[:, ibank].squeeze(),
                                         model.params['r']),
                                     model.params['c'][ibank],
                                     model.params['p']))
@@ -334,7 +344,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                 _compute_act(
                                     _compute_dist(
                                         abs(x - model.units_pos[lose_ind]),
-                                        model.attn[:, ibank],
+                                        model.attn[:, ibank].squeeze(),
                                         model.params['r']),
                                     model.params['c'][ibank],
                                     model.params['p']))
@@ -345,7 +355,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         # divide grad by n active units (scales to any n_units)
                         model.attn.data[:, ibank] += (
                             torch.tensor(model.params['lr_attn'][ibank])
-                            * (model.attn.grad[:, ibank] / model.n_units))  # should this be n_units per bank? edited now, but was n_total_units before
+                            * (model.attn.grad[:, ibank].squeeze()
+                               / model.n_units))  # should this be n_units per bank? edited now, but was n_total_units before
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -359,8 +370,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 model.attn_trace.append(model.attn.detach().clone())
 
                 # update units pos w multiple banks - double update rule
-                for ibank in range(model.n_banks):
-                    units_ind = model.winning_units & model.bmask[ibank]
+                for ibank in upd_banks:
+                    units_ind = (model.winning_units
+                                 & model.bmask[ibank].squeeze())
                     update = (
                         (x - model.units_pos[units_ind])
                         * model.params['lr_clusters'][ibank]
@@ -384,10 +396,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 trial_ptarget[ibank, itrl] = pr[ibank][target]
 
             # Recruit cluster, and update model
-            if (torch.tensor(recruit) and
-                    torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
+            if (any(recruit) and
+                torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
 
-                # 1st trial - select closest k inactive units
+                # 1st trial - select closest k inactive units for both banks
                 if itrl == 0:
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
@@ -407,12 +419,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     mispred_units = [
                         torch.argmax(
                             model.fc1.weight[:, win_ind[ibank]].detach(),
-                            dim=0) != target for ibank in range(model.n_banks)
+                            dim=0) != target for ibank in rec_banks
                         ]
 
                     # select closest n_mispredicted inactive units
                     n_mispred_units = [len(mispred_units[ibank])
-                                       for ibank in range(model.n_banks)]
+                                       for ibank in rec_banks]
 
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
@@ -462,6 +474,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         model.winning_units[not_mispred] = True
 
                 model.units_pos[recruit_ind_flat] = x  # place at curr stim
+
+                # TODO - need to also add info on the bank that recruits...
                 model.recruit_units_trl.append(itrl)
 
                 # go through update again after cluster added
