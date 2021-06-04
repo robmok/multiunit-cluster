@@ -33,7 +33,7 @@ class MultiUnitCluster(nn.Module):
         self.attn_trace = []
         self.units_pos_trace = []
         self.units_act_trace = []
-        self.recruit_units_trl = []
+        self.recruit_units_trl = [[] for i in range(self.n_banks)]
         self.fc1_w_trace = []
         self.fc1_act_trace = []
 
@@ -300,13 +300,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                        (torch.all(out[ibank + 1].data == 0))
                        for ibank in range(model.n_banks)]
 
+            rec_banks = torch.nonzero(torch.tensor(recruit))
+            upd_banks = torch.nonzero(~torch.tensor(recruit))
+
             # if not recruit, update model
-            if not any(recruit):  # if no banks correct, all recruit (no upd)
+            if all(recruit):  # if no banks correct, all recruit (no upd)
                 pass
             else:  # if at least one bank correct (~recruit), update
-
-                rec_banks = torch.nonzero(torch.tensor(recruit))
-                upd_banks = torch.nonzero(~torch.tensor(recruit))
 
                 # remove nn updates for recruiting bank
                 for ibank in rec_banks:
@@ -349,14 +349,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                     model.params['c'][ibank],
                                     model.params['p']))
                             )
-
+                        
                         # compute gradient
                         act_1.backward(retain_graph=True)
                         # divide grad by n active units (scales to any n_units)
                         model.attn.data[:, ibank] += (
                             torch.tensor(model.params['lr_attn'][ibank])
-                            * (model.attn.grad[:, ibank].squeeze()
-                               / model.n_units))  # should this be n_units per bank? edited now, but was n_total_units before
+                            * (model.attn.grad[:, ibank] / model.n_units))  # should this be n_units per bank? edited now, but was n_total_units before
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -423,8 +422,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         ]
 
                     # select closest n_mispredicted inactive units
+                    # - range(len()) now since may only have 1 bank. even if >
+                    # 2 banks, should work since in order of mispred_units
                     n_mispred_units = [mispred_units[ibank].sum()
-                                       for ibank in rec_banks]
+                                       for ibank in range(len(rec_banks))]
 
                     # above nice since both will have len of 2 if 2 banks, n
                     # len of 1 is 1 bank. but below i index them with [ibank]
@@ -443,7 +444,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         _, recruit_ind = (
                             torch.topk(act[ibank], n_mispred_units[i])
                             )
-                        recruit_ind_tmp.append(recruit_ind)
+                        # extend opposed to append like in prev script. prev
+                        # always rec n_banks, so did n_mispred_units[ibanks]
+                        # but here i, so flattening works differently
+                        recruit_ind_tmp.extend(recruit_ind)
 
                     recruit_ind = recruit_ind_tmp  # list
 
@@ -452,21 +456,22 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                     for item in sublist]
 
                 # since topk takes top even if all 0s, remove the 0 acts
+                # - atm this works because i made the irrelevant bank -0.01..
+                # check other script for notes
                 if torch.any(act[:, recruit_ind_flat] == 0):
                     r_ind_tmp = []
-                    for ibank in range(model.n_banks):
+                    for ibank in rec_banks:
 
                         # index nonzero act units
                         r_tmp = recruit_ind[ibank]
                         act_nonzero = [act[ibank, recruit_ind[ibank]] != 0]
                         r_ind_tmp.append(r_tmp[act_nonzero])
 
-                    # reassining recruit ind
+                    # reassigning recruit ind
                     # - do i need recruit_ind or just flat is enough?
                     recruit_ind = r_ind_tmp
-                    recruit_ind_flat = torch.stack(
-                        [item for sublist in recruit_ind
-                         for item in sublist])
+                    recruit_ind_flat = [item for sublist in recruit_ind
+                                        for item in sublist]
 
                 recruit_ind_flat = torch.tensor(recruit_ind_flat)
 
@@ -485,8 +490,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                 model.units_pos[recruit_ind_flat] = x  # place at curr stim
 
-                # TODO - need to also add info on the bank that recruits...
-                model.recruit_units_trl.append(itrl)
+                for ibank in rec_banks:
+                    model.recruit_units_trl[ibank].append(itrl)
 
                 # go through update again after cluster added
                 optimizer.zero_grad()
@@ -507,6 +512,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 if model.attn_type[-5:] == 'local':
                     model.attn.grad[:] = 0  # clear grad
 
+                # remove nn updates for non-recruiting bank
+                for ibank in upd_banks:
+                    model.fc1.weight.grad[:, model.bmask[ibank].squeeze()] = 0
+
                 optimizer.step()
 
                 # TODO - local attn update? omitted for now
@@ -515,8 +524,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 model.attn_trace.append(model.attn.detach().clone())
 
                 # update units pos w multiple banks - double update rule
-                for ibank in range(model.n_banks):
-                    units_ind = model.winning_units & model.bmask[ibank]
+                # - probably no need since on the stim
+                for ibank in rec_banks:
+                    units_ind = (model.winning_units
+                                 & model.bmask[ibank].squeeze())
                     update = (
                         (x - model.units_pos[units_ind])
                         * model.params['lr_clusters'][ibank]

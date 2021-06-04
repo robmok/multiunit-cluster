@@ -440,11 +440,13 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
 
                     recruit_ind = recruit_ind_tmp  # list
 
-                # flatten
                 recruit_ind_flat = [item for sublist in recruit_ind
                                     for item in sublist]
                 
                 # since topk takes top even if all 0s, remove the 0 acts
+                # - atm this works because i made the irrelevant bank -0.01
+                # which will not be 0. only finds valid units that are 0s
+                # TODO ? - it might be worth only indexing valid activations...
                 if torch.any(act[:, recruit_ind_flat] == 0):
                     r_ind_tmp = []
                     for ibank in range(model.n_banks):
@@ -457,9 +459,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     # reassining recruit ind
                     # - do i need recruit_ind or just flat is enough?
                     recruit_ind = r_ind_tmp
-                    recruit_ind_flat = torch.stack(
-                        [item for sublist in recruit_ind
-                         for item in sublist])
+                    recruit_ind_flat = [item for sublist in recruit_ind
+                                        for item in sublist]
 
                 recruit_ind_flat = torch.tensor(recruit_ind_flat)
 
