@@ -301,9 +301,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                        for ibank in range(model.n_banks)]
 
             # if not recruit, update model
-            if recruit:
+            if not any(recruit):  # if no banks correct, all recruit (no upd)
                 pass
-            else:
+            else:  # if at least one bank correct (~recruit), update
                 optimizer.step()
 
                 if model.attn_type[-5:] == 'local':
