@@ -423,8 +423,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         ]
 
                     # select closest n_mispredicted inactive units
-                    n_mispred_units = [len(mispred_units[ibank])
+                    n_mispred_units = [mispred_units[ibank].sum()
                                        for ibank in rec_banks]
+
+                    # above nice since both will have len of 2 if 2 banks, n
+                    # len of 1 is 1 bank. but below i index them with [ibank]
+                    # which doesn't work
+                    # - deal with the len of the list somehow... could use
+                    # enumerate (count, ibanks) in the loop, so use
+                    # n_mispred_units[count] / mispred_units[count].
 
                     act = _compute_act(
                         dist, model.params['c'], model.params['p'])
@@ -432,9 +439,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     act[:, model.active_units] = 0  # REMOVE all active units
                     # find closest units excluding the active units to recruit
                     recruit_ind_tmp = []
-                    for ibank in range(model.n_banks):
+                    for i, ibank in enumerate(rec_banks):
                         _, recruit_ind = (
-                            torch.topk(act[ibank], n_mispred_units[ibank])
+                            torch.topk(act[ibank], n_mispred_units[i])
                             )
                         recruit_ind_tmp.append(recruit_ind)
 
@@ -461,15 +468,18 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         [item for sublist in recruit_ind
                          for item in sublist])
 
+                recruit_ind_flat = torch.tensor(recruit_ind_flat)
+
                 # recruit n_mispredicted units
                 model.active_units[recruit_ind_flat] = True  # set ws to active
                 model.winning_units[:] = 0  # clear
                 model.winning_units[recruit_ind_flat] = True
                 # keep units that predicted correctly
                 if itrl > 0:
-                    for ibank in range(model.n_banks):
+                    # for ibank in range(model.n_banks):
+                    for i, ibank in enumerate(rec_banks):
                         not_mispred = (
-                            torch.tensor(win_ind[ibank])[~mispred_units[ibank]]
+                            torch.tensor(win_ind[ibank])[~mispred_units[i]]
                             )
                         model.winning_units[not_mispred] = True
 

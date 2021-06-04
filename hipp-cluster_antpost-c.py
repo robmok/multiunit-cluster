@@ -423,7 +423,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                         ]
 
                     # select closest n_mispredicted inactive units
-                    n_mispred_units = [len(mispred_units[ibank])
+                    n_mispred_units = [mispred_units[ibank].sum()
                                        for ibank in range(model.n_banks)]
 
                     act = _compute_act(
@@ -443,7 +443,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                 # flatten
                 recruit_ind_flat = [item for sublist in recruit_ind
                                     for item in sublist]
-
+                
                 # since topk takes top even if all 0s, remove the 0 acts
                 if torch.any(act[:, recruit_ind_flat] == 0):
                     r_ind_tmp = []
@@ -460,6 +460,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     recruit_ind_flat = torch.stack(
                         [item for sublist in recruit_ind
                          for item in sublist])
+
+                recruit_ind_flat = torch.tensor(recruit_ind_flat)
 
                 # recruit n_mispredicted units
                 model.active_units[recruit_ind_flat] = True  # set ws to active
