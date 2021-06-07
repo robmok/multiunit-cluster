@@ -558,7 +558,18 @@ def train_unsupervised(model, inputs, n_epochs):
             model.winning_units[win_ind] = True  # goes to forward function
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
+            # recruit
+            # - if error is high (inverse of activations of winners), recruit
+
+
+
+
             # learn
+            # update attention
+            
+            
+            
+            
             # update units - double update rule
             # - step 1 - winners update towards input
             update = (

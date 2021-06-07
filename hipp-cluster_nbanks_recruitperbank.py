@@ -829,7 +829,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 5
+niter = 2
 
 n_banks = 2
 
@@ -842,6 +842,9 @@ n_units = 500
 loss_type = 'cross_entropy'
 k = .05
 lr_scale = (n_units * k)
+
+# fc1 ws - list since diff ntrials (since it appends when recruit & upd)
+w_trace = [[] for i in range(6)]
 
 # run multiple iterations
 for i in range(niter):
@@ -895,8 +898,10 @@ for i in range(niter):
             model, inputs, output, n_epochs, shuffle=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
+        w_trace[problem].append(torch.stack(model.fc1_w_trace))
 
         print(model.recruit_units_trl)
+        # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
         # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=1), axis=0))
 
 aspect = 40
@@ -912,3 +917,39 @@ ax[2].set_ylim([0., .55])
 # ax[2].set_aspect(aspect)
 ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
 plt.show()
+
+# %%
+
+# have to go through each iteration, since different ntrials if diff n recruit
+
+# for i in range(niter):
+    # print(w_trace[problem][i])
+
+i = 0
+problem = 0
+
+# w = w_trace[problem][i]
+# w = torch.reshape(w, (w.shape[0] * w.shape[1], w.shape[2]))
+# w0 = w[:, model.bmask[0]]
+# plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+
+w = w_trace[problem][i]
+
+ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+
+w0 = w[:, :, model.bmask[0]]
+w0 = torch.reshape(w0, (w0.shape[0], w0.shape[1] * w0.shape[2]))
+plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+plt.ylim(ylims)
+plt.show()
+
+w1 = w[:, :, model.bmask[1]]
+w1 = torch.reshape(w1, (w1.shape[0], w1.shape[1] * w1.shape[2]))
+plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
+plt.ylim(ylims)
+plt.show()
+
+
+
+
+
