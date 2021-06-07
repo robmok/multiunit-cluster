@@ -829,7 +829,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 2
+niter = 1
 
 n_banks = 2
 
@@ -871,31 +871,31 @@ for i in range(niter):
             'phi': [1.3, 1.1],  # 1.2/1.1 for latter atm
             'beta': 1,
             'lr_attn': [.2, .002],  # [.25, .02]
-            'lr_nn': [.05/lr_scale, .01/lr_scale],  # latter also tried .0075, not as gd tho
+            'lr_nn': [.05/lr_scale, .02/lr_scale],  # latter: .01. if latter: .02, type 6 larger fc1 weights than low c. otherwise smaller if lr_nn too small.
             'lr_clusters': [.05, .05],
             'lr_clusters_group': [.1, .1],
             'k': k
             }
 
         # try more - looking good
-        params = {
-            'r': 1,
-            'c': [.75, 2.5],
-            'p': 1,
-            'phi': [1., 2.],
-            'beta': 1,
-            'lr_attn': [.2, .005],
-            'lr_nn': [.1/lr_scale, .002/lr_scale],
-            'lr_clusters': [.05, .05],
-            'lr_clusters_group': [.1, .1],
-            'k': k
-            }
+        # params = {
+        #     'r': 1,
+        #     'c': [.75, 2.5],
+        #     'p': 1,
+        #     'phi': [1., 2.],
+        #     'beta': 1,
+        #     'lr_attn': [.2, .005],
+        #     'lr_nn': [.1/lr_scale, .002/lr_scale],
+        #     'lr_clusters': [.05, .05],
+        #     'lr_clusters_group': [.1, .1],
+        #     'k': k
+        #     }
 
         model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k,
                                  params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True)
+            model, inputs, output, n_epochs, shuffle=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
@@ -926,7 +926,7 @@ plt.show()
     # print(w_trace[problem][i])
 
 i = 0
-problem = 0
+problem = 5
 
 # w = w_trace[problem][i]
 # w = torch.reshape(w, (w.shape[0] * w.shape[1], w.shape[2]))
@@ -935,7 +935,8 @@ problem = 0
 
 w = w_trace[problem][i]
 
-ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+# ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+ylims = (-.06, .06)
 
 w0 = w[:, :, model.bmask[0]]
 w0 = torch.reshape(w0, (w0.shape[0], w0.shape[1] * w0.shape[2]))

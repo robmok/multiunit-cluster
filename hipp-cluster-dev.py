@@ -848,6 +848,8 @@ niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 
+w_trace = [[] for i in range(6)]
+
 # run multiple iterations
 for i in range(niter):
 
@@ -933,12 +935,74 @@ for i in range(niter):
             'k': k
             }
 
+        # comparing with n_banks model
+        # low c
+        params = {
+            'r': 1,
+            'c': .75,
+            'p': 1,
+            'phi': 1.3,
+            'beta': 1,
+            'lr_attn': .2,
+            'lr_nn': .1/lr_scale,
+            'lr_clusters': .05,
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
+        # high c
+        params = {
+            'r': 1,
+            'c': 2.6,
+            'p': 1,
+            'phi': 1.1,
+            'beta': 1,
+            'lr_attn': .002,
+            'lr_nn': .01/lr_scale,
+            'lr_clusters': .05,
+            'lr_clusters_group': .1,
+            'k': k
+            }        
+                
+        # # v2
+        # # low c
+        # params = {
+        #     'r': 1,
+        #     'c': .75,
+        #     'p': 1,
+        #     'phi': 1.,
+        #     'beta': 1,
+        #     'lr_attn': .2,
+        #     'lr_nn': .1/lr_scale,
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
+
+        # # high c
+        # params = {
+        #     'r': 1,
+        #     'c': 2.5,
+        #     'p': 1,
+        #     'phi': 2.,
+        #     'beta': 1,
+        #     'lr_attn': .005,
+        #     'lr_nn': .002/lr_scale,
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
+    
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, n_epochs, shuffle=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
+        
+        w_trace[problem].append(torch.stack(model.fc1_w_trace))
+
 
         print(model.recruit_units_trl)
     
@@ -984,6 +1048,20 @@ shj = (
 # plt.ylim([0.15, 0.45])
 # plt.show()
 
+# %%
+i = 0
+problem = 5
+
+w = w_trace[problem][i]
+
+# ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+ylims = (-.06, .06)
+
+w0 = torch.reshape(w, (w.shape[0], w.shape[1] * w.shape[2]))
+
+plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+plt.ylim(ylims)
+plt.show()
 # %% unsupervised
 
 # spatial / unsupervised
