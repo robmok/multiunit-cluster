@@ -958,7 +958,7 @@ for i in range(niter):
             'phi': 1.1,
             'beta': 1,
             'lr_attn': .002,
-            'lr_nn': .01/lr_scale,
+            'lr_nn': .02/lr_scale,  # .01/.02
             'lr_clusters': .05,
             'lr_clusters_group': .1,
             'k': k
@@ -1047,6 +1047,7 @@ shj = (
 # plt.plot(torch.stack(model.attn_trace, dim=0))
 # plt.ylim([0.15, 0.45])
 # plt.show()
+
 
 # %%
 i = 0

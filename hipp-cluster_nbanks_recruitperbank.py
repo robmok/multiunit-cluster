@@ -829,7 +829,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 1
+niter = 20
 
 n_banks = 2
 
@@ -879,24 +879,24 @@ for i in range(niter):
             }
 
         # try more - looking good
-        # params = {
-        #     'r': 1,
-        #     'c': [.75, 2.5],
-        #     'p': 1,
-        #     'phi': [1., 2.],
-        #     'beta': 1,
-        #     'lr_attn': [.2, .005],
-        #     'lr_nn': [.1/lr_scale, .002/lr_scale],
-        #     'lr_clusters': [.05, .05],
-        #     'lr_clusters_group': [.1, .1],
-        #     'k': k
-        #     }
+        params = {
+            'r': 1,
+            'c': [.75, 2.5],
+            'p': 1,
+            'phi': [1., 2.],
+            'beta': 1,
+            'lr_attn': [.2, .005],
+            'lr_nn': [.1/lr_scale, .002/lr_scale],
+            'lr_clusters': [.05, .05],
+            'lr_clusters_group': [.1, .1],
+            'k': k
+            }
 
         model = MultiUnitCluster(n_units, n_dims, n_banks, attn_type, k,
                                  params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=False)
+            model, inputs, output, n_epochs, shuffle=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
@@ -919,6 +919,11 @@ ax[2].set_ylim([0., .55])
 # ax[2].set_aspect(aspect)
 ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
 plt.show()
+
+# plt.plot(pt_all[:, :, 1].mean(axis=0).T)
+# plt.ylim([0., .55])
+# plt.plot(pt_all[:, :, 2].mean(axis=0).T)
+# plt.ylim([0., .55])
 
 # %%
 
