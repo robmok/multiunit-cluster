@@ -932,11 +932,20 @@ plt.show()
 i = 0
 problem = 5
 
-# w = w_trace[problem][i]
-# w = torch.reshape(w, (w.shape[0] * w.shape[1], w.shape[2]))
-# w0 = w[:, model.bmask[0]]
-# plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+# output (pr / activations with phi)
+ylims = (0, 1)
 
+act = act_trace[problem][i]
+plt.plot(act[:, 1])
+plt.ylim(ylims)
+plt.show()
+
+plt.plot(act[:, 2])
+plt.ylim(ylims)
+plt.show()
+
+
+# weights
 w = w_trace[problem][i]
 
 # ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
@@ -951,19 +960,6 @@ plt.show()
 w1 = w[:, :, model.bmask[1]]
 w1 = torch.reshape(w1, (w1.shape[0], w1.shape[1] * w1.shape[2]))
 plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
-plt.ylim(ylims)
-plt.show()
-
-
-# pr / activations (with phi)
-ylims = (0, 1)
-
-act = act_trace[problem][i]
-plt.plot(act[:, 1])
-plt.ylim(ylims)
-plt.show()
-
-plt.plot(act[:, 2])
 plt.ylim(ylims)
 plt.show()
 
