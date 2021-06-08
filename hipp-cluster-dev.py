@@ -532,11 +532,17 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
 def train_unsupervised(model, inputs, n_epochs):
 
+    itrl = 0
+
     for epoch in range(n_epochs):
         shuffle_ind = torch.randperm(len(inputs))
         inputs_ = inputs[shuffle_ind]
         # inputs_ = inputs
         for x in inputs_:
+
+            # testing
+            x = inputs_[itrl]
+
             # find winners with largest activation - all connected
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
@@ -554,8 +560,8 @@ def train_unsupervised(model, inputs, n_epochs):
             # win_mask[:, win_ind] = True
             # above is old code, below is new. test. actually.. need this?
             model.winning_units[:] = 0  # clear
-            model.winning_units[win_ind] = True  # goes to forward function
-            win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
+            model.winning_units[win_ind] = True
+            # win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
 
             # recruit
             # - if error is high (inverse of activations of winners), recruit
@@ -606,11 +612,11 @@ def train_unsupervised(model, inputs, n_epochs):
                     model.attn.data = (
                         model.attn.data / torch.sum(model.attn.data)
                         )
-                elif model.attn_type[0:4] == 'unit':  # TODO - fix
-                    model.attn.data = (
-                        model.attn.data
-                        / torch.sum(model.attn.data, dim=1, keepdim=True)
-                        )
+                # elif model.attn_type[0:4] == 'unit':  # TODO - fix
+                #     model.attn.data = (
+                #         model.attn.data
+                #         / torch.sum(model.attn.data, dim=1, keepdim=True)
+                #         )
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -674,6 +680,8 @@ def train_unsupervised(model, inputs, n_epochs):
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
+                
+            itrl += 1
 
 
 def _compute_dist(dim_dist, attn_w, r):
@@ -1168,27 +1176,28 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 2000
-attn_type = 'dimensional'
+n_trials = 1000
+attn_type = 'dimensional_local'
 
 inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
-n_units = 1000
-k = .1
+n_units = 500
+k = .05
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 2,  # node specificity 2/3 for cluster/wta/exem, w p=1 better
-    'p': 1,  # alcove: p=1 exp, p=2 gauss
+    'c': 1,
+    'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .25,
+    'lr_attn': .1,
     'lr_nn': .25,
     'lr_clusters': .15,
     'lr_clusters_group': .95,
     'k': k
     }
 
-# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
-# train_unsupervised(model, inputs, n_epochs)
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+
+train_unsupervised(model, inputs, n_epochs)
 
 # results = torch.stack(model.units_pos_trace, dim=0)
 # plt.scatter(results[-1, :, 0], results[-1, :, 1])
@@ -1201,58 +1210,58 @@ params = {
 # lr_clusters = torch.linspace(.001, .5, 10)
 # lr_group = torch.linspace(.1, 2, 10)
 
-lr_clusters = torch.arange(.001, .5, .05)
-lr_group = torch.arange(.1, 2, .2)
+# lr_clusters = torch.arange(.001, .5, .05)
+# lr_group = torch.arange(.1, 2, .2)
 
-results = torch.zeros(n_units, n_dims, len(lr_clusters), len(lr_group))
-for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
-    params['lr_clusters'] = lr_clusters[i]
-    params['lr_clusters_group'] = lr_group[j]
-    model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
-    train_unsupervised(model, inputs, n_epochs)
-    results[:, :, i, j] = torch.stack(model.units_pos_trace, dim=0)[-1]
-
-
-# fig, ax = plt.subplots(len(lr_clusters), len(lr_group))
+# results = torch.zeros(n_units, n_dims, len(lr_clusters), len(lr_group))
 # for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
-#     ax[i, j].scatter(results[:, 0, i, j], results[:, 1, i, j], s=.005)
-#     ax[i, j].set_xlim([0, 1])
-#     ax[i, j].set_ylim([0, 1])
+#     params['lr_clusters'] = lr_clusters[i]
+#     params['lr_clusters_group'] = lr_group[j]
+#     model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+#     train_unsupervised(model, inputs, n_epochs)
+#     results[:, :, i, j] = torch.stack(model.units_pos_trace, dim=0)[-1]
 
 
-wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
-
-lr = lr_group[3]
-j = torch.nonzero(lr_group == lr)
-for i in range(len(lr_clusters)):
-    plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
-    plt.show()
-
-    # figname = os.path.join(wd,
-    #                         'hipp_cluster_across_lrclus' +
-    #                         str(round(lr_clusters[i].tolist(), 3)) +
-    #                         '_lrgroup' + str(round(lr.tolist(), 3)) + '.png')
-    # plt.savefig(figname)
-    # plt.show()
+# # fig, ax = plt.subplots(len(lr_clusters), len(lr_group))
+# # for i, j in it.product(range(len(lr_clusters)), range(len(lr_group))):
+# #     ax[i, j].scatter(results[:, 0, i, j], results[:, 1, i, j], s=.005)
+# #     ax[i, j].set_xlim([0, 1])
+# #     ax[i, j].set_ylim([0, 1])
 
 
-# lr = lr_clusters[5]  # >.1 [3/4/5]
-# i = torch.nonzero(lr_clusters == lr)
-# for j in range(len(lr_group)):
+# wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
+
+# lr = lr_group[3]
+# j = torch.nonzero(lr_group == lr)
+# for i in range(len(lr_clusters)):
 #     plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
 #     plt.xlim([0, 1])
 #     plt.ylim([0, 1])
 #     plt.show()
 
-    # figname = os.path.join(wd,
-    #                        'hipp_cluster_across_lrgroup' +
-    #                        str(round(lr_group[j].tolist(), 3)) +
-    #                        '_lrclus' +
-    #                        str(round(lr.tolist(), 3)) + '.png')
-    # plt.savefig(figname)
-    # plt.show()
+#     # figname = os.path.join(wd,
+#     #                         'hipp_cluster_across_lrclus' +
+#     #                         str(round(lr_clusters[i].tolist(), 3)) +
+#     #                         '_lrgroup' + str(round(lr.tolist(), 3)) + '.png')
+#     # plt.savefig(figname)
+#     # plt.show()
+
+
+# # lr = lr_clusters[5]  # >.1 [3/4/5]
+# # i = torch.nonzero(lr_clusters == lr)
+# # for j in range(len(lr_group)):
+# #     plt.scatter(results[:, 0, i, j], results[:, 1, i, j])
+# #     plt.xlim([0, 1])
+# #     plt.ylim([0, 1])
+# #     plt.show()
+
+#     # figname = os.path.join(wd,
+#     #                        'hipp_cluster_across_lrgroup' +
+#     #                        str(round(lr_group[j].tolist(), 3)) +
+#     #                        '_lrclus' +
+#     #                        str(round(lr.tolist(), 3)) + '.png')
+#     # plt.savefig(figname)
+#     # plt.show()
 
 
 
