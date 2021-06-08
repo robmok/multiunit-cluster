@@ -541,12 +541,18 @@ def train_unsupervised(model, inputs, n_epochs):
         for x in inputs_:
 
             # testing
-            x = inputs_[itrl]
+            # x = inputs_[itrl]
 
-            # find winners with largest activation - all connected
+            # # find winners with largest activation - all connected
+            # dim_dist = abs(x - model.units_pos)
+            # dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+            # act = _compute_act(dist, model.params['c'], model.params['p'])
+
+            # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
+            act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
             _, win_ind = torch.topk(act,
@@ -566,7 +572,7 @@ def train_unsupervised(model, inputs, n_epochs):
             # recruit
             # - if error is high (inverse of activations of winners), recruit
             # - scale to k winners. eg. min is .1 of sum of k units max act
-            thresh = .1 * (model.n_units * model.params['k'])
+            thresh = .8 * (model.n_units * model.params['k'])
 
             if act[win_ind].sum() < thresh:
                 recruit = True
@@ -578,7 +584,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 pass
             else:
 
-                # update attention - to test
+                # update attention - still to test
                 win_ind = model.winning_units
                 lose_ind = (model.winning_units == 0) & model.active_units
 
@@ -640,15 +646,16 @@ def train_unsupervised(model, inputs, n_epochs):
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
-           # Recruit cluster, and update model
-            if torch.tensor(recruit):
+            # Recruit cluster, and update model
+            if recruit:  # torch.tensor(recruit):
 
                 # select closest k inactive units
                 act = _compute_act(
                     dist, model.params['c'], model.params['p'])
+                act[model.active_units] = 0  # REMOVE all active units
+                # find closest units excluding the active units to recruit
                 _, recruit_ind = (
-                    torch.topk(act,
-                               int(model.n_units * model.params['k'])))
+                    torch.topk(act, int(model.n_units * model.params['k'])))
                 # since topk takes top even if all 0s, remove the 0 acts
                 if torch.any(act[recruit_ind] == 0):
                     recruit_ind = recruit_ind[act[recruit_ind] != 0]
@@ -680,7 +687,7 @@ def train_unsupervised(model, inputs, n_epochs):
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
-                
+
             itrl += 1
 
 
@@ -1185,7 +1192,7 @@ k = .05
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1,
+    'c': 1,  # low for smaller/more fields, high for larger/fewer fields
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
@@ -1269,23 +1276,26 @@ train_unsupervised(model, inputs, n_epochs)
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
-# # group
-# plt.scatter(results[-1, :, 0], results[-1, :, 1])
-# plt.xlim([0, 1])
-# plt.ylim([0, 1])
-# plt.show()
+# group
+plt.scatter(results[-1, :, 0], results[-1, :, 1])
+plt.scatter(results[-1, model.active_units, 0],
+            results[-1, model.active_units, 1])
 
-# over time
-# TODO - add colour to each dot so can follow it
-plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 50),
-                            dtype=torch.long)
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.show()
 
-for i in plot_trials[0:-1]:
-    plt.scatter(results[i, :, 0], results[i, :, 1])
-    # plt.scatter(results[-1, :, 0], results[-1, :, 2])
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.pause(.5)
+# # over time
+# # TODO - add colour to each dot so can follow it
+# plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 50),
+#                             dtype=torch.long)
+
+# for i in plot_trials[0:-1]:
+#     plt.scatter(results[i, :, 0], results[i, :, 1])
+#     # plt.scatter(results[-1, :, 0], results[-1, :, 2])
+#     plt.xlim([-.05, 1.05])
+#     plt.ylim([-.05, 1.05])
+#     plt.pause(.5)
 
 # %% plot supervised
 
