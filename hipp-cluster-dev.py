@@ -647,7 +647,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             # Recruit cluster, and update model
-            if recruit:  # torch.tensor(recruit):
+            if (recruit and torch.sum(model.active_units == 0) > 0):
 
                 # select closest k inactive units
                 act = _compute_act(
@@ -689,6 +689,9 @@ def train_unsupervised(model, inputs, n_epochs):
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             itrl += 1
+
+            if torch.sum(model.active_units == 0) == 0:  # no units to recruit
+                warnings.warn("No more units to recruit")
 
 
 def _compute_dist(dim_dist, attn_w, r):
@@ -1192,7 +1195,7 @@ k = .05
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1,  # low for smaller/more fields, high for larger/fewer fields
+    'c': .7,  # low for smaller/more fields, high for larger/fewer fields
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
