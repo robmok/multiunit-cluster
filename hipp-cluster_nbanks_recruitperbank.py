@@ -163,7 +163,8 @@ class MultiUnitCluster(nn.Module):
         pr.extend(pr_b)
 
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        self.fc1_act_trace.append(out)
+        self.fc1_act_trace.append(
+            [out[i].detach().clone() for i in range(model.n_banks + 1)])
 
         return out, pr
 
@@ -845,6 +846,7 @@ lr_scale = (n_units * k)
 
 # fc1 ws - list since diff ntrials (since it appends when recruit & upd)
 w_trace = [[] for i in range(6)]
+act_trace = [[] for i in range(6)]
 
 # run multiple iterations
 for i in range(niter):
@@ -899,6 +901,7 @@ for i in range(niter):
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
+        act_trace[problem].append(torch.stack(model.fc1_act_trace))
 
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
