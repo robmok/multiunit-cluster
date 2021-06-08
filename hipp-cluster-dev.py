@@ -535,13 +535,10 @@ def train_unsupervised(model, inputs, n_epochs):
     itrl = 0
 
     for epoch in range(n_epochs):
-        shuffle_ind = torch.randperm(len(inputs))
-        inputs_ = inputs[shuffle_ind]
-        # inputs_ = inputs
-        for x in inputs_:
+        for x in inputs:
 
             # testing
-            # x = inputs_[itrl]
+            # x = inputs[itrl]
 
             # # find winners with largest activation - all connected
             # dim_dist = abs(x - model.units_pos)
@@ -1185,12 +1182,46 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 1000
+n_trials = 5000
 attn_type = 'dimensional_local'
 
-inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
-n_units = 500
-k = .05
+# inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
+# shuffle_ind = torch.randperm(len(inputs))
+# inputs_ = inputs[shuffle_ind]
+
+# random walk
+# - https://towardsdatascience.com/random-walks-with-python-8420981bc4bc
+step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+origin = np.ones([1, n_dims]) * .5
+step_shape = (n_trials, n_dims)
+# steps = np.random.choice(a=step_set, size=step_shape)
+# path = np.concatenate([origin, steps]).cumsum(0)
+
+path = np.zeros([n_trials, n_dims])
+path[0] = np.around(np.random.rand(2), decimals=3)  # origin
+for itrial in range(1, n_trials):
+    step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
+    # only allow 0 < steps < 1
+    while (np.any(path[itrial-1] + step < 0)
+           or np.any(path[itrial-1] + step > 1)):
+        step = np.random.choice(a=step_set, size=n_dims)
+
+    path[itrial] = path[itrial-1] + step
+start = path[:1]
+stop = path[-1:]
+
+# Plot the path
+fig = plt.figure(figsize=(8, 8), dpi=200)
+ax = fig.add_subplot(111)
+ax.scatter(path[:, 0], path[:, 1], c='blue', alpha=0.5, s=0.1)
+ax.plot(path[:, 0], path[:, 1], c='blue', alpha=0.75, lw=0.25, ls='-')
+ax.plot(start[:, 0], start[:, 1], c='red', marker='+')
+ax.plot(stop[:, 0], stop[:, 1], c='black', marker='o')
+plt.title('2D Random Walk')
+plt.tight_layout(pad=0)
+
+n_units = 1000
+k = .01
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -1199,14 +1230,14 @@ params = {
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
     'lr_nn': .25,
-    'lr_clusters': .15,
-    'lr_clusters_group': .95,
+    'lr_clusters': .01,
+    'lr_clusters_group': .1,
     'k': k
     }
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
-train_unsupervised(model, inputs, n_epochs)
+train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)
 
 # %% plot unsupervised
 
@@ -1222,8 +1253,8 @@ plt.ylim([0, 1])
 plt.show()
 
 # over time
-plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 25),
-                            dtype=torch.long)
+plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 10),
+                           dtype=torch.long)
 
 for i in plot_trials[0:-1]:
     plt.scatter(results[i, model.active_units, 0],
