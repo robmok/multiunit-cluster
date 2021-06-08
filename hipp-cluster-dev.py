@@ -540,11 +540,6 @@ def train_unsupervised(model, inputs, n_epochs):
             # testing
             # x = inputs[itrl]
 
-            # # find winners with largest activation - all connected
-            # dim_dist = abs(x - model.units_pos)
-            # dist = _compute_dist(dim_dist, model.attn, model.params['r'])
-            # act = _compute_act(dist, model.params['c'], model.params['p'])
-
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
@@ -559,8 +554,6 @@ def train_unsupervised(model, inputs, n_epochs):
                 win_ind = win_ind[act[win_ind] != 0]
 
             # define winner mask
-            # win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
-            # win_mask[:, win_ind] = True
             model.winning_units[:] = 0  # clear
             model.winning_units[win_ind] = True
             # win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
@@ -574,13 +567,13 @@ def train_unsupervised(model, inputs, n_epochs):
                 recruit = True
             else:
                 recruit = False
-                
+
             # if not recruit, update model
             if recruit:
                 pass
             else:
 
-                # update attention - still to test
+                # update attention - still needs testing
                 win_ind = model.winning_units
                 lose_ind = (model.winning_units == 0) & model.active_units
 
@@ -614,12 +607,6 @@ def train_unsupervised(model, inputs, n_epochs):
                     model.attn.data = (
                         model.attn.data / torch.sum(model.attn.data)
                         )
-                # elif model.attn_type[0:4] == 'unit':  # TODO - fix
-                #     model.attn.data = (
-                #         model.attn.data
-                #         / torch.sum(model.attn.data, dim=1, keepdim=True)
-                #         )
-
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
 
@@ -627,7 +614,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 # - step 1 - winners update towards input
                 update = (
                     (x - model.units_pos[win_ind])
-                    * model.params['lr_clusters']
+                    * model.params['lr_clusters'][itrl]
                     )
                 model.units_pos[win_ind] += update
 
@@ -669,7 +656,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 # update units positions - double update rule
                 update = (
                     (x - model.units_pos[model.winning_units])
-                    * model.params['lr_clusters']
+                    * model.params['lr_clusters'][itrl]
                     )
                 model.units_pos[model.winning_units] += update
 
@@ -1182,7 +1169,7 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 5000
+n_trials = 10000
 attn_type = 'dimensional_local'
 
 # inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
@@ -1210,18 +1197,26 @@ for itrial in range(1, n_trials):
 start = path[:1]
 stop = path[-1:]
 
-# Plot the path
-fig = plt.figure(figsize=(8, 8), dpi=200)
-ax = fig.add_subplot(111)
-ax.scatter(path[:, 0], path[:, 1], c='blue', alpha=0.5, s=0.1)
-ax.plot(path[:, 0], path[:, 1], c='blue', alpha=0.75, lw=0.25, ls='-')
-ax.plot(start[:, 0], start[:, 1], c='red', marker='+')
-ax.plot(stop[:, 0], stop[:, 1], c='black', marker='o')
-plt.title('2D Random Walk')
-plt.tight_layout(pad=0)
+# # Plot the path
+# fig = plt.figure(figsize=(8, 8), dpi=200)
+# ax = fig.add_subplot(111)
+# ax.scatter(path[:, 0], path[:, 1], c='blue', alpha=0.5, s=0.1)
+# ax.plot(path[:, 0], path[:, 1], c='blue', alpha=0.75, lw=0.25, ls='-')
+# ax.plot(start[:, 0], start[:, 1], c='red', marker='+')
+# ax.plot(stop[:, 0], stop[:, 1], c='black', marker='o')
+# plt.title('2D Random Walk')
+# plt.tight_layout(pad=0)
 
 n_units = 1000
 k = .01
+
+# annealed lr
+orig_lr = .1
+ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_decay = ann_c * (n_trials * 20)
+lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+# plt.plot(torch.tensor(lr))
+# plt.show()
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -1230,7 +1225,7 @@ params = {
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
     'lr_nn': .25,
-    'lr_clusters': .01,
+    'lr_clusters': lr,  # .01,
     'lr_clusters_group': .1,
     'k': k
     }
@@ -1253,7 +1248,7 @@ plt.ylim([0, 1])
 plt.show()
 
 # over time
-plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 10),
+plot_trials = torch.tensor(torch.linspace(0, n_trials * n_epochs, 20),
                            dtype=torch.long)
 
 for i in plot_trials[0:-1]:
