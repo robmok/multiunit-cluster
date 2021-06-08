@@ -542,7 +542,6 @@ def train_unsupervised(model, inputs, n_epochs):
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
             act = _compute_act(dist, model.params['c'], model.params['p'])
 
-            # _, ind_dist = torch.sort(act)
             # get top k winners
             _, win_ind = torch.topk(act,
                                     int(model.n_units * model.params['k']))
@@ -560,31 +559,121 @@ def train_unsupervised(model, inputs, n_epochs):
 
             # recruit
             # - if error is high (inverse of activations of winners), recruit
+            # - scale to k winners. eg. min is .1 of sum of k units max act
+            thresh = .1 * (model.n_units * model.params['k'])
 
+            if act[win_ind].sum() < thresh:
+                recruit = True
+            else:
+                recruit = False
 
+            # if not recruit, update model
+            if recruit:
+                pass
+            else:
 
+                # update attention - to test
+                win_ind = model.winning_units
+                lose_ind = (model.winning_units == 0) & model.active_units
 
-            # learn
-            # update attention
-            
-            
-            
-            
-            # update units - double update rule
-            # - step 1 - winners update towards input
-            update = (
-                (x - model.units_pos[win_ind]) * model.params['lr_clusters'])
-            model.units_pos[win_ind] += update
+                act_1 = (
+                    torch.sum(
+                        _compute_act(
+                            _compute_dist(
+                                abs(x - model.units_pos[win_ind]),
+                                model.attn, model.params['r']),
+                            model.params['c'], model.params['p']))
 
-            # - step 2 - winners update towards self
-            winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
-            update = (
-                (winner_mean - model.units_pos[win_ind])
-                * model.params['lr_clusters_group'])
-            model.units_pos[win_ind] += update
+                    - torch.sum(
+                        _compute_act(
+                            _compute_dist(
+                                abs(x - model.units_pos[lose_ind]),
+                                model.attn, model.params['r']),
+                            model.params['c'], model.params['p']))
+                    )
 
-            # store positions over time
-            model.units_pos_trace.append(model.units_pos.detach().clone())
+                # compute gradient
+                act_1.backward(retain_graph=True)
+                # divide grad by n active units (scales to any n_units)
+                model.attn.data += (
+                    model.params['lr_attn']
+                    * (model.attn.grad / model.n_units))
+
+                # ensure attention are non-negative
+                model.attn.data = torch.clamp(model.attn.data, min=0.)
+                # sum attention weights to 1
+                if model.attn_type[0:4] == 'dime':
+                    model.attn.data = (
+                        model.attn.data / torch.sum(model.attn.data)
+                        )
+                elif model.attn_type[0:4] == 'unit':  # TODO - fix
+                    model.attn.data = (
+                        model.attn.data
+                        / torch.sum(model.attn.data, dim=1, keepdim=True)
+                        )
+
+                # save updated attn ws
+                model.attn_trace.append(model.attn.detach().clone())
+
+                # update units - double update rule
+                # - step 1 - winners update towards input
+                update = (
+                    (x - model.units_pos[win_ind])
+                    * model.params['lr_clusters']
+                    )
+                model.units_pos[win_ind] += update
+
+                # - step 2 - winners update towards self
+                winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
+                update = (
+                    (winner_mean - model.units_pos[win_ind])
+                    * model.params['lr_clusters_group']
+                    )
+                model.units_pos[win_ind] += update
+
+                # save updated unit positions
+                model.units_pos_trace.append(model.units_pos.detach().clone())
+
+           # Recruit cluster, and update model
+            if torch.tensor(recruit):
+
+                # select closest k inactive units
+                act = _compute_act(
+                    dist, model.params['c'], model.params['p'])
+                _, recruit_ind = (
+                    torch.topk(act,
+                               int(model.n_units * model.params['k'])))
+                # since topk takes top even if all 0s, remove the 0 acts
+                if torch.any(act[recruit_ind] == 0):
+                    recruit_ind = recruit_ind[act[recruit_ind] != 0]
+
+                # recruit n_units
+                model.active_units[recruit_ind] = True  # set ws to active
+                model.winning_units[:] = 0  # clear
+                model.winning_units[recruit_ind] = True
+                model.units_pos[recruit_ind] = x  # place at curr stim
+                model.recruit_units_trl.append(itrl)
+
+                # save updated attn ws - even if don't update
+                model.attn_trace.append(model.attn.detach().clone())
+
+                # update units positions - double update rule
+                update = (
+                    (x - model.units_pos[model.winning_units])
+                    * model.params['lr_clusters']
+                    )
+                model.units_pos[model.winning_units] += update
+
+                # - step 2 - winners update towards self
+                winner_mean = torch.mean(
+                    model.units_pos[model.winning_units], axis=0)
+                update = (
+                    (winner_mean - model.units_pos[model.winning_units])
+                    * model.params['lr_clusters_group'])
+                model.units_pos[model.winning_units] += update
+
+                # save updated unit positions
+                model.units_pos_trace.append(model.units_pos.detach().clone())
 
 
 def _compute_dist(dim_dist, attn_w, r):
