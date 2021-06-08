@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-# import itertools as it
+import itertools as it
 import warnings
 
 
@@ -163,8 +163,6 @@ class MultiUnitCluster(nn.Module):
         pr.extend(pr_b)
 
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        # self.fc1_act_trace.append(
-        #     [pr[i].detach().clone() for i in range(model.n_banks + 1)])
         self.fc1_act_trace.append(torch.stack(pr).detach().clone())
 
         return out, pr
@@ -927,7 +925,7 @@ plt.show()
 # have to go through each iteration, since different ntrials if diff n recruit
 
 # for i in range(niter):
-    # print(w_trace[problem][i])
+# print(w_trace[problem][i])
 
 i = 0
 problem = 5
@@ -941,6 +939,34 @@ plt.ylim(ylims)
 plt.show()
 
 plt.plot(act[:, 2])
+plt.ylim(ylims)
+plt.show()
+
+# change in activation magnitude over time
+# - if want do do this by block, need to only get activations / weights after
+# recruit. complication now since one bank can recruit and the other not.
+# - in a way, including recruit is fine too (since at forward func), sliding
+# win more flexible.
+
+
+def sliding_window(iterable, n):
+    iterables = it.tee(iterable, n)
+    for iterable, num_skipped in zip(iterables, it.count()):
+        for _ in range(num_skipped):
+            next(iterable, None)
+    return np.array(list((zip(*iterables))))
+
+
+winsize = 16  # ntrials to compute running average
+
+t1 = sliding_window(act[:, 1, 0], winsize)  # just 1 of the outputs
+t2 = sliding_window(act[:, 2, 0], winsize)
+
+plt.plot(np.diff(t1))
+plt.ylim(ylims)
+plt.show()
+
+plt.plot(np.diff(t2))
 plt.ylim(ylims)
 plt.show()
 
@@ -963,3 +989,17 @@ plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
 plt.ylim(ylims)
 plt.show()
 
+# weight change over time
+winsize = 16  # ntrials to compute running average
+
+t1 = sliding_window(torch.sum(w0.abs(), dim=1), winsize)
+t2 = sliding_window(torch.sum(w1.abs(), dim=1), winsize)
+
+ylims = (0, torch.max(torch.tensor([np.diff(t1), np.diff(t2)])) + .01)
+
+plt.plot(np.diff(t1))
+plt.ylim(ylims)
+plt.show()
+plt.plot(np.diff(t2))
+plt.ylim(ylims)
+plt.show()
