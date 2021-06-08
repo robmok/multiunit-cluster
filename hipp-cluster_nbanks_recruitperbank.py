@@ -163,8 +163,9 @@ class MultiUnitCluster(nn.Module):
         pr.extend(pr_b)
 
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
-        self.fc1_act_trace.append(
-            [pr[i].detach().clone() for i in range(model.n_banks + 1)])
+        # self.fc1_act_trace.append(
+        #     [pr[i].detach().clone() for i in range(model.n_banks + 1)])
+        self.fc1_act_trace.append(torch.stack(pr).detach().clone())
 
         return out, pr
 
@@ -901,7 +902,7 @@ for i in range(niter):
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
-        act_trace[problem].extend(model.fc1_act_trace)
+        act_trace[problem].append(torch.stack(model.fc1_act_trace))
 
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
@@ -954,6 +955,15 @@ plt.ylim(ylims)
 plt.show()
 
 
+# pr / activations (with phi)
+ylims = (0, 1)
 
+act = act_trace[problem][i]
+plt.plot(act[:, 1])
+plt.ylim(ylims)
+plt.show()
 
+plt.plot(act[:, 2])
+plt.ylim(ylims)
+plt.show()
 
