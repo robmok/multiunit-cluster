@@ -901,7 +901,7 @@ for i in range(niter):
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
-        act_trace[problem].append(torch.stack(model.fc1_act_trace))
+        act_trace[problem].append(model.fc1_act_trace)
 
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
