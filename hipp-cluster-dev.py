@@ -564,7 +564,6 @@ def train_unsupervised(model, inputs, n_epochs):
             # define winner mask
             # win_mask = torch.zeros(model.mask.shape, dtype=torch.bool)
             # win_mask[:, win_ind] = True
-            # above is old code, below is new. test. actually.. need this?
             model.winning_units[:] = 0  # clear
             model.winning_units[win_ind] = True
             # win_mask = model.winning_units.repeat((len(model.fc1.weight), 1))
@@ -578,7 +577,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 recruit = True
             else:
                 recruit = False
-
+                
             # if not recruit, update model
             if recruit:
                 pass
@@ -1195,7 +1194,7 @@ k = .05
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': .7,  # low for smaller/more fields, high for larger/fewer fields
+    'c': 1.,  # low for smaller/more fields, high for larger/fewer fields
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
@@ -1209,12 +1208,31 @@ model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
 train_unsupervised(model, inputs, n_epochs)
 
-# results = torch.stack(model.units_pos_trace, dim=0)
-# plt.scatter(results[-1, :, 0], results[-1, :, 1])
-# plt.xlim([0, 1])
-# plt.ylim([0, 1])    
-# plt.show()
+# %% plot unsupervised
 
+results = torch.stack(model.units_pos_trace, dim=0)
+
+# group
+plt.scatter(results[-1, :, 0], results[-1, :, 1])
+plt.scatter(results[-1, model.active_units, 0],
+            results[-1, model.active_units, 1])
+
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.show()
+
+# over time
+plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 25),
+                            dtype=torch.long)
+
+for i in plot_trials[0:-1]:
+    plt.scatter(results[i, model.active_units, 0],
+                results[i, model.active_units, 1])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
+
+# %%
 
 # run for different learning rates for lr_clusters and lr_group
 # lr_clusters = torch.linspace(.001, .5, 10)
@@ -1272,94 +1290,6 @@ train_unsupervised(model, inputs, n_epochs)
 #     #                        str(round(lr.tolist(), 3)) + '.png')
 #     # plt.savefig(figname)
 #     # plt.show()
-
-
-
-# %% plot unsupervised
-
-results = torch.stack(model.units_pos_trace, dim=0)
-
-# group
-plt.scatter(results[-1, :, 0], results[-1, :, 1])
-plt.scatter(results[-1, model.active_units, 0],
-            results[-1, model.active_units, 1])
-
-plt.xlim([0, 1])
-plt.ylim([0, 1])
-plt.show()
-
-# # over time
-# # TODO - add colour to each dot so can follow it
-# plot_trials = torch.tensor(torch.linspace(0, n_trials*n_epochs, 50),
-#                             dtype=torch.long)
-
-# for i in plot_trials[0:-1]:
-#     plt.scatter(results[i, :, 0], results[i, :, 1])
-#     # plt.scatter(results[-1, :, 0], results[-1, :, 2])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
-
-# %% plot supervised
-
-results = torch.stack(model.units_pos_trace, dim=0)
-
-# group
-plt.scatter(results[-1, model.active_units, 0], results[-1, model.active_units, 1])
-# plt.scatter(results[-1, model.active_units, 0], results[-1, model.active_units, 2])
-plt.xlim([-.1, 1.1])
-plt.ylim([-.1, 1.1])    
-plt.show()
-
-# over time
-plot_trials = torch.tensor(torch.linspace(0, n_epochs * 8, 50),
-                            dtype=torch.long)
-
-for i in plot_trials[0:-1]:
-    plt.scatter(results[i, model.active_units, 0], results[i, model.active_units, 1])
-    # plt.scatter(results[-1, :, 0], results[-1, :å, 2])
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.pause(.5)
-
-# attn
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# plt.show()
-
-plt.plot(torch.stack(model.attn_trace[0:40], dim=0))
-plt.show()
-
-plt.plot(torch.stack(model.attn_trace, dim=0))
-plt.show()
-
-plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 0, :])
-plt.show()
-plt.plot(torch.stack(model.fc1_w_trace, dim=0)[0:20, 1, :])
-plt.show()
-
-# # unit-based attn
-# model.active_units = torch.sum(abs(model.fc1.weight) > 0, axis=0, dtype=torch.bool)
-# active_ws_ind = torch.nonzero(model.active_units)
-
-# for i in active_ws_ind:
-#     plt.plot(torch.squeeze(torch.stack(model.attn_trace, dim=0)[:, i]))
-#     plt.show()
-
-
-
-
-# torch.stack(model.attn_trace[0:20], dim=0)
-
-# torch.stack(model.winners_trace[0:20], dim=0)
-
-
-# # xx1=torch.stack(model.dist_trace, dim=0)
-# # yy1=torch.stack(model.act_trace, dim=0)
-
-
-# plt.plot(xx-xx1)
-# plt.plot(yy-yy1)
-
 
 # %% lesioning experiments
 
