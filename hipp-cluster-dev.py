@@ -1297,9 +1297,13 @@ for i in plot_trials[0:-1]:
     plt.ylim([-.05, 1.05])
     plt.pause(.5)
 
+# %% grid computations
+
 from scipy.stats import multivariate_normal as mvn
 from scipy.stats import binned_statistic_dd
-# import scores   # grid cell scorer from Banino
+import sys
+sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
+import scores   # grid cell scorer from Banino
 
 
 def _compute_activation(curr_pos, units_pos):
