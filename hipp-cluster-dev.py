@@ -1304,6 +1304,7 @@ from scipy.stats import binned_statistic_dd
 import sys
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
+from scipy.ndimage.filters import gaussian_filter
 
 
 def _compute_activation(curr_pos, units_pos):
@@ -1338,6 +1339,21 @@ def normalise_act_map(nbins, binnumber):
     return norm_mat
 
 
+def _compute_grid_scores(activation_map, smooth=False):
+    # n_dims = len(activation_map.shape)
+    if smooth:
+        activation_map = gaussian_filter(activation_map, sigma=.8)
+    # mask parameters
+    starts = [0.2] * 10
+    ends = np.linspace(0.4, 1.0, num=10)
+    masks_parameters = zip(starts, ends.tolist())
+    scorer = scores.GridScorer(
+        len(activation_map), [0, len(activation_map)-1], masks_parameters)
+    score_60, score_90, max_60_mask, max_90_mask, sac = scorer.get_scores(
+        activation_map)
+    return score_60, score_90, max_60_mask, max_90_mask, sac
+
+
 # plot activations during training
 
 # plot from trial n to ntrials
@@ -1355,9 +1371,17 @@ nbins = 40
 act_map = _compute_activation_map(
     path[plot_trials[0]:plot_trials[1]-1], act, nbins, statistic='sum')
 
-plt.imshow(act_map.statistic)
-plt.show()
+# normalize by times visited the location
+norm_mat = normalise_act_map(nbins, act_map.binnumber)
 
+# plot normalized act_map
+ind = np.nonzero(norm_mat)
+act_map_norm = act_map.statistic.copy()
+act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+# plt.imshow(act_map.statistic)
+# plt.show()
+plt.imshow(act_map_norm)
+plt.show()
 
 # plot activation after training - unit positions at the end, fixed
 # generate new test path
@@ -1396,9 +1420,6 @@ for itrial in range(n_trials_test):
 act_map = _compute_activation_map(
     path_test, torch.tensor(act_test), nbins, statistic='sum')
 
-plt.imshow(act_map.statistic)
-plt.show()
-
 # normalize by times visited the location
 norm_mat = normalise_act_map(nbins, act_map.binnumber)
 
@@ -1406,31 +1427,14 @@ norm_mat = normalise_act_map(nbins, act_map.binnumber)
 ind = np.nonzero(norm_mat)
 act_map_norm = act_map.statistic.copy()
 act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+plt.imshow(act_map.statistic)
+plt.show()
 plt.imshow(act_map_norm)
 plt.show()
 
+# compute grid scores
+score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
 
-# def _compute_grid_scores(self, activation_map):
-#     activation_map_smoothed = gaussian_filter(activation_map, sigma=.8)
-#     # mask parameters
-#     starts = [0.2] * 10
-#     ends = np.linspace(0.4, 1.0, num=10)
-#     masks_parameters = zip(starts, ends.tolist())
-#     scorer = scores.GridScorer(
-#             self.dim_length, [0, self.dim_length-1], masks_parameters
-#             )
-
-#     score_60, score_90, max_60_mask, max_90_mask, sac = scorer.get_scores(
-#             activation_map_smoothed)
-#     return score_60
-
-
-# # compute activation map and grid scores
-# actmap = self._compute_activation_map(
-#                 trial_sequence,
-#                 cluster_act[:, :, it].sum(axis=0),
-#                 )
-# grid_scores[it] = self._compute_grid_scores(actmap.statistic)
 
 # %%
 
