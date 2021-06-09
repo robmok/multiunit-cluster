@@ -1320,7 +1320,22 @@ def _compute_activation_map(
         bins=nbins,
         statistic=statistic,
         range=np.array(np.tile([0, 1], (n_dims, 1))),
-        expand_binnumbers=True)
+        expand_binnumbers=True)  # added for normalization
+
+
+def normalise_act_map(nbins, binnumber):
+    """ binnumber is act_map.binnumber from binned_statistic_dd
+    note: expand_binnumbers=True when calling binned_statistic_dd
+    """
+    norm_mat = np.zeros([nbins, nbins])
+    coord = np.array(list(it.product(range(nbins),
+                                     range(nbins))))
+    for x in coord:
+        norm_mat[x[0], x[1]] = (
+            np.sum((x[0] == binnumber[0, :]-1)  # bins start from 1
+                   & (x[1] == binnumber[1, :]-1))
+            )
+    return norm_mat
 
 
 # plot activations during training
@@ -1384,17 +1399,10 @@ act_map = _compute_activation_map(
 plt.imshow(act_map.statistic)
 plt.show()
 
+# normalize by times visited the location
+norm_mat = normalise_act_map(nbins, act_map.binnumber)
 
-# normalize by times visited the location - use act_map.binnumber
-norm_mat = np.zeros([nbins, nbins])
-coord = np.array(list(it.product(range(nbins),
-                                 range(nbins))))
-for x in coord:
-    norm_mat[x[0], x[1]] = (
-        np.sum((x[0] == act_map.binnumber[0, :]-1)  # bins start from 1
-               & (x[1] == act_map.binnumber[1, :]-1))
-        )
-
+# plot normalized act_map
 ind = np.nonzero(norm_mat)
 act_map_norm = act_map.statistic.copy()
 act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
