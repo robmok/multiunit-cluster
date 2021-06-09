@@ -1303,17 +1303,9 @@ from scipy.stats import binned_statistic_dd
 
 
 def _compute_activation(curr_pos, units_pos):
-    act = [mvn.pdf([curr_pos[0], curr_pos[1]], mean=units_pos[i], cov=.001)
+    act = [mvn.pdf([curr_pos[0], curr_pos[1]], mean=units_pos[i], cov=.001)  # if at train, cov = 0.001
            for i in range(len(units_pos))]
     return torch.tensor(act)
-
-
-act = torch.zeros(n_trials)  # , int(model.n_units * model.params['k'])])
-for itrial in range(n_trials):
-    if np.mod(itrial, 1000) == 0:
-        print(itrial)
-    act[itrial] = torch.sum(_compute_activation(path[itrial],
-                                                model.winners_trace[itrial]))
 
 
 def _compute_activation_map(
@@ -1321,19 +1313,87 @@ def _compute_activation_map(
     return binned_statistic_dd(
         pos,
         activations,
-        bins=20,
+        bins=40,
         statistic=statistic,
-        range=np.array(np.tile([0, 1], (n_dims, 1))))
+        range=np.array(np.tile([0, 1], (n_dims, 1))),
+        expand_binnumbers=True)
 
 
-act_map = _compute_activation_map(path, act, statistic='sum')
+# plot activations during training
+
+# plot from trial n to ntrials
+# plot_trials = [0, n_trials-1]
+plot_trials = [int(n_trials//1.5), n_trials-1]
+act = torch.zeros(plot_trials[1]-plot_trials[0]-1)
+for i, itrial in enumerate(range(plot_trials[0], plot_trials[1]-1)):
+    if np.mod(i, 1000) == 0:
+        print(i)
+    # summed activation of all winning units
+    act[i] = torch.sum(_compute_activation(path[itrial],
+                                           model.winners_trace[itrial]))
+
+act_map = _compute_activation_map(
+    path[plot_trials[0]:plot_trials[1]-1], act, statistic='sum')
 
 plt.imshow(act_map.statistic)
 plt.show()
 
-plt.hist(act_map.statistic.flatten())
+
+# plot activation after training - unit positions at the end, fixed
+# generate new test path
+n_trials_test = n_trials // 2
+step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+origin = np.around(np.random.rand(2), decimals=3)  # origin
+step_shape = (n_trials_test-1, n_dims)
+path_test = np.zeros([n_trials_test, n_dims])
+path_test[0] = np.around(np.random.rand(2), decimals=3)  # origin
+for itrial in range(1, n_trials_test):
+    step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
+    while (np.any(path_test[itrial-1] + step < 0)
+           or np.any(path_test[itrial-1] + step > 1)):
+        step = np.random.choice(a=step_set, size=n_dims)
+    path_test[itrial] = path_test[itrial-1] + step
+path_test = torch.tensor(path_test)
+
+# get act
+act_test = []
+for itrial in range(n_trials_test):
+    if np.mod(itrial, 1000) == 0:
+        print(itrial)
+    dim_dist = abs(path_test[itrial] - model.units_pos)
+    dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+    act = _compute_act(dist, model.params['c'], model.params['p'])
+    act[~model.active_units] = 0  # not connected, no act
+    _, win_ind = torch.topk(act,
+                            int(model.n_units * model.params['k']))
+    # act_test.append(act[win_ind].sum().detach().clone())
+
+    act_test.append(
+        torch.sum(_compute_activation(path_test[itrial],
+                                      model.units_pos[win_ind])))
+
+act_map = _compute_activation_map(
+    path_test, torch.tensor(act_test), statistic='sum')
+
+plt.imshow(act_map.statistic)
 plt.show()
 
+
+# normalize by times visited the location - use act_map.binnumber
+nbins = 40  # TODO put up there later in function
+norm_mat = np.zeros([nbins, nbins])
+coord = np.array(list(it.product(range(nbins), range(nbins))))  # nbins
+for x in coord:
+    norm_mat[x[0], x[1]] = (
+        np.sum((x[0] == act_map.binnumber[0, :]-1)  # bins start from 1
+               & (x[1] == act_map.binnumber[1, :]-1))
+        )
+
+ind = np.nonzero(norm_mat)
+act_map_norm = act_map.statistic.copy()
+act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+plt.imshow(act_map_norm)
+plt.show()
 
 
 # def _compute_grid_scores(self, activation_map):
