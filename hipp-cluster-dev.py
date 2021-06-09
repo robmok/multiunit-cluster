@@ -1309,11 +1309,11 @@ def _compute_activation(curr_pos, units_pos):
 
 
 def _compute_activation_map(
-        pos, activations, statistic='sum'):
+        pos, activations, nbins, statistic='sum'):
     return binned_statistic_dd(
         pos,
         activations,
-        bins=40,
+        bins=nbins,
         statistic=statistic,
         range=np.array(np.tile([0, 1], (n_dims, 1))),
         expand_binnumbers=True)
@@ -1332,8 +1332,9 @@ for i, itrial in enumerate(range(plot_trials[0], plot_trials[1]-1)):
     act[i] = torch.sum(_compute_activation(path[itrial],
                                            model.winners_trace[itrial]))
 
+nbins = 40
 act_map = _compute_activation_map(
-    path[plot_trials[0]:plot_trials[1]-1], act, statistic='sum')
+    path[plot_trials[0]:plot_trials[1]-1], act, nbins, statistic='sum')
 
 plt.imshow(act_map.statistic)
 plt.show()
@@ -1356,6 +1357,7 @@ for itrial in range(1, n_trials_test):
 path_test = torch.tensor(path_test)
 
 # get act
+nbins = 40  # TODO - check why > 40 bins then get weird crisscross patterns
 act_test = []
 for itrial in range(n_trials_test):
     if np.mod(itrial, 1000) == 0:
@@ -1373,21 +1375,20 @@ for itrial in range(n_trials_test):
                                       model.units_pos[win_ind])))
 
 act_map = _compute_activation_map(
-    path_test, torch.tensor(act_test), statistic='sum')
+    path_test, torch.tensor(act_test), nbins, statistic='sum')
 
 plt.imshow(act_map.statistic)
 plt.show()
 
 
 # normalize by times visited the location - use act_map.binnumber
-nbins = 40  # TODO put up there later in function
 norm_mat = np.zeros([nbins, nbins])
-coord = np.array(list(it.product(range(1, nbins+1),
-                                 range(1, nbins+1))))  # bins start from 1
+coord = np.array(list(it.product(range(nbins),
+                                 range(nbins))))
 for x in coord:
     norm_mat[x[0], x[1]] = (
-        np.sum((x[0] == act_map.binnumber[0, :])
-               & (x[1] == act_map.binnumber[1, :]))
+        np.sum((x[0] == act_map.binnumber[0, :]-1)  # bins start from 1
+               & (x[1] == act_map.binnumber[1, :]-1))
         )
 
 ind = np.nonzero(norm_mat)
