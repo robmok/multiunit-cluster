@@ -516,7 +516,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
             # tmp
-            # model.winners_trace.append(model.units_pos[model.winning_units][0])
+            # model.winners_trace.append(model.units_pos[model.winning_units])
 
             itrl += 1
 
@@ -671,6 +671,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
+            model.winners_trace.append(model.units_pos[model.winning_units])
             itrl += 1
 
             if torch.sum(model.active_units == 0) == 0:  # no units to recruit
@@ -1296,15 +1297,44 @@ for i in plot_trials[0:-1]:
     plt.ylim([-.05, 1.05])
     plt.pause(.5)
 
+from scipy.stats import multivariate_normal as mvn
+from scipy.stats import binned_statistic_dd
+# import scores   # grid cell scorer from Banino
 
-# def _compute_activation_map(
-#         self, pos, activations, statistic='sum'):
-#     return binned_statistic_dd(
-#         pos,
-#         activations,
-#         bins=self.dim_length,
-#         statistic=statistic,
-#         range=np.array(np.tile([0, self.dim_length], (self.ndims, 1))))
+
+def _compute_activation(curr_pos, units_pos):
+    act = [mvn.pdf([curr_pos[0], curr_pos[1]], mean=units_pos[i], cov=.001)
+           for i in range(len(units_pos))]
+    return torch.tensor(act)
+
+
+act = torch.zeros(n_trials)  # , int(model.n_units * model.params['k'])])
+for itrial in range(n_trials):
+    if np.mod(itrial, 1000) == 0:
+        print(itrial)
+    act[itrial] = torch.sum(_compute_activation(path[itrial],
+                                                model.winners_trace[itrial]))
+
+
+def _compute_activation_map(
+        pos, activations, statistic='sum'):
+    return binned_statistic_dd(
+        pos,
+        activations,
+        bins=20,
+        statistic=statistic,
+        range=np.array(np.tile([0, 1], (n_dims, 1))))
+
+
+act_map = _compute_activation_map(path, act, statistic='sum')
+
+plt.imshow(act_map.statistic)
+plt.show()
+
+plt.hist(act_map.statistic.flatten())
+plt.show()
+
+
 
 # def _compute_grid_scores(self, activation_map):
 #     activation_map_smoothed = gaussian_filter(activation_map, sigma=.8)
