@@ -677,6 +677,44 @@ def train_unsupervised(model, inputs, n_epochs):
                 warnings.warn("No more units to recruit")
 
 
+def train_unsupervised_simple(model, inputs, n_epochs):
+    """ No recruitment, just upd closest units. Demonstrates double upd better
+    """
+    for epoch in range(n_epochs):
+        for x in inputs:
+            # find winners with largest activation - all connected
+            dim_dist = abs(x - model.units_pos)
+            dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+            act = _compute_act(dist, model.params['c'], model.params['p'])
+
+            # get top k winners
+            _, win_ind = torch.topk(act,
+                                    int(model.n_units * model.params['k']))
+            # since topk takes top even if all 0s, remove the 0 acts
+            if torch.any(act[win_ind] == 0):
+                win_ind = win_ind[act[win_ind] != 0]
+
+            # define winner mask
+            model.winning_units[:] = 0  # clear
+            model.winning_units[win_ind] = True
+
+            # update units - double update rule
+            # - step 1 - winners update towards input
+            update = (
+                (x - model.units_pos[win_ind]) * model.params['lr_clusters'])
+            model.units_pos[win_ind] += update
+
+            # - step 2 - winners update towards self
+            winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
+            update = (
+                (winner_mean - model.units_pos[win_ind])
+                * model.params['lr_clusters_group'])
+            model.units_pos[win_ind] += update
+
+            # store positions over time
+            model.units_pos_trace.append(model.units_pos.detach().clone())
+
+
 def _compute_dist(dim_dist, attn_w, r):
     # since sqrt of 0 returns nan for gradient, need this bit
     # e.g. euclid, can't **(1/2)
@@ -1169,7 +1207,7 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 10000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
 # inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
@@ -1211,12 +1249,12 @@ n_units = 1000
 k = .01
 
 # annealed lr
-orig_lr = .1
+orig_lr = .08
 ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_decay = ann_c * (n_trials * 20)
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
-# plt.plot(torch.tensor(lr))
-# plt.show()
+plt.plot(torch.tensor(lr))
+plt.show()
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -1257,6 +1295,38 @@ for i in plot_trials[0:-1]:
     plt.xlim([-.05, 1.05])
     plt.ylim([-.05, 1.05])
     plt.pause(.5)
+
+
+# def _compute_activation_map(
+#         self, pos, activations, statistic='sum'):
+#     return binned_statistic_dd(
+#         pos,
+#         activations,
+#         bins=self.dim_length,
+#         statistic=statistic,
+#         range=np.array(np.tile([0, self.dim_length], (self.ndims, 1))))
+
+# def _compute_grid_scores(self, activation_map):
+#     activation_map_smoothed = gaussian_filter(activation_map, sigma=.8)
+#     # mask parameters
+#     starts = [0.2] * 10
+#     ends = np.linspace(0.4, 1.0, num=10)
+#     masks_parameters = zip(starts, ends.tolist())
+#     scorer = scores.GridScorer(
+#             self.dim_length, [0, self.dim_length-1], masks_parameters
+#             )
+
+#     score_60, score_90, max_60_mask, max_90_mask, sac = scorer.get_scores(
+#             activation_map_smoothed)
+#     return score_60
+
+
+# # compute activation map and grid scores
+# actmap = self._compute_activation_map(
+#                 trial_sequence,
+#                 cluster_act[:, :, it].sum(axis=0),
+#                 )
+# grid_scores[it] = self._compute_grid_scores(actmap.statistic)
 
 # %%
 
