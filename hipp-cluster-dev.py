@@ -1382,11 +1382,12 @@ plt.show()
 # normalize by times visited the location - use act_map.binnumber
 nbins = 40  # TODO put up there later in function
 norm_mat = np.zeros([nbins, nbins])
-coord = np.array(list(it.product(range(nbins), range(nbins))))  # nbins
+coord = np.array(list(it.product(range(1, nbins+1),
+                                 range(1, nbins+1))))  # bins start from 1
 for x in coord:
     norm_mat[x[0], x[1]] = (
-        np.sum((x[0] == act_map.binnumber[0, :]-1)  # bins start from 1
-               & (x[1] == act_map.binnumber[1, :]-1))
+        np.sum((x[0] == act_map.binnumber[0, :])
+               & (x[1] == act_map.binnumber[1, :]))
         )
 
 ind = np.nonzero(norm_mat)
