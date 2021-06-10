@@ -579,7 +579,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 act_1.backward(retain_graph=True)
                 # divide grad by n active units (scales to any n_units)
                 model.attn.data += (
-                    model.params['lr_attn'][itrl]  # new
+                    model.params['lr_attn'] # [itrl]  # when annealing
                     * (model.attn.grad / model.n_units))
 
                 # ensure attention are non-negative
@@ -1449,14 +1449,14 @@ orig_lr = .1  # .08
 # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 n_trials2 = n_trials  # int(n_trials * 5)   # trying to get the curve but not the long tail
 ann_c = (1/n_trials2)/n_trials2
-ann_decay = ann_c * (n_trials2 * 500)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
+ann_decay = ann_c * (n_trials2 * 350)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
-orig_lr = .0001
-# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-ann_c = (1/n_trials)/n_trials
-ann_decay = ann_c * (n_trials * 20)
-lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+# orig_lr = .001
+# # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+# ann_c = (1/n_trials)/n_trials
+# ann_decay = ann_c * (n_trials * 20)  # 20
+# lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
 # test 1 sim
 # - thresh=.9, c=1.4 give 5-6 fields
@@ -1467,6 +1467,8 @@ lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # if don't anneal, more learning later which is weird? anneal doesnt help as much as i thought when few units
 
 # thresh=.95, 1.2-5 pretty gd... ++
+# - ah, when making attn lr low, not the same
+# - maybe test without attention learning for now
 
 # now editing annealing - larger c's for the same effect
  
@@ -1488,10 +1490,10 @@ attn learning goes weird? unless V small attn lr (starting lr = .0001/5)
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.4,  # low for smaller/more fields, high for larger/fewer fields.
+    'c': 2.,  # low for smaller/more fields, high for larger/fewer fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': lr_attn,  
+    'lr_attn': 0.,
     'lr_nn': .25,
     'lr_clusters': lr,  # annealed
     'lr_clusters_group': .1,
@@ -1569,7 +1571,7 @@ shuffle_seeds = torch.randperm(n_sims)
 # model spec
 n_dims = 2
 n_epochs = 1
-n_trials = 100000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
 # run over different k values, n_units, c vals
@@ -1578,7 +1580,7 @@ attn_type = 'dimensional_local'
 n_units = 5000
 k = .005
 
-c_vals = [1.4, 1.2]
+c_vals = [1.2, 1.5]
 
 # annealed lr
 orig_lr = .1  # .08
@@ -1588,11 +1590,11 @@ ann_c = (1/n_trials2)/n_trials2
 ann_decay = ann_c * (n_trials2 * 350)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
-orig_lr = .0001
-# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-ann_c = (1/n_trials)/n_trials
-ann_decay = ann_c * (n_trials * 20)
-lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+# orig_lr = .0001
+# # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+# ann_c = (1/n_trials)/n_trials
+# ann_decay = ann_c * (n_trials * 20)
+# lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
 
 score_60 = []
@@ -1609,7 +1611,7 @@ for c in c_vals:
             'c': c,  # low for smaller/more fields, high for larger/fewer fields
             'p': 1,  # p=1 exp, p=2 gauss
             'phi': 1,  # response parameter, non-negative
-            'lr_attn': lr_attn,
+            'lr_attn': 0.,  # lr_attn,
             'lr_nn': .25,
             'lr_clusters': lr,  # annealed
             'lr_clusters_group': .1,
