@@ -315,29 +315,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # if use local attention update - gradient ascent to unit acts
                 if model.attn_type[-5:] == 'local':
 
-                    # NEW changing win_ind - wta winner only
-                    # - only works with wta
                     win_ind = model.winning_units
                     lose_ind = (model.winning_units == 0) & model.active_units
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
-                    # act_1 = (
-                    #     torch.sum(_compute_act(
-                    #         (torch.sum(model.attn
-                    #                     * (abs(x - model.units_pos[win_ind])
-                    #                       ** model.params['r']), axis=1)
-                    #           ** (1/model.params['r'])), model.params['c'],
-                    #         model.params['p']))
-
-                    #     - torch.sum(_compute_act(
-                    #         (torch.sum(model.attn
-                    #                     * (abs(x - model.units_pos[lose_ind])
-                    #                       ** model.params['r']), axis=1)
-                    #           ** (1/model.params['r'])), model.params['c'],
-                    #         model.params['p']))
-                    #     )
-
                     act_1 = (
                         torch.sum(
                             _compute_act(
