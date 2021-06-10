@@ -671,7 +671,9 @@ def train_unsupervised(model, inputs, n_epochs):
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
 
-            model.winners_trace.append(model.units_pos[model.winning_units])
+            # save acts - may want to have it separately for recruit and upd?
+            model.fc1_act_trace.append(act[model.winning_units])
+            # model.winners_trace.append(model.units_pos[model.winning_units])
             itrl += 1
 
             if torch.sum(model.active_units == 0) == 0:  # no units to recruit
@@ -714,6 +716,7 @@ def train_unsupervised_simple(model, inputs, n_epochs):
 
             # store positions over time
             model.units_pos_trace.append(model.units_pos.detach().clone())
+            model.fc1_act_trace.append(act[model.winning_units])
 
 
 def _compute_dist(dim_dist, attn_w, r):
@@ -1299,18 +1302,11 @@ for i in plot_trials[0:-1]:
 
 # %% grid computations
 
-from scipy.stats import multivariate_normal as mvn
 from scipy.stats import binned_statistic_dd
 import sys
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
 from scipy.ndimage.filters import gaussian_filter
-
-
-def _compute_activation(curr_pos, units_pos):
-    act = [mvn.pdf([curr_pos[0], curr_pos[1]], mean=units_pos[i], cov=.001)  # if at train, cov = 0.001
-           for i in range(len(units_pos))]
-    return torch.tensor(act)
 
 
 def _compute_activation_map(
@@ -1355,17 +1351,13 @@ def _compute_grid_scores(activation_map, smooth=False):
 
 
 # plot activations during training
-
 # plot from trial n to ntrials
 # plot_trials = [0, n_trials-1]
 plot_trials = [int(n_trials//1.5), n_trials-1]
-act = torch.zeros(plot_trials[1]-plot_trials[0]-1)
-for i, itrial in enumerate(range(plot_trials[0], plot_trials[1]-1)):
-    if np.mod(i, 1000) == 0:
-        print(i)
-    # summed activation of all winning units
-    act[i] = torch.sum(_compute_activation(path[itrial],
-                                           model.winners_trace[itrial]))
+
+# get saved activations
+act = torch.stack(
+    model.fc1_act_trace)[plot_trials[0]:plot_trials[1]-1].sum(axis=1).detach()
 
 nbins = 40
 act_map = _compute_activation_map(
@@ -1378,9 +1370,13 @@ norm_mat = normalise_act_map(nbins, act_map.binnumber)
 ind = np.nonzero(norm_mat)
 act_map_norm = act_map.statistic.copy()
 act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
-# plt.imshow(act_map.statistic)
+# plt.imshow(act_map.statistic,
+#            vmin=np.percentile(act_map.statistic, 1),
+#            vmax=np.percentile(act_map.statistic, 99))
 # plt.show()
-plt.imshow(act_map_norm)
+plt.imshow(act_map_norm,
+           vmin=np.percentile(act_map_norm, 1),
+           vmax=np.percentile(act_map_norm, 99))
 plt.show()
 
 # plot activation after training - unit positions at the end, fixed
@@ -1411,11 +1407,7 @@ for itrial in range(n_trials_test):
     act[~model.active_units] = 0  # not connected, no act
     _, win_ind = torch.topk(act,
                             int(model.n_units * model.params['k']))
-    # act_test.append(act[win_ind].sum().detach().clone())
-
-    act_test.append(
-        torch.sum(_compute_activation(path_test[itrial],
-                                      model.units_pos[win_ind])))
+    act_test.append(act[win_ind].sum().detach())
 
 act_map = _compute_activation_map(
     path_test, torch.tensor(act_test), nbins, statistic='sum')
@@ -1427,15 +1419,21 @@ norm_mat = normalise_act_map(nbins, act_map.binnumber)
 ind = np.nonzero(norm_mat)
 act_map_norm = act_map.statistic.copy()
 act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
-plt.imshow(act_map.statistic)
-plt.show()
-plt.imshow(act_map_norm)
+# plt.imshow(act_map.statistic,
+#            vmin=np.percentile(act_map.statistic, 1),
+#            vmax=np.percentile(act_map.statistic, 99))
+# plt.show()
+plt.imshow(act_map_norm,
+           vmin=np.percentile(act_map_norm, 1),
+           vmax=np.percentile(act_map_norm, 99))
 plt.show()
 
 # compute grid scores
 score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
 
-
+# autocorrelogram
+# plt.imshow(sac)
+# plt.show()
 # %%
 
 # run for different learning rates for lr_clusters and lr_group
