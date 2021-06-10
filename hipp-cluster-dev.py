@@ -561,7 +561,7 @@ def train_unsupervised(model, inputs, n_epochs):
             # recruit
             # - if error is high (inverse of activations of winners), recruit
             # - scale to k winners. eg. min is .1 of sum of k units max act
-            thresh = .8 * (model.n_units * model.params['k'])
+            thresh = .9 * (model.n_units * model.params['k'])
 
             if act[win_ind].sum() < thresh:
                 recruit = True
@@ -1309,6 +1309,24 @@ import scores   # grid cell scorer from Banino
 from scipy.ndimage.filters import gaussian_filter
 
 
+def generate_path(n_trials, n_dims, shuffle_seed=None):
+
+    if shuffle_seed:
+        torch.manual_seed(shuffle_seed)
+
+    step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+    path = np.zeros([n_trials, n_dims])
+    path[0] = np.around(np.random.rand(2), decimals=3)  # origin
+    for itrial in range(1, n_trials):
+        step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
+        # only allow 0 < steps < 1
+        while (np.any(path[itrial-1] + step < 0)
+               or np.any(path[itrial-1] + step > 1)):
+            step = np.random.choice(a=step_set, size=n_dims)
+        path[itrial] = path[itrial-1] + step
+    return torch.tensor(path, dtype=torch.float32)
+
+
 def _compute_activation_map(
         pos, activations, nbins, statistic='sum'):
     return binned_statistic_dd(
@@ -1382,18 +1400,7 @@ plt.show()
 # plot activation after training - unit positions at the end, fixed
 # generate new test path
 n_trials_test = n_trials // 2
-step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
-origin = np.around(np.random.rand(2), decimals=3)  # origin
-step_shape = (n_trials_test-1, n_dims)
-path_test = np.zeros([n_trials_test, n_dims])
-path_test[0] = np.around(np.random.rand(2), decimals=3)  # origin
-for itrial in range(1, n_trials_test):
-    step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
-    while (np.any(path_test[itrial-1] + step < 0)
-           or np.any(path_test[itrial-1] + step > 1)):
-        step = np.random.choice(a=step_set, size=n_dims)
-    path_test[itrial] = path_test[itrial-1] + step
-path_test = torch.tensor(path_test)
+path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
 
 # get act
 nbins = 40  # TODO - check why > 40 bins then get weird crisscross patterns
@@ -1432,8 +1439,148 @@ plt.show()
 score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
 
 # autocorrelogram
-# plt.imshow(sac)
-# plt.show()
+plt.imshow(sac)
+plt.show()
+
+
+# %% spatial simulations
+
+# sim specs
+n_sims = 100
+shuffle_seeds = torch.randperm(n_sims)
+
+# model spec
+n_dims = 2
+n_epochs = 1
+n_trials = 30000
+attn_type = 'dimensional_local'
+
+# run over different k values, n_units
+# - can try different threshold values, but prob keep constant to show effects
+# select threshold w nice fields (not too big/small fields and gd spacing)
+n_units = 5000
+k = .01
+
+# k = [.01, .05, .1]
+
+# annealed lr
+orig_lr = .08
+# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_c = (1/n_trials)/n_trials
+ann_decay = ann_c * (n_trials * 20)
+lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+
+# test 1 sim
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 1.25,  # low for smaller/more fields, high for larger/fewer fields
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .1,
+    'lr_nn': .25,
+    'lr_clusters': lr,  # annealed
+    'lr_clusters_group': .1,
+    'k': k
+    }
+path = generate_path(n_trials, n_dims)
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+train_unsupervised(model, path, n_epochs)
+
+# plt
+plot_trials = [int(n_trials//1.5), n_trials-1]
+act = torch.stack(
+    model.fc1_act_trace)[plot_trials[0]:plot_trials[1]-1].sum(axis=1).detach()
+nbins = 40
+act_map = _compute_activation_map(
+    path[plot_trials[0]:plot_trials[1]-1], act, nbins, statistic='sum')
+
+# normalize by times visited the location
+norm_mat = normalise_act_map(nbins, act_map.binnumber)
+
+# plot normalized act_map
+ind = np.nonzero(norm_mat)
+act_map_norm = act_map.statistic.copy()
+act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+plt.imshow(act_map_norm,
+           vmin=np.percentile(act_map_norm, 10),
+           vmax=np.percentile(act_map_norm, 99))
+plt.show()
+
+
+'''
+notes
+
+- looks like thresh is important. needs to be high-ish, else won't recruit
+- c is key
+- k doesn't affect much
+
+- can get band cells with low thresh (since only 2-3 cells, where attn for one dim wins)
+but only vertical/horizontal. need mvn if want orientations
+
+
+'''
+
+
+
+# start
+for isim in range(n_sims):
+    params = {
+        'r': 1,  # 1=city-block, 2=euclid
+        'c': 1.,  # low for smaller/more fields, high for larger/fewer fields
+        'p': 1,  # p=1 exp, p=2 gauss
+        'phi': 1,  # response parameter, non-negative
+        'lr_attn': .1,
+        'lr_nn': .25,
+        'lr_clusters': lr,  # annealed
+        'lr_clusters_group': .1,
+        'k': k
+        }
+
+    # generate random walk
+    path = generate_path(n_trials, n_dims, shuffle_seed=shuffle_seeds[isim])
+
+    # train model
+    model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+
+    train_unsupervised(model, path, n_epochs)
+
+
+
+
+
+# generate new test path
+n_trials_test = int(n_trials * .5)
+path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
+
+act_test = []
+for itrial in range(n_trials_test):
+    if np.mod(itrial, 1000) == 0:
+        print(itrial)
+    dim_dist = abs(path_test[itrial] - model.units_pos)
+    dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+    act = _compute_act(dist, model.params['c'], model.params['p'])
+    act[~model.active_units] = 0  # not connected, no act
+    _, win_ind = torch.topk(act,
+                            int(model.n_units * model.params['k']))
+    act_test.append(act[win_ind].sum().detach())
+
+act_map = _compute_activation_map(
+    path_test, torch.tensor(act_test), nbins, statistic='sum')
+norm_mat = normalise_act_map(nbins, act_map.binnumber)
+# normalized act_map
+ind = np.nonzero(norm_mat)
+act_map_norm = act_map.statistic.copy()
+act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+plt.imshow(act_map_norm,
+           vmin=np.percentile(act_map_norm, 1),
+           vmax=np.percentile(act_map_norm, 99))
+plt.show()
+
+# compute grid scores
+score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
+
+
+
 # %%
 
 # run for different learning rates for lr_clusters and lr_group
