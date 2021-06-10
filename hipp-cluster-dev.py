@@ -561,7 +561,7 @@ def train_unsupervised(model, inputs, n_epochs):
             # recruit
             # - if error is high (inverse of activations of winners), recruit
             # - scale to k winners. eg. min is .1 of sum of k units max act
-            thresh = .9 * (model.n_units * model.params['k'])
+            thresh = .95 * (model.n_units * model.params['k'])
 
             if act[win_ind].sum() < thresh:
                 recruit = True
@@ -597,7 +597,7 @@ def train_unsupervised(model, inputs, n_epochs):
                 act_1.backward(retain_graph=True)
                 # divide grad by n active units (scales to any n_units)
                 model.attn.data += (
-                    model.params['lr_attn']
+                    model.params['lr_attn'][itrl]  # new
                     * (model.attn.grad / model.n_units))
 
                 # ensure attention are non-negative
@@ -1314,7 +1314,8 @@ def generate_path(n_trials, n_dims, shuffle_seed=None):
     if shuffle_seed:
         torch.manual_seed(shuffle_seed)
 
-    step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+    # step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]  # more 90
+    step_set = [-.075, -.05, -.025, 0, .025, .05, .075]  # better 60 when more clus/fields. not great for few fields
     path = np.zeros([n_trials, n_dims])
     path[0] = np.around(np.random.rand(2), decimals=3)  # origin
     for itrial in range(1, n_trials):
@@ -1443,7 +1444,7 @@ plt.imshow(sac)
 plt.show()
 
 
-# %% spatial simulations
+# %% spatial simulations - testing
 
 # sim specs
 n_sims = 100
@@ -1452,31 +1453,63 @@ shuffle_seeds = torch.randperm(n_sims)
 # model spec
 n_dims = 2
 n_epochs = 1
-n_trials = 30000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
 # run over different k values, n_units
 # - can try different threshold values, but prob keep constant to show effects
 # select threshold w nice fields (not too big/small fields and gd spacing)
 n_units = 5000
-k = .01
-
-# k = [.01, .05, .1]
+k = .005
 
 # annealed lr
-orig_lr = .08
+orig_lr = .1  # .08
+# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+n_trials2 = n_trials  # int(n_trials * 5)   # trying to get the curve but not the long tail
+ann_c = (1/n_trials2)/n_trials2
+ann_decay = ann_c * (n_trials2 * 500)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
+lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+
+orig_lr = .0001
 # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 20)
-lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
 # test 1 sim
+# - thresh=.9, c=1.4 give 5-6 fields
+# - band cells w low thresh (since only 2-3 cells, where attn for 1 dim wins)
+# but only vertical/horiz. need mvn if want more ori. prob coz no annealing,
+# learning at the with fixed clusters.. probably an interesting effect
+
+# if don't anneal, more learning later which is weird? anneal doesnt help as much as i thought when few units
+
+# thresh=.95, 1.2-5 pretty gd... ++
+
+# now editing annealing - larger c's for the same effect
+ 
+'''
+notes
+
+- looks like thresh is important. needs to be high-ish, else won't recruit
+- c is key
+- k doesn't affect much
+
+- can get band cells with low thresh (since only 2-3 cells, where attn for one dim wins)
+but only vertical/horizontal. need mvn if want orientations
+
+- why if recruited 3, it become band cells? i guess because of where they end up
+attn learning goes weird? unless V small attn lr (starting lr = .0001/5)
+
+'''
+
+
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.25,  # low for smaller/more fields, high for larger/fewer fields
+    'c': 1.4,  # low for smaller/more fields, high for larger/fewer fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .1,
+    'lr_attn': lr_attn,  
     'lr_nn': .25,
     'lr_clusters': lr,  # annealed
     'lr_clusters_group': .1,
@@ -1488,6 +1521,7 @@ train_unsupervised(model, path, n_epochs)
 
 # plt
 plot_trials = [int(n_trials//1.5), n_trials-1]
+# plot_trials = [int(n_trials * .5), int(n_trials * .8)]
 act = torch.stack(
     model.fc1_act_trace)[plot_trials[0]:plot_trials[1]-1].sum(axis=1).detach()
 nbins = 40
@@ -1506,50 +1540,15 @@ plt.imshow(act_map_norm,
            vmax=np.percentile(act_map_norm, 99))
 plt.show()
 
-
-'''
-notes
-
-- looks like thresh is important. needs to be high-ish, else won't recruit
-- c is key
-- k doesn't affect much
-
-- can get band cells with low thresh (since only 2-3 cells, where attn for one dim wins)
-but only vertical/horizontal. need mvn if want orientations
-
-
-'''
-
-
-
-# start
-for isim in range(n_sims):
-    params = {
-        'r': 1,  # 1=city-block, 2=euclid
-        'c': 1.,  # low for smaller/more fields, high for larger/fewer fields
-        'p': 1,  # p=1 exp, p=2 gauss
-        'phi': 1,  # response parameter, non-negative
-        'lr_attn': .1,
-        'lr_nn': .25,
-        'lr_clusters': lr,  # annealed
-        'lr_clusters_group': .1,
-        'k': k
-        }
-
-    # generate random walk
-    path = generate_path(n_trials, n_dims, shuffle_seed=shuffle_seeds[isim])
-
-    # train model
-    model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
-
-    train_unsupervised(model, path, n_epochs)
-
-
-
-
+results = torch.stack(model.units_pos_trace, dim=0)
+plt.scatter(results[-1, model.active_units, 0],
+            results[-1, model.active_units, 1])
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.show()
 
 # generate new test path
-n_trials_test = int(n_trials * .5)
+n_trials_test = int(n_trials * 1)
 path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
 
 act_test = []
@@ -1572,13 +1571,106 @@ ind = np.nonzero(norm_mat)
 act_map_norm = act_map.statistic.copy()
 act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
 plt.imshow(act_map_norm,
-           vmin=np.percentile(act_map_norm, 1),
-           vmax=np.percentile(act_map_norm, 99))
+            vmin=np.percentile(act_map_norm, 1),
+            vmax=np.percentile(act_map_norm, 99))
 plt.show()
 
 # compute grid scores
 score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
 
+# %% sims
+import time
+
+n_sims = 50
+shuffle_seeds = torch.randperm(n_sims)
+
+# model spec
+n_dims = 2
+n_epochs = 1
+n_trials = 100000
+attn_type = 'dimensional_local'
+
+# run over different k values, n_units, c vals
+# - can try different threshold values, but prob keep constant to show effects
+# select threshold w nice fields (not too big/small fields and gd spacing)
+n_units = 5000
+k = .005
+
+c_vals = [1.4, 1.2]
+
+# annealed lr
+orig_lr = .1  # .08
+# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+n_trials2 = n_trials
+ann_c = (1/n_trials2)/n_trials2
+ann_decay = ann_c * (n_trials2 * 350)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
+lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+
+orig_lr = .0001
+# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_c = (1/n_trials)/n_trials
+ann_decay = ann_c * (n_trials * 20)
+lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+
+
+score_60 = []
+score_90 = []
+# start
+for c in c_vals:
+    for isim in range(n_sims):
+
+        t0 = time.time()
+        print(isim)
+
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': c,  # low for smaller/more fields, high for larger/fewer fields
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1,  # response parameter, non-negative
+            'lr_attn': lr_attn,
+            'lr_nn': .25,
+            'lr_clusters': lr,  # annealed
+            'lr_clusters_group': .1,
+            'k': k
+            }
+
+        # generate random walk
+        path = generate_path(n_trials, n_dims, shuffle_seed=shuffle_seeds[isim])
+
+        # train model
+        model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+
+        train_unsupervised(model, path, n_epochs)
+
+        # generate new test path
+        n_trials_test = int(n_trials * 1)
+        path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
+        act_test = []
+        for itrial in range(n_trials_test):
+            dim_dist = abs(path_test[itrial] - model.units_pos)
+            dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+            act = _compute_act(dist, model.params['c'], model.params['p'])
+            act[~model.active_units] = 0  # not connected, no act
+            _, win_ind = torch.topk(act,
+                                    int(model.n_units * model.params['k']))
+            act_test.append(act[win_ind].sum().detach())
+        act_map = _compute_activation_map(
+            path_test, torch.tensor(act_test), nbins, statistic='sum')
+        norm_mat = normalise_act_map(nbins, act_map.binnumber)
+        # normalized act_map
+        ind = np.nonzero(norm_mat)
+        act_map_norm = act_map.statistic.copy()
+        act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+
+        # compute grid scores
+        score_60_, score_90_, _, _, sac = _compute_grid_scores(act_map_norm)
+
+        score_60.append(score_60_)
+        score_90.append(score_90_)
+
+        print(score_60_)
+        t1 = time.time()
+        print(t1-t0)
 
 
 # %%
