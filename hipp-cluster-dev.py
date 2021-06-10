@@ -373,7 +373,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 if noise:
                     model.units_pos[win_ind] += (
                         torch.tensor(
-                            norm.rvs(loc=0, scale=.01, size=(len(update),1)))
+                            norm.rvs(loc=0, scale=.01, size=(len(update), 1)))
                             )
 
                 # - step 2 - winners update towards self
@@ -383,6 +383,14 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     * model.params['lr_clusters_group']
                     )
                 model.units_pos[win_ind] += update
+                
+                # add noise to 2nd update?
+                noise = True
+                if noise:
+                    model.units_pos[win_ind] += (
+                        torch.tensor(
+                            norm.rvs(loc=0, scale=.01, size=(len(update), 1)))
+                            )
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
@@ -434,6 +442,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     model.winning_units[win_ind[~mispred_units]] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
                 model.recruit_units_trl.append(itrl)
+
+                # add noise to recruited positions
+                noise = True
+                if noise:
+                    model.units_pos[recruit_ind] += (
+                        torch.tensor(
+                            norm.rvs(loc=0, scale=.05,
+                                     size=(len(recruit_ind), 1)))
+                            )
 
                 # go through update again after cluster added
                 optimizer.zero_grad()
