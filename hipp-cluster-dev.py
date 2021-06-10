@@ -69,6 +69,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import itertools as it
 import warnings
+from scipy.stats import norm
 
 
 class MultiUnitCluster(nn.Module):
@@ -366,6 +367,14 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     * model.params['lr_clusters']
                     )
                 model.units_pos[win_ind] += update
+
+                # add noise to updates
+                noise = True
+                if noise:
+                    model.units_pos[win_ind] += (
+                        torch.tensor(
+                            norm.rvs(loc=0, scale=.01, size=(len(update),1)))
+                            )
 
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
