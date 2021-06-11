@@ -800,7 +800,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -888,7 +888,7 @@ params = {
     'lr_attn': .35,
     'lr_nn': .15/lr_scale,
     'lr_clusters': .01,
-    'lr_clusters_group': .1,
+    'lr_clusters_group': .3,
     'k': k
     }
 # # high c
@@ -916,11 +916,12 @@ lesions = None  # if no lesions
 #     }
 
 # noise - mean and sd of noise to be added
+# - with update noise, higher lr_group helps save a lot even with few k units
 noise = None
-noise = {'update1': [0, .01],  # unit position updates 1 & 2
-         'update2': [0, .01],
-         'recruit': [0., .05],  # recruitment position placement
-         'act': [.5, .1]}  # unit activations (non-negative)
+# noise = {'update1': [0, .01],  # unit position updates 1 & 2
+#          'update2': [0, .01],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+#          'recruit': [0., .0],  # recruitment position placement - hmm, fewer units better...?
+#          'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
