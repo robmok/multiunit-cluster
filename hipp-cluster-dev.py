@@ -514,6 +514,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     )
                 model.units_pos[model.winning_units] += update
 
+                # add noise to updates
+                if noise:
+                    model.units_pos[model.winning_units] += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['update1'][0],
+                                     scale=noise['update1'][1],
+                                     size=(len(update), 1)))
+                            )
+
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(
                     model.units_pos[model.winning_units], axis=0)
@@ -524,6 +533,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
+
+                # add noise to 2nd update?
+                if noise:
+                    model.units_pos[model.winning_units] += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['update2'][0],
+                                     scale=noise['update2'][1],
+                                     size=(len(update), 1)))
+                            )
 
             # tmp
             # model.winners_trace.append(model.units_pos[model.winning_units])
@@ -1200,7 +1218,7 @@ shj = (
 # plt.show()
 
 
-# %%
+# %% plotting weights to compare to nbank model
 i = 0
 problem = 5
 
@@ -2050,10 +2068,3 @@ plt.show()
 
 # back to default
 plt.rcdefaults()
-
-
-# For plotting, make df?
-
-# import pandas as pd
-# df_sum = pd.DataFrame(columns=['acc', 'k', 'n_uni'ts, 'n_lesions', 'lesion trials', 'sim_num'])
-
