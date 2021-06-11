@@ -211,12 +211,14 @@ for ibatch in range(nbatch):
 results = torch.stack(model.units_pos_trace, dim=0)
 
 # group
-plt.scatter(results[-1, :, 0], results[-1, :, 1])
-plt.scatter(results[-1, model.active_units, 0],
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111)
+# ax.scatter(results[-1, :, 0], results[-1, :, 1])
+ax.scatter(results[-1, model.active_units, 0],
             results[-1, model.active_units, 1])
 
-plt.xlim([0, 1])
-plt.ylim([0, 1])
+ax.xlim([0, 1])
+ax.ylim([0, 1])
 plt.show()
 
 # # over time
