@@ -197,7 +197,7 @@ class MultiUnitCluster(nn.Module):
 
 
 def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
-          lesions=None):
+          lesions=None, noise=None):
 
     criterion = nn.CrossEntropyLoss()
 
@@ -369,11 +369,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 model.units_pos[win_ind] += update
 
                 # add noise to updates
-                noise = True
                 if noise:
                     model.units_pos[win_ind] += (
                         torch.tensor(
-                            norm.rvs(loc=0, scale=.01, size=(len(update), 1)))
+                            norm.rvs(loc=noise['update1'][0],
+                                     scale=noise['update1'][1],
+                                     size=(len(update), 1)))
                             )
 
                 # - step 2 - winners update towards self
@@ -385,11 +386,12 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 model.units_pos[win_ind] += update
                 
                 # add noise to 2nd update?
-                noise = True
                 if noise:
                     model.units_pos[win_ind] += (
                         torch.tensor(
-                            norm.rvs(loc=0, scale=.01, size=(len(update), 1)))
+                            norm.rvs(loc=noise['update2'][0],
+                                     scale=noise['update2'][1],
+                                     size=(len(update), 1)))
                             )
 
                 # save updated unit positions
@@ -444,11 +446,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 model.recruit_units_trl.append(itrl)
 
                 # add noise to recruited positions
-                noise = True
                 if noise:
                     model.units_pos[recruit_ind] += (
                         torch.tensor(
-                            norm.rvs(loc=0, scale=.05,
+                            norm.rvs(loc=noise['recruit'][0],
+                                     scale=noise['recruit'][1],
                                      size=(len(recruit_ind), 1)))
                             )
 
@@ -913,10 +915,18 @@ lesions = None  # if no lesions
 #     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
 #     }
 
+# noise - mean and sd of noise to be added
+noise = None
+noise = {'update1': [0, .01],  # unit position updates 1 & 2
+         'update2': [0, .01],
+         'recruit': [0., .05],  # recruitment position placement
+         'act': [.5, .1]}  # unit activations (non-negative)
+
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=False, lesions=lesions)
+    model, inputs, output, n_epochs, shuffle=False, lesions=lesions,
+    noise=noise)
 
 # # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
 # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
