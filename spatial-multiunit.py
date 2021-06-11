@@ -82,6 +82,26 @@ def _compute_grid_scores(activation_map, smooth=False):
     return score_60, score_90, max_60_mask, max_90_mask, sac
 
 
+def _compute_dist(dim_dist, attn_w, r):
+    # since sqrt of 0 returns nan for gradient, need this bit
+    # e.g. euclid, can't **(1/2)
+    if r > 1:
+        d = torch.zeros(len(dim_dist))
+        ind = torch.sum(dim_dist, axis=1) > 0
+        dim_dist_tmp = dim_dist[ind]
+        d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
+    else:
+        d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
+    return d
+
+
+def _compute_act(dist, c, p):
+    """ c = 1  # ALCOVE - specificity of the node - free param
+        p = 2  # p=1 exp, p=2 gauss
+    """
+    # return torch.exp(-c * (dist**p))
+    return c * torch.exp(-c * dist)  # sustain-like
+
 # %% unsupervised
 
 # spatial / unsupervised
@@ -141,15 +161,16 @@ k = .01
 
 # annealed lr
 orig_lr = .08
+orig_lr = .2
 ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-ann_decay = ann_c * (n_trials * 20)
+ann_decay = ann_c * (n_trials * 100)
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 plt.plot(torch.tensor(lr))
 plt.show()
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.,  # low for smaller/more fields, high for larger/fewer fields
+    'c': 1.4,  # low for smaller/more fields, high for larger/fewer fields
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
@@ -159,9 +180,31 @@ params = {
     'k': k
     }
 
-model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
-train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)
+# train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)
+
+
+# batch training
+# for batch, c needs to be higher or thresh lower
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+batch_size = n_trials * .01
+nbatch = int(n_trials // batch_size)
+
+for ibatch in range(nbatch):
+
+    batch_trials = [int(batch_size * (ibatch)),
+           int((batch_size * ibatch) + batch_size)]
+
+    inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
+                          dtype=torch.float32)
+    
+    train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
+    
+    print(len(model.recruit_units_trl))
+
+
 
 # %% plot unsupervised
 
@@ -176,16 +219,16 @@ plt.xlim([0, 1])
 plt.ylim([0, 1])
 plt.show()
 
-# over time
-plot_trials = torch.tensor(torch.linspace(0, n_trials * n_epochs, 20),
-                           dtype=torch.long)
+# # over time
+# plot_trials = torch.tensor(torch.linspace(0, n_trials * n_epochs, 20),
+#                            dtype=torch.long)
 
-for i in plot_trials[0:-1]:
-    plt.scatter(results[i, model.active_units, 0],
-                results[i, model.active_units, 1])
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.pause(.5)
+# for i in plot_trials[0:-1]:
+#     plt.scatter(results[i, model.active_units, 0],
+#                 results[i, model.active_units, 1])
+#     plt.xlim([-.05, 1.05])
+#     plt.ylim([-.05, 1.05])
+#     plt.pause(.5)
 
 # %% grid computations
 
@@ -259,10 +302,11 @@ plt.show()
 # compute grid scores
 score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
 
+print(score_60, score_90)
+
 # autocorrelogram
 plt.imshow(sac)
 plt.show()
-
 
 # %% spatial simulations - testing
 

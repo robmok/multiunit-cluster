@@ -467,14 +467,15 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
     update for all trials
 
     """
+    # if batch,  len(inputs) is n_trials_batch
+    # make an array for updating at the end - n_units x n_trials_batch
+    # - add update for each trial, then np.nansum(upd), then tensor it
+    # - torch.nansum() should be coming...
+    upd_pos = torch.zeros(
+        model.n_units, len(inputs), inputs.shape[1]) * float('nan')
+    upd_attn = torch.zeros(model.n_dims, len(inputs))
 
-    # if batch,  len(inputs) isn_trials_batch
     if batch_upd is not None:
-        # make an array for updating at the end - n_units x n_trials_batch
-        # - add update for each trial, then np.nansum(upd), then tensor it
-        # - torch.nansum() should be coming...
-        upd_pos = torch.zeros(model.n_units, len(inputs)) * float('nan')
-        upd_attn = torch.zeros(model.n_dims, len(inputs)) * float('nan')
         itrl = batch_upd * len(inputs)  # assuming same ntrials/batch
         itrl_b = 0  # for upd arrays
     else:
@@ -508,7 +509,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
             # - if error is high (inverse of activations of winners), recruit
             # - scale to k winners. eg. min is .1 of sum of k units max act
             thresh = .95 * (model.n_units * model.params['k'])
-
+            
             if act[win_ind].sum() < thresh:
                 recruit = True
             else:
@@ -542,7 +543,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 # compute gradient
                 act_1.backward(retain_graph=True)
 
-                if not batch_upd:
+                if batch_upd is None:
                     # divide grad by n active units (scales to any n_units)
                     model.attn.data += (
                         model.params['lr_attn']  # [itrl]  # when annealing
@@ -551,14 +552,13 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                     # ensure attention are non-negative
                     model.attn.data = torch.clamp(model.attn.data, min=0.)
                     # sum attention weights to 1
-                    if model.attn_type[0:4] == 'dime':
-                        model.attn.data = (
-                            model.attn.data / torch.sum(model.attn.data)
-                            )
+                    model.attn.data = (
+                        model.attn.data / torch.sum(model.attn.data)
+                        )
                     # save updated attn ws
                     model.attn_trace.append(model.attn.detach().clone())
 
-                else:
+                else:  # batch - save the update
                     # - save the update then mean then normalise?
                     # - or get the update, normalize attn by when it would be,
                     # and subtract that - save that as the update
@@ -578,41 +578,32 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
-                if not batch_upd:
-                    update = (
-                        (x - model.units_pos[win_ind])
-                        * model.params['lr_clusters'][itrl]
-                        )
+                update = (
+                    (x - model.units_pos[win_ind])
+                    * model.params['lr_clusters'][itrl]
+                    )
+                if batch_upd is None:
                     model.units_pos[win_ind] += update
+                else:  # save update
+                    upd_pos[win_ind, itrl_b] = update
 
-                    # - step 2 - winners update towards self
-                    winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
-                    update = (
-                        (winner_mean - model.units_pos[win_ind])
-                        * model.params['lr_clusters_group']
-                        )
+                # - step 2 - winners update towards self
+                winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
+                update = (
+                    (winner_mean - model.units_pos[win_ind])
+                    * model.params['lr_clusters_group']
+                    )
+                if batch_upd is None:
                     model.units_pos[win_ind] += update
-
                     # save updated unit positions
                     model.units_pos_trace.append(
                         model.units_pos.detach().clone())
-
-                else:
-                    update = (
-                        (x - model.units_pos[win_ind])
-                        * model.params['lr_clusters'][itrl]
-                        )
-                    upd_pos[win_ind, itrl_b] = update
-
-                    # - step 2 - winners update towards self
-                    winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
-                    update = (
-                        (winner_mean - model.units_pos[win_ind])
-                        * model.params['lr_clusters_group']
-                        )
-                    upd_pos[win_ind, itrl_b] += update  # add to this
+                else:  # add to the update
+                    upd_pos[win_ind, itrl_b] += update
 
             # Recruit cluster, and update model
+            # - batch - can recruit, and show activations above, just no pos
+            # or attn updates. 
             if (recruit and torch.sum(model.active_units == 0) > 0):
 
                 # select closest k inactive units
@@ -637,22 +628,29 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 model.attn_trace.append(model.attn.detach().clone())
 
                 # update units positions - double update rule
+                # - only matters when there is noise
                 update = (
-                    (x - model.units_pos[model.winning_units])
+                    (x - model.units_pos[recruit_ind])
                     * model.params['lr_clusters'][itrl]
                     )
-                model.units_pos[model.winning_units] += update
+                if batch_upd is None:
+                    model.units_pos[recruit_ind] += update
+                else:  # save update
+                    upd_pos[recruit_ind, itrl_b] = update
 
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(
-                    model.units_pos[model.winning_units], axis=0)
+                    model.units_pos[recruit_ind], axis=0)
                 update = (
-                    (winner_mean - model.units_pos[model.winning_units])
+                    (winner_mean - model.units_pos[recruit_ind])
                     * model.params['lr_clusters_group'])
-                model.units_pos[model.winning_units] += update
-
-                # save updated unit positions
-                model.units_pos_trace.append(model.units_pos.detach().clone())
+                if batch_upd is None:
+                    model.units_pos[recruit_ind] += update
+                    # save updated unit positions
+                    model.units_pos_trace.append(
+                        model.units_pos.detach().clone())
+                else:  # add to the update
+                    upd_pos[recruit_ind, itrl_b] += update
 
             # save acts - may want to have it separately for recruit and upd?
             model.fc1_act_trace.append(act[model.winning_units])
@@ -660,11 +658,28 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
 
             itrl += 1
 
-            if batch_upd:
+            if batch_upd is not None:
                 itrl_b += 1
 
-            if torch.sum(model.active_units == 0) == 0:  # no units to recruit
-                warnings.warn("No more units to recruit")
+        if torch.sum(model.active_units == 0) == 0:  # no units to recruit
+            warnings.warn("No more units to recruit")
+
+    if batch_upd is not None:
+        upd_pos_mean = np.nanmean(upd_pos, axis=1)
+        upd_pos_mean[np.isnan(upd_pos_mean)] = 0  # turns nans to 0
+        model.units_pos += upd_pos_mean
+        # save updated unit positions
+        model.units_pos_trace.append(model.units_pos.detach().clone())
+
+        model.attn.data += upd_attn.mean(axis=1)
+        # normalise
+        model.attn.data = torch.clamp(model.attn.data, min=0.)
+        model.attn.data = (
+            model.attn.data / torch.sum(model.attn.data)
+            )
+        model.attn_trace.append(model.attn.detach().clone())
+
+    # return upd_pos, upd_attn  # if batch. actually don't need it, just upd.
 
 
 def train_unsupervised_simple(model, inputs, n_epochs):
