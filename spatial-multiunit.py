@@ -6,7 +6,6 @@ Created on Fri Jun 11 14:36:24 2021
 @author: robert.mok
 """
 
-import os
 import sys
 import numpy as np
 import torch
