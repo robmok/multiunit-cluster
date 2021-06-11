@@ -460,9 +460,25 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget
 
 
-def train_unsupervised(model, inputs, n_epochs):
+def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
+    """
+    batch_upd : if not None, this is the batch number. input trials and batch
+    number each time you call train_unsupervised, it will update the mean
+    update for all trials
 
-    itrl = 0
+    """
+
+    # if batch,  len(inputs) isn_trials_batch
+    if batch_upd is not None:
+        # make an array for updating at the end - n_units x n_trials_batch
+        # - add update for each trial, then np.nansum(upd), then tensor it
+        # - torch.nansum() should be coming...
+        upd_pos = torch.zeros(model.n_units, len(inputs)) * float('nan')
+        upd_attn = torch.zeros(model.n_dims, len(inputs)) * float('nan')
+        itrl = batch_upd * len(inputs)  # assuming same ntrials/batch
+        itrl_b = 0  # for upd arrays
+    else:
+        itrl = 0
 
     for epoch in range(n_epochs):
         for x in inputs:
@@ -525,39 +541,76 @@ def train_unsupervised(model, inputs, n_epochs):
 
                 # compute gradient
                 act_1.backward(retain_graph=True)
-                # divide grad by n active units (scales to any n_units)
-                model.attn.data += (
-                    model.params['lr_attn'] # [itrl]  # when annealing
-                    * (model.attn.grad / model.n_units))
 
-                # ensure attention are non-negative
-                model.attn.data = torch.clamp(model.attn.data, min=0.)
-                # sum attention weights to 1
-                if model.attn_type[0:4] == 'dime':
-                    model.attn.data = (
-                        model.attn.data / torch.sum(model.attn.data)
-                        )
-                # save updated attn ws
-                model.attn_trace.append(model.attn.detach().clone())
+                if not batch_upd:
+                    # divide grad by n active units (scales to any n_units)
+                    model.attn.data += (
+                        model.params['lr_attn']  # [itrl]  # when annealing
+                        * (model.attn.grad / model.n_units))
+
+                    # ensure attention are non-negative
+                    model.attn.data = torch.clamp(model.attn.data, min=0.)
+                    # sum attention weights to 1
+                    if model.attn_type[0:4] == 'dime':
+                        model.attn.data = (
+                            model.attn.data / torch.sum(model.attn.data)
+                            )
+                    # save updated attn ws
+                    model.attn_trace.append(model.attn.detach().clone())
+
+                else:
+                    # - save the update then mean then normalise?
+                    # - or get the update, normalize attn by when it would be,
+                    # and subtract that - save that as the update
+                    # ... not sure if it's the same - try both
+
+                    # save gradient
+                    upd_attn[:, itrl_b] = (model.params['lr_attn'] # [itrl]  # when annealing
+                                           * (model.attn.grad / model.n_units))
+
+                    # # OR add grad, norm then subtract to get the norm'd upd
+                    # attn_tmp = model.attn.data + (model.params['lr_attn'] # [itrl]  # when annealing
+                    #                               * (model.attn.grad /
+                    #                                  model.n_units))
+                    # attn_tmp = torch.clamp(attn_tmp, min=0.)
+                    # attn_tmp = attn_tmp / torch.sum(attn_tmp)
+                    # upd_attn[:, itrl_b] = attn_tmp - model.attn.data
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
-                update = (
-                    (x - model.units_pos[win_ind])
-                    * model.params['lr_clusters'][itrl]
-                    )
-                model.units_pos[win_ind] += update
+                if not batch_upd:
+                    update = (
+                        (x - model.units_pos[win_ind])
+                        * model.params['lr_clusters'][itrl]
+                        )
+                    model.units_pos[win_ind] += update
 
-                # - step 2 - winners update towards self
-                winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
-                update = (
-                    (winner_mean - model.units_pos[win_ind])
-                    * model.params['lr_clusters_group']
-                    )
-                model.units_pos[win_ind] += update
+                    # - step 2 - winners update towards self
+                    winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
+                    update = (
+                        (winner_mean - model.units_pos[win_ind])
+                        * model.params['lr_clusters_group']
+                        )
+                    model.units_pos[win_ind] += update
 
-                # save updated unit positions
-                model.units_pos_trace.append(model.units_pos.detach().clone())
+                    # save updated unit positions
+                    model.units_pos_trace.append(
+                        model.units_pos.detach().clone())
+
+                else:
+                    update = (
+                        (x - model.units_pos[win_ind])
+                        * model.params['lr_clusters'][itrl]
+                        )
+                    upd_pos[win_ind, itrl_b] = update
+
+                    # - step 2 - winners update towards self
+                    winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
+                    update = (
+                        (winner_mean - model.units_pos[win_ind])
+                        * model.params['lr_clusters_group']
+                        )
+                    upd_pos[win_ind, itrl_b] += update  # add to this
 
             # Recruit cluster, and update model
             if (recruit and torch.sum(model.active_units == 0) > 0):
@@ -604,7 +657,11 @@ def train_unsupervised(model, inputs, n_epochs):
             # save acts - may want to have it separately for recruit and upd?
             model.fc1_act_trace.append(act[model.winning_units])
             # model.winners_trace.append(model.units_pos[model.winning_units])
+
             itrl += 1
+
+            if batch_upd:
+                itrl_b += 1
 
             if torch.sum(model.active_units == 0) == 0:  # no units to recruit
                 warnings.warn("No more units to recruit")
