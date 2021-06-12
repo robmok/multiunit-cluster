@@ -508,8 +508,8 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
             # recruit
             # - if error is high (inverse of activations of winners), recruit
             # - scale to k winners. eg. min is .1 of sum of k units max act
-            thresh = .95 * (model.n_units * model.params['k'])
-            
+            thresh = .9 * (model.n_units * model.params['k'])
+
             if act[win_ind].sum() < thresh:
                 recruit = True
             else:

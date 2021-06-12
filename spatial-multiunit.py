@@ -22,13 +22,13 @@ from MultiUnitCluster import (MultiUnitCluster, train_unsupervised)
 
 
 # functions for spatial simulations, grid scores
-def generate_path(n_trials, n_dims, shuffle_seed=None):
+def generate_path(n_trials, n_dims, seed=None):
 
-    if shuffle_seed:
-        torch.manual_seed(shuffle_seed)
+    if seed:
+        torch.manual_seed(seed)
 
-    # step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]  # more 90
-    step_set = [-.075, -.05, -.025, 0, .025, .05, .075]  # better 60 when more clus/fields. not great for few fields
+    # step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+    step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
     path = np.zeros([n_trials, n_dims])
     path[0] = np.around(np.random.rand(2), decimals=3)  # origin
     for itrial in range(1, n_trials):
@@ -127,7 +127,8 @@ attn_type = 'dimensional_local'
 
 # random walk
 # - https://towardsdatascience.com/random-walks-with-python-8420981bc4bc
-step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+# step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
 origin = np.ones([1, n_dims]) * .5
 step_shape = (n_trials, n_dims)
 # steps = np.random.choice(a=step_set, size=step_shape)
@@ -160,23 +161,26 @@ n_units = 1000
 k = .01
 
 # annealed lr
-orig_lr = .08
 orig_lr = .2
 ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-ann_decay = ann_c * (n_trials * 100)
+ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 plt.plot(torch.tensor(lr))
 plt.show()
 
+# c=1.4 w thresh=.95 for 7 fields, 50k trials ann=100
+# c=1.5 w thresh=.75 for 3 fields, 50k trials ann=100
+# thresh=.9
+# - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.4,  # low for smaller/more fields, high for larger/fewer fields
+    'c': 1.3,  # low for smaller/more fields, high for larger/fewer fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .1,
     'lr_nn': .25,
     'lr_clusters': lr,  # .01,
-    'lr_clusters_group': .1,
+    'lr_clusters_group': .25,
     'k': k
     }
 
@@ -195,18 +199,15 @@ nbatch = int(n_trials // batch_size)
 for ibatch in range(nbatch):
 
     batch_trials = [int(batch_size * (ibatch)),
-           int((batch_size * ibatch) + batch_size)]
-
+                    int((batch_size * ibatch) + batch_size)]
     inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
                           dtype=torch.float32)
-    
+
     train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
-    
+
     print(len(model.recruit_units_trl))
 
-
-
-# %% plot unsupervised
+# %% plot
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -216,14 +217,13 @@ ax = fig.add_subplot(111)
 # ax.scatter(results[-1, :, 0], results[-1, :, 1])
 ax.scatter(results[-1, model.active_units, 0],
             results[-1, model.active_units, 1])
-
-ax.xlim([0, 1])
-ax.ylim([0, 1])
+ax.set_xlim([0, 1])
+ax.set_ylim([0, 1])
 plt.show()
 
 # # over time
-# plot_trials = torch.tensor(torch.linspace(0, n_trials * n_epochs, 20),
-#                            dtype=torch.long)
+# plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
+#                             dtype=torch.long)
 
 # for i in plot_trials[0:-1]:
 #     plt.scatter(results[i, model.active_units, 0],
@@ -232,41 +232,41 @@ plt.show()
 #     plt.ylim([-.05, 1.05])
 #     plt.pause(.5)
 
-# %% grid computations
+# grid computations
 
-# plot activations during training
-# plot from trial n to ntrials
-# plot_trials = [0, n_trials-1]
-plot_trials = [int(n_trials//1.5), n_trials-1]
+# # plot activations during training
+# # plot from trial n to ntrials
+# # plot_trials = [0, n_trials-1]
+# plot_trials = [int(n_trials//1.5), n_trials-1]
 
-# get saved activations
-act = torch.stack(
-    model.fc1_act_trace)[plot_trials[0]:plot_trials[1]-1].sum(axis=1).detach()
+# # get saved activations
+# act = torch.stack(
+#     model.fc1_act_trace)[plot_trials[0]:plot_trials[1]-1].sum(axis=1).detach()
 
-nbins = 40
-act_map = _compute_activation_map(
-    path[plot_trials[0]:plot_trials[1]-1], act, nbins, statistic='sum')
+# nbins = 40
+# act_map = _compute_activation_map(
+#     path[plot_trials[0]:plot_trials[1]-1], act, nbins, statistic='sum')
 
-# normalize by times visited the location
-norm_mat = normalise_act_map(nbins, act_map.binnumber)
+# # normalize by times visited the location
+# norm_mat = normalise_act_map(nbins, act_map.binnumber)
 
-# plot normalized act_map
-ind = np.nonzero(norm_mat)
-act_map_norm = act_map.statistic.copy()
-act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
-# plt.imshow(act_map.statistic,
-#            vmin=np.percentile(act_map.statistic, 1),
-#            vmax=np.percentile(act_map.statistic, 99))
+# # plot normalized act_map
+# ind = np.nonzero(norm_mat)
+# act_map_norm = act_map.statistic.copy()
+# act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+# # plt.imshow(act_map.statistic,
+# #            vmin=np.percentile(act_map.statistic, 1),
+# #            vmax=np.percentile(act_map.statistic, 99))
+# # plt.show()
+# plt.imshow(act_map_norm,
+#            vmin=np.percentile(act_map_norm, 1),
+#            vmax=np.percentile(act_map_norm, 99))
 # plt.show()
-plt.imshow(act_map_norm,
-           vmin=np.percentile(act_map_norm, 1),
-           vmax=np.percentile(act_map_norm, 99))
-plt.show()
 
 # plot activation after training - unit positions at the end, fixed
 # generate new test path
 n_trials_test = n_trials // 2
-path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
+path_test = generate_path(n_trials_test, n_dims, seed=None)
 
 # get act
 nbins = 40  # TODO - check why > 40 bins then get weird crisscross patterns
@@ -310,146 +310,10 @@ print(score_60, score_90)
 plt.imshow(sac)
 plt.show()
 
-# %% spatial simulations - testing
-
-# sim specs
-n_sims = 100
-shuffle_seeds = torch.randperm(n_sims)
-
-# model spec
-n_dims = 2
-n_epochs = 1
-n_trials = 50000
-attn_type = 'dimensional_local'
-
-# run over different k values, n_units
-# - can try different threshold values, but prob keep constant to show effects
-# select threshold w nice fields (not too big/small fields and gd spacing)
-n_units = 5000
-k = .005
-
-# annealed lr
-orig_lr = .1  # .08
-# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-n_trials2 = n_trials  # int(n_trials * 5)   # trying to get the curve but not the long tail
-ann_c = (1/n_trials2)/n_trials2
-ann_decay = ann_c * (n_trials2 * 350)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
-lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
-
-# orig_lr = .001
-# # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-# ann_c = (1/n_trials)/n_trials
-# ann_decay = ann_c * (n_trials * 20)  # 20
-# lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
-
-# test 1 sim
-# - thresh=.9, c=1.4 give 5-6 fields
-# - band cells w low thresh (since only 2-3 cells, where attn for 1 dim wins)
-# but only vertical/horiz. need mvn if want more ori. prob coz no annealing,
-# learning at the with fixed clusters.. probably an interesting effect
-
-# if don't anneal, more learning later which is weird? anneal doesnt help as much as i thought when few units
-
-# thresh=.95, 1.2-5 pretty gd... ++
-# - ah, when making attn lr low, not the same
-# - maybe test without attention learning for now
-
-# now editing annealing - larger c's for the same effect
- 
-'''
-notes
-
-- looks like thresh is important. needs to be high-ish, else won't recruit
-- c is key
-- k doesn't affect much
-
-- can get band cells with low thresh (since only 2-3 cells, where attn for one dim wins)
-but only vertical/horizontal. need mvn if want orientations
-
-- why if recruited 3, it become band cells? i guess because of where they end up
-attn learning goes weird? unless V small attn lr (starting lr = .0001/5)
-
-'''
-
-
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 2.,  # low for smaller/more fields, high for larger/fewer fields.
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1,  # response parameter, non-negative
-    'lr_attn': 0.,
-    'lr_nn': .25,
-    'lr_clusters': lr,  # annealed
-    'lr_clusters_group': .1,
-    'k': k
-    }
-path = generate_path(n_trials, n_dims)
-model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
-train_unsupervised(model, path, n_epochs)
-
-# plt
-plot_trials = [int(n_trials//1.5), n_trials-1]
-# plot_trials = [int(n_trials * .5), int(n_trials * .8)]
-act = torch.stack(
-    model.fc1_act_trace)[plot_trials[0]:plot_trials[1]-1].sum(axis=1).detach()
-nbins = 40
-act_map = _compute_activation_map(
-    path[plot_trials[0]:plot_trials[1]-1], act, nbins, statistic='sum')
-
-# normalize by times visited the location
-norm_mat = normalise_act_map(nbins, act_map.binnumber)
-
-# plot normalized act_map
-ind = np.nonzero(norm_mat)
-act_map_norm = act_map.statistic.copy()
-act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
-plt.imshow(act_map_norm,
-           vmin=np.percentile(act_map_norm, 10),
-           vmax=np.percentile(act_map_norm, 99))
-plt.show()
-
-results = torch.stack(model.units_pos_trace, dim=0)
-plt.scatter(results[-1, model.active_units, 0],
-            results[-1, model.active_units, 1])
-plt.xlim([0, 1])
-plt.ylim([0, 1])
-plt.show()
-
-# generate new test path
-n_trials_test = int(n_trials * 1)
-path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
-
-act_test = []
-for itrial in range(n_trials_test):
-    if np.mod(itrial, 1000) == 0:
-        print(itrial)
-    dim_dist = abs(path_test[itrial] - model.units_pos)
-    dist = _compute_dist(dim_dist, model.attn, model.params['r'])
-    act = _compute_act(dist, model.params['c'], model.params['p'])
-    act[~model.active_units] = 0  # not connected, no act
-    _, win_ind = torch.topk(act,
-                            int(model.n_units * model.params['k']))
-    act_test.append(act[win_ind].sum().detach())
-
-act_map = _compute_activation_map(
-    path_test, torch.tensor(act_test), nbins, statistic='sum')
-norm_mat = normalise_act_map(nbins, act_map.binnumber)
-# normalized act_map
-ind = np.nonzero(norm_mat)
-act_map_norm = act_map.statistic.copy()
-act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
-plt.imshow(act_map_norm,
-            vmin=np.percentile(act_map_norm, 1),
-            vmax=np.percentile(act_map_norm, 99))
-plt.show()
-
-# compute grid scores
-score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
-
 # %% sims
 import time
 
-n_sims = 50
+n_sims = 20
 shuffle_seeds = torch.randperm(n_sims)
 
 # model spec
@@ -461,25 +325,27 @@ attn_type = 'dimensional_local'
 # run over different k values, n_units, c vals
 # - can try different threshold values, but prob keep constant to show effects
 # select threshold w nice fields (not too big/small fields and gd spacing)
-n_units = 5000
-k = .005
+n_units = 1000
+k = .01
 
-c_vals = [1.2, 1.5]
+# thresh=.9
+# - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
+c_vals = [1.2, 1.6, 2.]
+
 
 # annealed lr
-orig_lr = .1  # .08
-# 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
-n_trials2 = n_trials
-ann_c = (1/n_trials2)/n_trials2
-ann_decay = ann_c * (n_trials2 * 350)  # 350 v gd. 500 gd, 150 too slow. act 350 not as gd for fewer fields (e.g. 6), 500 better
+orig_lr = .2
+ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+# plt.plot(torch.tensor(lr))
+# plt.show()
 
 # orig_lr = .0001
 # # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 # ann_c = (1/n_trials)/n_trials
 # ann_decay = ann_c * (n_trials * 20)
 # lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
-
 
 score_60 = []
 score_90 = []
@@ -492,7 +358,7 @@ for c in c_vals:
 
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': c,  # low for smaller/more fields, high for larger/fewer fields
+            'c': c,  # low for smaller/more, high for larger/fewer fields
             'p': 1,  # p=1 exp, p=2 gauss
             'phi': 1,  # response parameter, non-negative
             'lr_attn': 0.,  # lr_attn,
@@ -503,7 +369,7 @@ for c in c_vals:
             }
 
         # generate random walk
-        path = generate_path(n_trials, n_dims, shuffle_seed=shuffle_seeds[isim])
+        path = generate_path(n_trials, n_dims, seed=shuffle_seeds[isim])
 
         # train model
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
@@ -512,7 +378,7 @@ for c in c_vals:
 
         # generate new test path
         n_trials_test = int(n_trials * 1)
-        path_test = generate_path(n_trials_test, n_dims, shuffle_seed=None)
+        path_test = generate_path(n_trials_test, n_dims, seed=None)
         act_test = []
         for itrial in range(n_trials_test):
             dim_dist = abs(path_test[itrial] - model.units_pos)
