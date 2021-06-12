@@ -191,10 +191,10 @@ params = {
 
 # batch training
 # for batch, c needs to be higher or thresh lower
-
-model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 batch_size = n_trials * .01
 nbatch = int(n_trials // batch_size)
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
 for ibatch in range(nbatch):
 
@@ -332,7 +332,6 @@ k = .01
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
 c_vals = [1.2, 1.6, 2.]
 
-
 # annealed lr
 orig_lr = .2
 ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
@@ -371,13 +370,24 @@ for c in c_vals:
         # generate random walk
         path = generate_path(n_trials, n_dims, seed=shuffle_seeds[isim])
 
+        batch_size = n_trials * .01
+        nbatch = int(n_trials // batch_size)
+
         # train model
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
-        train_unsupervised(model, path, n_epochs)
+        for ibatch in range(nbatch):
+
+            batch_trials = [int(batch_size * (ibatch)),
+                            int((batch_size * ibatch) + batch_size)]
+            inputs = path[batch_trials[0]:batch_trials[1]]
+
+            train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
+
+            # print(len(model.recruit_units_trl))
 
         # generate new test path
-        n_trials_test = int(n_trials * 1)
+        n_trials_test = int(n_trials * .5)
         path_test = generate_path(n_trials_test, n_dims, seed=None)
         act_test = []
         for itrial in range(n_trials_test):
