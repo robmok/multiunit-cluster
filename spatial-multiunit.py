@@ -359,7 +359,7 @@ params = {
     'c': [],  # low for smaller/more, high for larger/fewer fields
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': 0.1,  # lr_attn,
+    'lr_attn': 0.,  # lr_attn,
     'lr_nn': .25,
     'lr_clusters': lr,  # annealed
     'lr_clusters_group': .2,
@@ -368,25 +368,25 @@ params = {
 
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 fname1 = (
-    os.path.join(wd, 'spatial_gridscore_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.95.pkl'.format(n_units, params['k'], orig_lr,
+    os.path.join(wd, 'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
+grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
                                          params['lr_clusters_group'],
-                                         params['lr_attn']))
+                                         params['lr_attn'], n_sims))
     )
 fname2 = (
     os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.95.pkl'.format(n_units, params['k'], orig_lr,
+grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
                                          params['lr_clusters_group'],
-                                         params['lr_attn']))
+                                         params['lr_attn'], n_sims))
     )
 
 load = False
 if load:  # load and add to sims
-    df_gridscore = pd.read_pickle(fname1)
+    df_gscore = pd.read_pickle(fname1)
     df_recruit = pd.read_pickle(fname2)
     
     # add c_vals conditions to ech df
-    [df_gridscore.insert(len(df_gridscore.columns), i, pd.Series(np.zeros(len(df)),
+    [df_gscore.insert(len(df_gscore.columns), i, pd.Series(np.zeros(len(df)),
                                                        index=df.index))
      for i in c_vals]
     [df_recruit.insert(len(df_recruit.columns), i, pd.Series(np.zeros(len(df)),
@@ -395,7 +395,7 @@ if load:  # load and add to sims
 
 else:  # new - will overwrite file if exists
 
-    df_gridscore = pd.DataFrame(columns=c_vals, index=range(n_sims))
+    df_gscore = pd.DataFrame(columns=c_vals, index=range(n_sims))
     df_recruit = pd.DataFrame(columns=c_vals, index=range(n_sims))
 
 # start
@@ -455,12 +455,12 @@ for c in c_vals:
         score_60.append(score_60_)
         n_recruit.append(len(model.recruit_units_trl))
 
-    df_gridscore[c] = np.array(score_60)
+    df_gscore[c] = np.array(score_60)
     df_recruit[c] = np.array(score_60)
 
 # save df
 if save_sims:
-    df_gridscore.to_pickle(fname1)
+    df_gscore.to_pickle(fname1)
     df_recruit.to_pickle(fname2)
 
 # %%
