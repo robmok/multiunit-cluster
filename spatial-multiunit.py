@@ -8,6 +8,7 @@ Created on Fri Jun 11 14:36:24 2021
 
 import sys
 import numpy as np
+import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 import itertools as it
@@ -172,6 +173,7 @@ plt.show()
 # c=1.5 w thresh=.75 for 3 fields, 50k trials ann=100
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
+#- with p=2 (gauss, may have slight lymore fields)
 params = {
     'r': 1,  # 1=city-block, 2=euclid
     'c': 1.3,  # low for smaller/more fields, high for larger/fewer fields.
@@ -185,9 +187,7 @@ params = {
     }
 
 # model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
-
 # train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)
-
 
 # batch training
 # for batch, c needs to be higher or thresh lower
@@ -351,10 +351,13 @@ lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # ann_decay = ann_c * (n_trials * 20)
 # lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
-score_60 = []
-score_90 = []
+df = pd.DataFrame(columns=c_vals, index=range(n_sims))
+
 # start
 for c in c_vals:
+    score_60 = []
+    score_90 = []
+
     for isim in range(n_sims):
 
         t0 = time.time()
@@ -389,6 +392,7 @@ for c in c_vals:
             # print(len(model.recruit_units_trl))
 
         # generate new test path
+        nbins = 40
         n_trials_test = int(n_trials * .5)
         path_test = generate_path(n_trials_test, n_dims, seed=None)
         act_test = []
@@ -415,8 +419,19 @@ for c in c_vals:
         score_90.append(score_90_)
 
         print(score_60_)
-        t1 = time.time()
-        print(t1-t0)
+
+    df[c] = np.array(score_60)
+
+# save df
+# maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+
+# fname = os.path.join(maindir, 'spatial_batch_cvals_{}_{}'.format(params['k'], ))
+# df.to_pickle(fname)
+
+
+
+# load
+# df = pd.read_pickle(file_name)
 
 # %%
 
