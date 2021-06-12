@@ -328,13 +328,18 @@ attn_type = 'dimensional_local'
 n_units = 1000
 k = .01
 
+# batch params
+batch_size = n_trials * .01
+nbatch = int(n_trials // batch_size)
+
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
 c_vals = [1.2, 1.6, 2.]
 
 # annealed lr
 orig_lr = .2
-ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+# 1/ann_c*nbatch=nbatch: constant to calc 1/ann_decay
+ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # plt.plot(torch.tensor(lr))
@@ -369,9 +374,6 @@ for c in c_vals:
 
         # generate random walk
         path = generate_path(n_trials, n_dims, seed=shuffle_seeds[isim])
-
-        batch_size = n_trials * .01
-        nbatch = int(n_trials // batch_size)
 
         # train model
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
