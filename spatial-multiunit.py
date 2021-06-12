@@ -380,6 +380,9 @@ grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
                                          params['lr_attn'], n_sims))
     )
 
+# save seeds as well? df again?
+
+
 load = False
 if load:  # load and add to sims
     df_gscore = pd.read_pickle(fname1)
@@ -456,7 +459,7 @@ for c in c_vals:
         n_recruit.append(len(model.recruit_units_trl))
 
     df_gscore[c] = np.array(score_60)
-    df_recruit[c] = np.array(score_60)
+    df_recruit[c] = np.array(n_recruit)
 
 # save df
 if save_sims:
