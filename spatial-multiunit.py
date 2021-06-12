@@ -6,6 +6,7 @@ Created on Fri Jun 11 14:36:24 2021
 @author: robert.mok
 """
 
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -313,8 +314,9 @@ plt.show()
 # %% sims
 import time
 
-n_sims = 20
-shuffle_seeds = torch.randperm(n_sims)
+save_sims = True
+
+n_sims = 100
 
 # model spec
 n_dims = 2
@@ -335,6 +337,7 @@ nbatch = int(n_trials // batch_size)
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
 c_vals = [1.2, 1.6, 2.]
+c_vals = [1.2]
 
 # annealed lr
 orig_lr = .2
@@ -351,31 +354,65 @@ lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # ann_decay = ann_c * (n_trials * 20)
 # lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
-df = pd.DataFrame(columns=c_vals, index=range(n_sims))
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': [],  # low for smaller/more, high for larger/fewer fields
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': 0.1,  # lr_attn,
+    'lr_nn': .25,
+    'lr_clusters': lr,  # annealed
+    'lr_clusters_group': .2,
+    'k': k
+    }
+
+wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
+fname1 = (
+    os.path.join(wd, 'spatial_gridscore_batch_ann_cvals_{}units_k{}_startlr{}_\
+grouplr{}_attnlr{}_thresh.95.pkl'.format(n_units, params['k'], orig_lr,
+                                         params['lr_clusters_group'],
+                                         params['lr_attn']))
+    )
+fname2 = (
+    os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
+grouplr{}_attnlr{}_thresh.95.pkl'.format(n_units, params['k'], orig_lr,
+                                         params['lr_clusters_group'],
+                                         params['lr_attn']))
+    )
+
+load = False
+if load:  # load and add to sims
+    df_gridscore = pd.read_pickle(fname1)
+    df_recruit = pd.read_pickle(fname2)
+    
+    # add c_vals conditions to ech df
+    [df_gridscore.insert(len(df_gridscore.columns), i, pd.Series(np.zeros(len(df)),
+                                                       index=df.index))
+     for i in c_vals]
+    [df_recruit.insert(len(df_recruit.columns), i, pd.Series(np.zeros(len(df)),
+                                                     index=df.index))
+     for i in c_vals]
+
+else:  # new - will overwrite file if exists
+
+    df_gridscore = pd.DataFrame(columns=c_vals, index=range(n_sims))
+    df_recruit = pd.DataFrame(columns=c_vals, index=range(n_sims))
 
 # start
 for c in c_vals:
     score_60 = []
-    score_90 = []
+    n_recruit = []
+    shuffle_seeds = torch.randperm(n_sims)
 
     for isim in range(n_sims):
 
         t0 = time.time()
         print(isim)
 
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': c,  # low for smaller/more, high for larger/fewer fields
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1,  # response parameter, non-negative
-            'lr_attn': 0.,  # lr_attn,
-            'lr_nn': .25,
-            'lr_clusters': lr,  # annealed
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # params to change over loops
+        params['c'] = c
 
-        # generate random walk
+        # generate path
         path = generate_path(n_trials, n_dims, seed=shuffle_seeds[isim])
 
         # train model
@@ -416,22 +453,15 @@ for c in c_vals:
         score_60_, score_90_, _, _, sac = _compute_grid_scores(act_map_norm)
 
         score_60.append(score_60_)
-        score_90.append(score_90_)
+        n_recruit.append(len(model.recruit_units_trl))
 
-        print(score_60_)
-
-    df[c] = np.array(score_60)
+    df_gridscore[c] = np.array(score_60)
+    df_recruit[c] = np.array(score_60)
 
 # save df
-# maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-
-# fname = os.path.join(maindir, 'spatial_batch_cvals_{}_{}'.format(params['k'], ))
-# df.to_pickle(fname)
-
-
-
-# load
-# df = pd.read_pickle(file_name)
+if save_sims:
+    df_gridscore.to_pickle(fname1)
+    df_recruit.to_pickle(fname2)
 
 # %%
 
