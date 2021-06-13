@@ -311,7 +311,8 @@ print(score_60, score_90)
 plt.imshow(sac)
 plt.show()
 
-# %% sims
+# %% run sims
+
 import time
 
 save_sims = True
@@ -336,8 +337,9 @@ nbatch = int(n_trials // batch_size)
 
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
+# ran 1.2 (without saving seeds)
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.2]
+c_vals = [1.3]
 
 # annealed lr
 orig_lr = .2
@@ -370,42 +372,54 @@ wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 fname1 = (
     os.path.join(wd, 'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
 grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
-                                         params['lr_clusters_group'],
-                                         params['lr_attn'], n_sims))
+                                                params['lr_clusters_group'],
+                                                params['lr_attn'], n_sims))
     )
 fname2 = (
     os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
 grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
-                                         params['lr_clusters_group'],
-                                         params['lr_attn'], n_sims))
+                                                params['lr_clusters_group'],
+                                                params['lr_attn'], n_sims))
     )
 
-# save seeds as well? df again?
-
+fname3 = (
+    os.path.join(wd, 'spatial_seeds_batch_ann_cvals_{}units_k{}_startlr{}_\
+grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
+                                                params['lr_clusters_group'],
+                                                params['lr_attn'], n_sims))
+    )
 
 load = False
 if load:  # load and add to sims
     df_gscore = pd.read_pickle(fname1)
     df_recruit = pd.read_pickle(fname2)
-    
+    df_seeds = pd.read_pickle(fname3)
+
     # add c_vals conditions to ech df
-    [df_gscore.insert(len(df_gscore.columns), i, pd.Series(np.zeros(len(df)),
-                                                       index=df.index))
+    [df_gscore.insert(len(df_gscore.columns), i,
+                      pd.Series(np.zeros(len(df_gscore)),
+                                index=df_gscore.index))
      for i in c_vals]
-    [df_recruit.insert(len(df_recruit.columns), i, pd.Series(np.zeros(len(df)),
-                                                     index=df.index))
+    [df_recruit.insert(len(df_recruit.columns), i,
+                       pd.Series(np.zeros(len(df_recruit)),
+                                 index=df_recruit.index))
+     for i in c_vals]
+    [df_seeds.insert(len(df_seeds.columns), i,
+                     pd.Series(np.zeros(len(df_seeds)),
+                               index=df_seeds.index))
      for i in c_vals]
 
 else:  # new - will overwrite file if exists
 
     df_gscore = pd.DataFrame(columns=c_vals, index=range(n_sims))
     df_recruit = pd.DataFrame(columns=c_vals, index=range(n_sims))
+    df_seeds = pd.DataFrame(columns=c_vals, index=range(n_sims))
 
 # start
 for c in c_vals:
     score_60 = []
     n_recruit = []
-    shuffle_seeds = torch.randperm(n_sims)
+    shuffle_seeds = torch.randperm(n_sims*100)[:n_sims]
 
     for isim in range(n_sims):
 
@@ -460,11 +474,13 @@ for c in c_vals:
 
     df_gscore[c] = np.array(score_60)
     df_recruit[c] = np.array(n_recruit)
+    df_seeds[c] = np.array(shuffle_seeds)
 
 # save df
 if save_sims:
     df_gscore.to_pickle(fname1)
     df_recruit.to_pickle(fname2)
+    df_seeds.to_pickle(fname3)
 
 # %%
 
