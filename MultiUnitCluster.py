@@ -683,9 +683,25 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
     # return upd_pos, upd_attn  # if batch. actually don't need it, just upd.
 
 
-def train_unsupervised_simple(model, inputs, n_epochs):
+def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
     """ No recruitment, just upd closest units. Demonstrates double upd better
+
+    batch_upd : if not None, this is the batch number. input trials and batch
+    number each time you call train_unsupervised, it will update the mean
+    update for all trials
+
     """
+
+    upd_pos = torch.zeros(
+        model.n_units, len(inputs), inputs.shape[1]) * float('nan')
+    upd_attn = torch.zeros(model.n_dims, len(inputs))
+
+    if batch_upd is not None:
+        itrl = batch_upd * len(inputs)  # assuming same ntrials/batch
+        itrl_b = 0  # for upd arrays
+    else:
+        itrl = 0
+
     for epoch in range(n_epochs):
         for x in inputs:
             # find winners with largest activation - all connected
@@ -709,6 +725,11 @@ def train_unsupervised_simple(model, inputs, n_epochs):
             update = (
                 (x - model.units_pos[win_ind]) * model.params['lr_clusters'])
             model.units_pos[win_ind] += update
+            
+            if batch_upd is None:
+                model.units_pos[win_ind] += update
+            else:  # save update
+                upd_pos[win_ind, itrl_b] = update
 
             # - step 2 - winners update towards self
             winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
@@ -716,9 +737,15 @@ def train_unsupervised_simple(model, inputs, n_epochs):
                 (winner_mean - model.units_pos[win_ind])
                 * model.params['lr_clusters_group'])
             model.units_pos[win_ind] += update
+            if batch_upd is None:
+                model.units_pos[win_ind] += update
+                # save updated unit positions
+                model.units_pos_trace.append(
+                    model.units_pos.detach().clone())
+            else:  # add to the update
+            upd_pos[win_ind, itrl_b] += update
 
             # store positions over time
-            model.units_pos_trace.append(model.units_pos.detach().clone())
             model.fc1_act_trace.append(
                 act[model.winning_units].detach().clone())
 

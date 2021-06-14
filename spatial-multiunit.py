@@ -20,7 +20,8 @@ sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
 from scipy.ndimage.filters import gaussian_filter
 
-from MultiUnitCluster import (MultiUnitCluster, train_unsupervised)
+from MultiUnitCluster import (MultiUnitCluster, train_unsupervised,
+                              train_unsupervised_simple)
 
 
 # functions for spatial simulations, grid scores
@@ -204,9 +205,10 @@ for ibatch in range(nbatch):
     inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
                           dtype=torch.float32)
 
-    train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
+    # train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
+    train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
 
-    print(len(model.recruit_units_trl))
+    # print(len(model.recruit_units_trl))
 
 # %% plot
 
