@@ -491,9 +491,9 @@ for c in c_vals:
     # save per c value (else too big) - unit pos, acts, act map
     if save_sims:
         fname_pt = fname4 + '_c{}.pt'.format(c)
-        torch.save({"pos": model.units_pos_trace,
-                    "act_trace": model.fc1_act_trace,
-                    "act_map": act_map_norm},
+        torch.save({"pos": pos_trace,
+                    "act_trace": act_trace,
+                    "act_map": act_map_all},
                    fname_pt)
 # save df
 if save_sims:
