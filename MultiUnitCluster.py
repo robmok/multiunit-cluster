@@ -737,7 +737,7 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
             winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
             update = (
                 (winner_mean - model.units_pos[win_ind])
-                * model.params['lr_clusters_group'][itrl])
+                * model.params['lr_clusters_group'])
             
             # maybe rather than batch update the group - which will be just the mean of the unit
             # positions at the start of the batch - just batch update first one
