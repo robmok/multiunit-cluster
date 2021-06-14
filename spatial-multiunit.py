@@ -107,50 +107,17 @@ def _compute_act(dist, c, p):
 
 # %% unsupervised
 
-# spatial / unsupervised
-# looks like k is key for number of virtual clusters that come up. smaller k = more; larger k = fewer clusters 
-# lr_group has to be large-ish, else virtual clusters don't form (scattered).
-# lr_group has to be > lr_clusters, else virtual cluster don't form. but not too high else clusters go toward centre
-
-# - i think the learning rates might lead to more/less grid like patterns - check which matters more (can use banino's grid code)
-# - need reduction of lr over time?
-
-# To check
-# - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
-# looks like less later on though. maybe ok?
-
 n_dims = 2
 n_epochs = 1
-n_trials = 10000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
-# inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
-# shuffle_ind = torch.randperm(len(inputs))
-# inputs_ = inputs[shuffle_ind]
-
-# random walk
-# - https://towardsdatascience.com/random-walks-with-python-8420981bc4bc
-# step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
-step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
-origin = np.ones([1, n_dims]) * .5
-step_shape = (n_trials, n_dims)
-# steps = np.random.choice(a=step_set, size=step_shape)
-# path = np.concatenate([origin, steps]).cumsum(0)
-
-path = np.zeros([n_trials, n_dims])
-path[0] = np.around(np.random.rand(2), decimals=3)  # origin
-for itrial in range(1, n_trials):
-    step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
-    # only allow 0 < steps < 1
-    while (np.any(path[itrial-1] + step < 0)
-           or np.any(path[itrial-1] + step > 1)):
-        step = np.random.choice(a=step_set, size=n_dims)
-
-    path[itrial] = path[itrial-1] + step
-start = path[:1]
-stop = path[-1:]
+# generate path
+path = generate_path(n_trials, n_dims)
 
 # # Plot the path
+# start = path[:1]
+# stop = path[-1:]
 # fig = plt.figure(figsize=(8, 8), dpi=200)
 # ax = fig.add_subplot(111)
 # ax.scatter(path[:, 0], path[:, 1], c='blue', alpha=0.5, s=0.1)
@@ -165,7 +132,7 @@ k = .01
 
 # annealed lr
 orig_lr = .2
-ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_c = (1/n_trials)/n_trials # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 plt.plot(torch.tensor(lr))
@@ -314,32 +281,27 @@ plt.imshow(sac)
 plt.show()
 # %% unsupervised simple (no recruitment)
 
+"""
+#  k is key for number of virtual clusters that come up. smaller k = more; larger k = fewer clusters 
+# lr_group has to be large-ish, else virtual clusters don't form (scattered).
+# lr_group has to be > lr_clusters, else virtual cluster don't form. but not too high else clusters go toward centre
+
+# - i think the learning rates might lead to more/less grid like patterns - check which matters more (can use banino's grid code)
+# - need reduction of lr over time?
+"""
+# To check
+# - one thing i see from plotting over time is that clusters change sometimes change across virtual clusters. need lower lr?
+# looks like less later on though. maybe ok?
+
 n_dims = 2
 n_epochs = 1
 n_trials = 50000
 attn_type = 'dimensional_local'
 
-# random walk
-# - https://towardsdatascience.com/random-walks-with-python-8420981bc4bc
-# step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
-step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
-origin = np.ones([1, n_dims]) * .5
-step_shape = (n_trials, n_dims)
+# generate path
+path = generate_path(n_trials, n_dims)
 
-path = np.zeros([n_trials, n_dims])
-path[0] = np.around(np.random.rand(2), decimals=3)  # origin
-for itrial in range(1, n_trials):
-    step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
-    # only allow 0 < steps < 1
-    while (np.any(path[itrial-1] + step < 0)
-           or np.any(path[itrial-1] + step > 1)):
-        step = np.random.choice(a=step_set, size=n_dims)
-
-    path[itrial] = path[itrial-1] + step
-start = path[:1]
-stop = path[-1:]
-
-# random numbers
+# random numbers - not a path
 # path = np.around(np.random.rand(n_trials, n_dims), decimals=3)
 
 n_units = 2000
@@ -347,7 +309,7 @@ k = .1
 
 # annealed lr
 orig_lr = .2
-ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 
@@ -359,16 +321,13 @@ params = {
     'lr_attn': .0,
     'lr_nn': .25,
     'lr_clusters': lr,  # np.array(lr) * 0 + .25,
-    'lr_clusters_group': lr * 4, # .25,
+    'lr_clusters_group': .25,
     'k': k
     }
 
-# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
-# train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)
-
 # batch training
 # for batch, c needs to be higher or thresh lower
-batch_size = 1 # n_trials * .001
+batch_size = n_trials * .001  # 1  # if 1, means trial-wise
 nbatch = int(n_trials // batch_size)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
@@ -381,8 +340,6 @@ for ibatch in range(nbatch):
                           dtype=torch.float32)
 
     train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
-
-    # print(len(model.recruit_units_trl))
 
 
 results = torch.stack(model.units_pos_trace, dim=0)
@@ -397,18 +354,17 @@ ax.set_xlim([0, 1])
 ax.set_ylim([0, 1])
 plt.show()
 
-# over time
-plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
-                           dtype=torch.long)
+# # over time
+# plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
+#                            dtype=torch.long)
 
-for i in plot_trials[0:-1]:
+# for i in plot_trials[0:-1]:
 
-    plt.scatter(results[i, :, 0],
-                results[i, :, 1])
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.pause(.5)
-
+#     plt.scatter(results[i, :, 0],
+#                 results[i, :, 1])
+#     plt.xlim([-.05, 1.05])
+#     plt.ylim([-.05, 1.05])
+#     plt.pause(.5)
 
 # %% run sims
 
