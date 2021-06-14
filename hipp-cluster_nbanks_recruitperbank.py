@@ -829,7 +829,7 @@ plt.show()
 
 # %% SHJ
 
-niter = 20
+niter = 50
 
 n_banks = 2
 

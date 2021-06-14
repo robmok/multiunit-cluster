@@ -653,7 +653,8 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                     upd_pos[recruit_ind, itrl_b] += update
 
             # save acts - may want to have it separately for recruit and upd?
-            model.fc1_act_trace.append(act[model.winning_units])
+            model.fc1_act_trace.append(
+                act[model.winning_units].detach().clone())
             # model.winners_trace.append(model.units_pos[model.winning_units])
 
             itrl += 1
@@ -718,7 +719,8 @@ def train_unsupervised_simple(model, inputs, n_epochs):
 
             # store positions over time
             model.units_pos_trace.append(model.units_pos.detach().clone())
-            model.fc1_act_trace.append(act[model.winning_units])
+            model.fc1_act_trace.append(
+                act[model.winning_units].detach().clone())
 
 
 def _compute_dist(dim_dist, attn_w, r):

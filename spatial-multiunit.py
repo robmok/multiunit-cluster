@@ -313,8 +313,6 @@ plt.show()
 
 # %% run sims
 
-import time
-
 save_sims = True
 
 n_sims = 100
@@ -337,16 +335,16 @@ nbatch = int(n_trials // batch_size)
 
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
-# ran 1.2 (without saving seeds)
+# ran 1.3
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.3]
+c_vals = [1.2]  # re-run - save clus pos
 
 # annealed lr
 orig_lr = .2
 # 1/ann_c*nbatch=nbatch: constant to calc 1/ann_decay
 ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 100)  # 100
-lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+lr = [orig_lr / (1 + (ann_decay * i)) for i in range(n_trials)]
 # plt.plot(torch.tensor(lr))
 # plt.show()
 
@@ -354,11 +352,11 @@ lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 # ann_c = (1/n_trials)/n_trials
 # ann_decay = ann_c * (n_trials * 20)
-# lr_attn = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+# lr_attn = [orig_lr / (1 + (ann_decay * i)) for i in range(n_trials)]
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': [],  # low for smaller/more, high for larger/fewer fields
+    'c': [],  # define in loop below
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': 0.,  # lr_attn,
@@ -368,6 +366,7 @@ params = {
     'k': k
     }
 
+# dfs - gridscore, recruit n, seeds (in 1 df, load and save)
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 fname1 = (
     os.path.join(wd, 'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
@@ -381,16 +380,23 @@ grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
                                                 params['lr_clusters_group'],
                                                 params['lr_attn'], n_sims))
     )
-
 fname3 = (
     os.path.join(wd, 'spatial_seeds_batch_ann_cvals_{}units_k{}_startlr{}_\
 grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
                                                 params['lr_clusters_group'],
                                                 params['lr_attn'], n_sims))
     )
-
+# clus positions, activation map
+fname4 = (
+    os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr{}_\
+grouplr{}_attnlr{}_thresh.95_{}sims'.format(n_units, params['k'], orig_lr,
+                                                params['lr_clusters_group'],
+                                                params['lr_attn'], n_sims))
+    )
+    
+# load and add to sims (if True) or make new files (if False)
 load = False
-if load:  # load and add to sims
+if load:
     df_gscore = pd.read_pickle(fname1)
     df_recruit = pd.read_pickle(fname2)
     df_seeds = pd.read_pickle(fname3)
@@ -409,7 +415,7 @@ if load:  # load and add to sims
                                index=df_seeds.index))
      for i in c_vals]
 
-else:  # new - will overwrite file if exists
+else:  # new files - will overwrite files if exist
 
     df_gscore = pd.DataFrame(columns=c_vals, index=range(n_sims))
     df_recruit = pd.DataFrame(columns=c_vals, index=range(n_sims))
@@ -417,13 +423,15 @@ else:  # new - will overwrite file if exists
 
 # start
 for c in c_vals:
+    shuffle_seeds = torch.randperm(n_sims*100)[:n_sims]
     score_60 = []
     n_recruit = []
-    shuffle_seeds = torch.randperm(n_sims*100)[:n_sims]
+    pos_trace = []
+    act_trace = []
+    act_map_all = []
 
     for isim in range(n_sims):
 
-        t0 = time.time()
         print(isim)
 
         # params to change over loops
@@ -447,7 +455,7 @@ for c in c_vals:
 
         # generate new test path
         nbins = 40
-        n_trials_test = int(n_trials * .5)
+        n_trials_test = int(n_trials * .75)  # .5 ok, .75 - safe all covered
         path_test = generate_path(n_trials_test, n_dims, seed=None)
         act_test = []
         for itrial in range(n_trials_test):
@@ -469,19 +477,30 @@ for c in c_vals:
         # compute grid scores
         score_60_, score_90_, _, _, sac = _compute_grid_scores(act_map_norm)
 
+        # save stuff
         score_60.append(score_60_)
         n_recruit.append(len(model.recruit_units_trl))
+        pos_trace.append(model.units_pos_trace)
+        act_trace.append(model.fc1_act_trace)
+        act_map_all.append(act_map_norm)
 
     df_gscore[c] = np.array(score_60)
     df_recruit[c] = np.array(n_recruit)
     df_seeds[c] = np.array(shuffle_seeds)
 
+    # save per c value (else too big) - unit pos, acts, act map
+    if save_sims:
+        fname_pt = fname4 + '_c{}.pt'.format(c)
+        torch.save({"pos": model.units_pos_trace,
+                    "act_trace": model.fc1_act_trace,
+                    "act_map": act_map_norm},
+                   fname_pt)
 # save df
 if save_sims:
     df_gscore.to_pickle(fname1)
     df_recruit.to_pickle(fname2)
     df_seeds.to_pickle(fname3)
-
+    
 # %%
 
 # run for different learning rates for lr_clusters and lr_group
