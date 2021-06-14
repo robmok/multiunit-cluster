@@ -120,7 +120,7 @@ def _compute_act(dist, c, p):
 
 n_dims = 2
 n_epochs = 1
-n_trials = 50000
+n_trials = 10000
 attn_type = 'dimensional_local'
 
 # inputs = torch.rand([n_trials, n_dims], dtype=torch.float)
@@ -177,12 +177,12 @@ plt.show()
 #- with p=2 (gauss, may have slight lymore fields)
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.3,  # low for smaller/more fields, high for larger/fewer fields.
+    'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .1,
+    'lr_attn': .3,
     'lr_nn': .25,
-    'lr_clusters': lr,  # .01,
+    'lr_clusters':  lr,  # .01,
     'lr_clusters_group': .25,
     'k': k
     }
@@ -222,16 +222,16 @@ ax.set_xlim([0, 1])
 ax.set_ylim([0, 1])
 plt.show()
 
-# # over time
-# plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
-#                             dtype=torch.long)
+# over time
+plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
+                            dtype=torch.long)
 
-# for i in plot_trials[0:-1]:
-#     plt.scatter(results[i, model.active_units, 0],
-#                 results[i, model.active_units, 1])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
+for i in plot_trials[0:-1]:
+    plt.scatter(results[i, model.active_units, 0],
+                results[i, model.active_units, 1])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
 
 # grid computations
 
@@ -313,7 +313,7 @@ plt.show()
 
 # %% run sims
 
-save_sims = True
+save_sims = False
 
 n_sims = 100
 
@@ -427,7 +427,6 @@ for c in c_vals:
     score_60 = []
     n_recruit = []
     pos_trace = []
-    act_trace = []
     act_map_all = []
 
     for isim in range(n_sims):
@@ -481,18 +480,16 @@ for c in c_vals:
         score_60.append(score_60_)
         n_recruit.append(len(model.recruit_units_trl))
         pos_trace.append(model.units_pos_trace)
-        act_trace.append(model.fc1_act_trace)
         act_map_all.append(act_map_norm)
 
     df_gscore[c] = np.array(score_60)
     df_recruit[c] = np.array(n_recruit)
     df_seeds[c] = np.array(shuffle_seeds)
 
-    # save per c value (else too big) - unit pos, acts, act map
+    # save per c value (else too big) - unit pos, act map (no act_trace - huge)
     if save_sims:
         fname_pt = fname4 + '_c{}.pt'.format(c)
         torch.save({"pos": pos_trace,
-                    "act_trace": act_trace,
                     "act_map": act_map_all},
                    fname_pt)
 # save df
