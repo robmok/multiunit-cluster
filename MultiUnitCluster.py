@@ -694,7 +694,6 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
 
     upd_pos = torch.zeros(
         model.n_units, len(inputs), inputs.shape[1]) * float('nan')
-    upd_attn = torch.zeros(model.n_dims, len(inputs))
 
     if batch_upd is not None:
         itrl = batch_upd * len(inputs)  # assuming same ntrials/batch
@@ -704,6 +703,9 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
 
     for epoch in range(n_epochs):
         for x in inputs:
+            
+            # x = inputs[itrl_b]
+            
             # find winners with largest activation - all connected
             dim_dist = abs(x - model.units_pos)
             dist = _compute_dist(dim_dist, model.attn, model.params['r'])
@@ -723,9 +725,9 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
             # update units - double update rule
             # - step 1 - winners update towards input
             update = (
-                (x - model.units_pos[win_ind]) * model.params['lr_clusters'])
-            model.units_pos[win_ind] += update
-            
+                (x - model.units_pos[win_ind])
+                * model.params['lr_clusters'][itrl])
+
             if batch_upd is None:
                 model.units_pos[win_ind] += update
             else:  # save update
@@ -735,19 +737,40 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
             winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
             update = (
                 (winner_mean - model.units_pos[win_ind])
-                * model.params['lr_clusters_group'])
-            model.units_pos[win_ind] += update
+                * model.params['lr_clusters_group'][itrl])
+            
+            # maybe rather than batch update the group - which will be just the mean of the unit
+            # positions at the start of the batch - just batch update first one
+            
+            # for second update - could save which units won
+            # n times, then move them toward each other AFTER the batch update
+            # of 1st update..
+            # - but all update.. can't update toward mean - that's just centre.
+
+
             if batch_upd is None:
                 model.units_pos[win_ind] += update
                 # save updated unit positions
                 model.units_pos_trace.append(
                     model.units_pos.detach().clone())
             else:  # add to the update
-            upd_pos[win_ind, itrl_b] += update
+                upd_pos[win_ind, itrl_b] += update
 
             # store positions over time
             model.fc1_act_trace.append(
                 act[model.winning_units].detach().clone())
+
+            itrl += 1
+
+            if batch_upd is not None:
+                itrl_b += 1
+
+    if batch_upd is not None:
+        upd_pos_mean = np.nanmean(upd_pos, axis=1)
+        upd_pos_mean[np.isnan(upd_pos_mean)] = 0  # turns nans to 0
+        model.units_pos += upd_pos_mean
+        # save updated unit positions
+        model.units_pos_trace.append(model.units_pos.detach().clone())
 
 
 def _compute_dist(dim_dist, attn_w, r):

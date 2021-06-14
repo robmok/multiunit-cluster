@@ -312,6 +312,103 @@ print(score_60, score_90)
 # autocorrelogram
 plt.imshow(sac)
 plt.show()
+# %% unsupervised simple (no recruitment)
+
+n_dims = 2
+n_epochs = 1
+n_trials = 50000
+attn_type = 'dimensional_local'
+
+# random walk
+# - https://towardsdatascience.com/random-walks-with-python-8420981bc4bc
+# step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
+origin = np.ones([1, n_dims]) * .5
+step_shape = (n_trials, n_dims)
+
+path = np.zeros([n_trials, n_dims])
+path[0] = np.around(np.random.rand(2), decimals=3)  # origin
+for itrial in range(1, n_trials):
+    step = np.random.choice(a=step_set, size=n_dims)  # 1 trial at a time
+    # only allow 0 < steps < 1
+    while (np.any(path[itrial-1] + step < 0)
+           or np.any(path[itrial-1] + step > 1)):
+        step = np.random.choice(a=step_set, size=n_dims)
+
+    path[itrial] = path[itrial-1] + step
+start = path[:1]
+stop = path[-1:]
+
+# random numbers
+# path = np.around(np.random.rand(n_trials, n_dims), decimals=3)
+
+n_units = 2000
+k = .1
+
+# annealed lr
+orig_lr = .2
+ann_c = (1/n_trials)/n_trials; # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
+ann_decay = ann_c * (n_trials * 100)  # 100
+lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .0,
+    'lr_nn': .25,
+    'lr_clusters': lr,  # np.array(lr) * 0 + .25,
+    'lr_clusters_group': lr * 4, # .25,
+    'k': k
+    }
+
+# model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+# train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)
+
+# batch training
+# for batch, c needs to be higher or thresh lower
+batch_size = 1 # n_trials * .001
+nbatch = int(n_trials // batch_size)
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+
+for ibatch in range(nbatch):
+
+    batch_trials = [int(batch_size * (ibatch)),
+                    int((batch_size * ibatch) + batch_size)]
+    inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
+                          dtype=torch.float32)
+
+    train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
+
+    # print(len(model.recruit_units_trl))
+
+
+results = torch.stack(model.units_pos_trace, dim=0)
+
+# group
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111)
+ax.scatter(results[-1, :, 0], results[-1, :, 1])
+# ax.scatter(results[-1, model.active_units, 0],
+#             results[-1, model.active_units, 1])
+ax.set_xlim([0, 1])
+ax.set_ylim([0, 1])
+plt.show()
+
+# over time
+plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
+                           dtype=torch.long)
+
+for i in plot_trials[0:-1]:
+
+    plt.scatter(results[i, :, 0],
+                results[i, :, 1])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
+
 
 # %% run sims
 
