@@ -142,7 +142,7 @@ plt.show()
 # c=1.5 w thresh=.75 for 3 fields, 50k trials ann=100
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
-#- with p=2 (gauss, may have slight lymore fields)
+#- with p=2 (gauss, may have slightly more fields)
 params = {
     'r': 1,  # 1=city-block, 2=euclid
     'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.

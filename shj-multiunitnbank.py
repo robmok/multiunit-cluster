@@ -18,12 +18,12 @@ sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
 from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
+maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %%
 
 saveplots = 0
-maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
@@ -249,7 +249,9 @@ plt.show()
 
 # %% SHJ
 
-niter = 1
+saveplots = False
+
+niter = 50
 
 n_banks = 2
 
@@ -338,6 +340,14 @@ ax[2].plot(pt_all[:, :, 2].mean(axis=0).T)
 ax[2].set_ylim([0., .55])
 # ax[2].set_aspect(aspect)
 ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+
+if saveplots:
+    figname = (
+        os.path.join(figdir,
+                     'shj_nbanks{}_curves_k{}_{}units_{}sims.pdf'.format(
+                         n_banks, k, n_units, niter))
+    )
+    plt.savefig(figname)
 plt.show()
 
 # plt.plot(pt_all[:, :, 1].mean(axis=0).T)
@@ -347,6 +357,7 @@ plt.show()
 
 # %%
 
+saveplots = False
 # have to go through each iteration, since different ntrials if diff n recruit
 
 # for i in range(niter):
@@ -354,17 +365,25 @@ plt.show()
 
 i = 0
 problem = 5
+act = act_trace[problem][i]
 
 # output (pr / activations with phi)
 ylims = (0, 1)
 
-act = act_trace[problem][i]
-plt.plot(act[:, 1])
-plt.ylim(ylims)
-plt.show()
+fig, ax = plt.subplots(1, 2)
+ax[0].plot(act[:, 1])
+ax[0].set_title('type {}, c = {}'.format(problem+1, params['c'][0]))
+ax[0].set_ylim(ylims)
+ax[1].plot(act[:, 2])
+ax[1].set_title('type {}, c = {}'.format(problem+1, params['c'][1]))
+ax[1].set_ylim(ylims)
 
-plt.plot(act[:, 2])
-plt.ylim(ylims)
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'shj_nbanks{}_act_type{}_k{}_{}units.pdf'.format(
+            problem+1, n_banks, k, n_units))
+    )
+    plt.savefig(figname)
 plt.show()
 
 # change in activation magnitude over time
@@ -387,12 +406,19 @@ winsize = 16  # ntrials to compute running average
 t1 = sliding_window(act[:, 1, 0], winsize)  # just 1 of the outputs
 t2 = sliding_window(act[:, 2, 0], winsize)
 
-plt.plot(np.diff(t1))
-plt.ylim(ylims)
-plt.show()
-
-plt.plot(np.diff(t2))
-plt.ylim(ylims)
+fig, ax = plt.subplots(1, 2)
+ax[0].plot(np.diff(t1))
+ax[0].set_title('type {}, c = {}'.format(problem+1, params['c'][0]))
+ax[0].set_ylim(ylims)
+ax[1].plot(np.diff(t2))
+ax[1].set_title('type {}, c = {}'.format(problem+1, params['c'][1]))
+ax[1].set_ylim(ylims)
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'shj_nbanks{}_actdiff_type{}_k{}_{}units.pdf'.format(
+            problem+1, n_banks, k, n_units))
+    )
+    plt.savefig(figname)
 plt.show()
 
 
