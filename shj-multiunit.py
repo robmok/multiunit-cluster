@@ -17,6 +17,9 @@ sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
+maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
+
 # %%  SHJ single problem
 
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
@@ -137,13 +140,12 @@ params = {
 #     'p': 1,
 #     'phi': 1.5,
 #     'beta': 1.,
-#     'lr_attn': .002,
+#     'lr_attn': .005,
 #     'lr_nn': .025/lr_scale,
 #     'lr_clusters': .01,
 #     'lr_clusters_group': .1,
 #     'k': k
 #     }
-
 
 # lesioning
 lesions = None  # if no lesions
@@ -207,6 +209,8 @@ plt.show()
 
 # %% SHJ 6 problems
 
+saveplots = False
+
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
 
@@ -228,11 +232,11 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 1
+niter = 50
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
-
 w_trace = [[] for i in range(6)]
+attn_trace = [[] for i in range(6)]
 
 # run multiple iterations
 for i in range(niter):
@@ -348,51 +352,50 @@ for i in range(niter):
             'k': k
             }        
                 
-        # # v2
-        # # low c
-        # params = {
-        #     'r': 1,
-        #     'c': .75,
-        #     'p': 1,
-        #     'phi': 1.,
-        #     'beta': 1,
-        #     'lr_attn': .2,
-        #     'lr_nn': .1/lr_scale,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
+        # v2
+        # low c
+        params = {
+            'r': 1,
+            'c': .75,
+            'p': 1,
+            'phi': 1.,
+            'beta': 1,
+            'lr_attn': .2,
+            'lr_nn': .1/lr_scale,
+            'lr_clusters': .05,
+            'lr_clusters_group': .1,
+            'k': k
+            }
 
-        # # high c
-        # params = {
-        #     'r': 1,
-        #     'c': 2.5,
-        #     'p': 1,
-        #     'phi': 2.,
-        #     'beta': 1,
-        #     'lr_attn': .005,
-        #     'lr_nn': .002/lr_scale,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-    
+        # high c
+        params = {
+            'r': 1,
+            'c': 2.5,
+            'p': 1,
+            'phi': 2.,
+            'beta': 1,
+            'lr_attn': .005,
+            'lr_nn': .002/lr_scale,
+            'lr_clusters': .05,
+            'lr_clusters_group': .1,
+            'k': k
+            }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=False)
+            model, inputs, output, n_epochs, shuffle=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
-        
-        w_trace[problem].append(torch.stack(model.fc1_w_trace))
 
+        w_trace[problem].append(torch.stack(model.fc1_w_trace))
+        attn_trace[problem].append(torch.stack(model.attn_trace))
 
         print(model.recruit_units_trl)
-    
+
 plt.plot(pt_all.mean(axis=0).T)
 plt.ylim([0., 0.55])
-plt.gca().legend(('1','2','3','4','5','6'))
+plt.gca().legend(('1', '2', '3', '4', '5', '6'))
 plt.show()
 
 # the human data from nosofsky, et al. replication
@@ -411,15 +414,15 @@ shj = (
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
 
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj.T)
-ax[0].set_ylim([0., .55])
-ax[0].set_aspect(17)
-ax[1].plot(pt_all.mean(axis=0).T)
-ax[1].set_ylim([0., .55])
-ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-ax[1].set_aspect(17)
-plt.show()
+# fig, ax = plt.subplots(2, 1)
+# ax[0].plot(shj.T)
+# ax[0].set_ylim([0., .55])
+# ax[0].set_aspect(17)
+# ax[1].plot(pt_all.mean(axis=0).T)
+# ax[1].set_ylim([0., .55])
+# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+# ax[1].set_aspect(17)
+# plt.show()
 
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(shj.T, 'k')
@@ -428,9 +431,28 @@ plt.show()
 # ax.set_ylim([0., .55])
 # ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# plt.ylim([0.15, 0.45])
-# plt.show()
+# plot to compare with n banks
+plt.plot(pt_all.mean(axis=0).T)
+plt.title('c = {}'.format(params['c']))
+plt.ylim([0., .55])
+if saveplots:
+    figname = (
+        os.path.join(figdir,
+                     'shj_curves_c{}_k{}_{}units_{}sims.pdf'.format(
+                     params['c'], k, n_units, niter))
+    )
+    plt.savefig(figname)
+plt.show()
+
+# attn
+# i = 0  # sim number
+# for problem in range(6):
+#     attn = torch.stack(attn_trace[problem], dim=0)
+#     plt.plot(attn[i])
+#     plt.title('attn, type {}, c = {}'.format(problem+1, params['c']))
+#     plt.ylim([attn[i].min()-.01,
+#               attn[i].max()+.01])
+#     plt.show()
 
 # %% plotting weights to compare to nbank model
 

@@ -23,6 +23,9 @@ from scipy.ndimage.filters import gaussian_filter
 from MultiUnitCluster import (MultiUnitCluster, train_unsupervised,
                               train_unsupervised_simple)
 
+maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
+
 
 # functions for spatial simulations, grid scores
 def generate_path(n_trials, n_dims, seed=None):
@@ -552,7 +555,63 @@ if save_sims:
     df_gscore.to_pickle(fname1)
     df_recruit.to_pickle(fname2)
     df_seeds.to_pickle(fname3)
+
+# %%
+
+saveplots = False
+
+# load dfs
+df_gscore = pd.read_pickle(fname1)
+df_recruit = pd.read_pickle(fname2)
+df_seeds = pd.read_pickle(fname3)
+
+# load actmap for specific c values
+c = 1.2
+fname_pt = fname4 + '_c{}.pt'.format(c)
+f = torch.load(fname_pt)
+act_maps = f['act_map']
+
+
+df_gscore.hist(bins=20)
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_gscore_hist_{}units_k{}_startlr{}_grouplr{}_thresh.95.pdf'.format(
+            n_units, k, orig_lr, params['lr_clusters_group']))
+    )
+    plt.savefig(figname)
+plt.show()
+
+df_recruit.hist()
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_recruit_hist_{}units_k{}_startlr{}_grouplr{}_thresh.95.pdf'.format(
+            n_units, k, orig_lr, params['lr_clusters_group']))
+    )
+    plt.savefig(figname)
+plt.show()
+
+
+# act_map and autocorrelogram
+isim = 0
+
+_, _, _, _, sac = _compute_grid_scores(act_map_all[isim])
+
+
+fig, ax = plt.subplots(1, 2)
+ax[0].imshow(act_map_all[isim])
+ax[0].set_title('c = {}'.format(c))
+ax[1].imshow(sac)
+ax[1].set_title('g = {}'.format(np.around(df_gscore[c][isim], decimals=3)))
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_actmap_xcorr_c{}_{}units_k{}_startlr{}_grouplr{}_thresh.95_sim{}.pdf'.format(
+            c, n_units, k, orig_lr, params['lr_clusters_group'], isim))
+    )
+    plt.savefig(figname)
+plt.show()
     
+    
+
 # %%
 
 # run for different learning rates for lr_clusters and lr_group

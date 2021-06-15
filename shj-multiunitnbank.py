@@ -268,6 +268,7 @@ lr_scale = (n_units * k)
 # fc1 ws - list since diff ntrials (since it appends when recruit & upd)
 w_trace = [[] for i in range(6)]
 act_trace = [[] for i in range(6)]
+attn_trace = [[] for i in range(6)]
 
 # run multiple iterations
 for i in range(niter):
@@ -323,6 +324,7 @@ for i in range(niter):
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
         act_trace[problem].append(torch.stack(model.fc1_act_trace))
+        attn_trace[problem].append(torch.stack(model.attn_trace))
 
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
@@ -344,8 +346,8 @@ ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
 if saveplots:
     figname = (
         os.path.join(figdir,
-                     'shj_nbanks{}_curves_k{}_{}units_{}sims.pdf'.format(
-                         n_banks, k, n_units, niter))
+                      'shj_nbanks{}_curves_k{}_{}units_{}sims.pdf'.format(
+                          n_banks, k, n_units, niter))
     )
     plt.savefig(figname)
 plt.show()
@@ -354,6 +356,55 @@ plt.show()
 # plt.ylim([0., .55])
 # plt.plot(pt_all[:, :, 2].mean(axis=0).T)
 # plt.ylim([0., .55])
+
+# plot single to compare with single bank
+# bank 1
+plt.plot(pt_all[:, :, 1].mean(axis=0).T)
+plt.title('c = {}'.format(params['c'][0]))
+plt.ylim([0., .55])
+if saveplots:
+    figname = (
+        os.path.join(figdir,
+                     'shj_nbanks{}_curves_sep_b1_c{}_k{}_{}units_{}sims.pdf'.format(
+                     n_banks, params['c'][0], k, n_units, niter))
+    )
+    plt.savefig(figname)
+plt.show()
+# bank 2
+plt.plot(pt_all[:, :, 2].mean(axis=0).T)
+plt.ylim([0., .55])
+plt.title('c = {}'.format(params['c'][1]))
+if saveplots:
+    figname = (
+        os.path.join(figdir,
+                     'shj_nbanks{}_curves_sep_b2_k{}_{}units_{}sims.pdf'.format(
+                     n_banks, params['c'][1], k, n_units, niter))
+    )
+    plt.savefig(figname)
+plt.show()
+
+# attention weights
+# - can't mean for some problems, so sim by sim
+i = 0  # sim number
+for problem in range(6):
+    attn = attn_trace[problem][i]
+    fig, ax = plt.subplots(1, 2)
+    ax[0].plot(attn[:, :, 0])
+    ax[0].set_title('attn, type {}, c = {}'.format(problem+1, params['c'][0]))
+    ax[0].set_ylim([attn.min()-.01,
+                    attn.max()+.01])
+    ax[1].plot(attn[:, :, 1])
+    ax[1].set_title('attn, type {}, c = {}'.format(problem+1, params['c'][1]))
+    ax[1].set_ylim([attn.min()-.01,
+                    attn.max()+.01])
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                         'shj_nbanks{}_attn_type{}_k{}_{}units.pdf'.format(
+                             n_banks, problem+1, k, n_units))
+        )
+        plt.savefig(figname)
+    plt.show()
 
 # %%
 
