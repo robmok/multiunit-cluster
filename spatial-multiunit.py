@@ -109,7 +109,7 @@ def _compute_act(dist, c, p):
 
 n_dims = 2
 n_epochs = 1
-n_trials = 50000
+n_trials = 20000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -145,7 +145,7 @@ plt.show()
 #- with p=2 (gauss, may have slightly more fields)
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.
+    'c': 1.5,  # low for smaller/more fields, high for larger/fewer fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .3,
@@ -172,10 +172,10 @@ for ibatch in range(nbatch):
     inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
                           dtype=torch.float32)
 
-    # train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
-    train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
+    train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
+    # train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
 
-    # print(len(model.recruit_units_trl))
+    print(len(model.recruit_units_trl))
 
 # %% plot
 
@@ -368,7 +368,7 @@ plt.show()
 
 # %% run sims
 
-save_sims = False
+save_sims = True
 
 n_sims = 100
 
@@ -392,7 +392,7 @@ nbatch = int(n_trials // batch_size)
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
 # ran 1.3
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.2]  # re-run - save clus pos
+c_vals = [1.4, 1.5]
 
 # annealed lr
 orig_lr = .2
@@ -445,12 +445,12 @@ grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
 fname4 = (
     os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr{}_\
 grouplr{}_attnlr{}_thresh.95_{}sims'.format(n_units, params['k'], orig_lr,
-                                                params['lr_clusters_group'],
-                                                params['lr_attn'], n_sims))
+                                            params['lr_clusters_group'],
+                                            params['lr_attn'], n_sims))
     )
-    
+
 # load and add to sims (if True) or make new files (if False)
-load = False
+load = True
 if load:
     df_gscore = pd.read_pickle(fname1)
     df_recruit = pd.read_pickle(fname2)
