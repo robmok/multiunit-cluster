@@ -383,56 +383,6 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# attention weights
-# - can't mean for some problems, so sim by sim
-i = 0  # sim number
-for problem in range(6):
-    attn = attn_trace[problem][i]
-    fig, ax = plt.subplots(1, 2)
-    ax[0].plot(attn[:, :, 0])
-    ax[0].set_title('attn, type {}, c = {}'.format(problem+1, params['c'][0]))
-    ax[0].set_ylim([attn.min()-.01,
-                    attn.max()+.01])
-    ax[1].plot(attn[:, :, 1])
-    ax[1].set_title('attn, type {}, c = {}'.format(problem+1, params['c'][1]))
-    ax[1].set_ylim([attn.min()-.01,
-                    attn.max()+.01])
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                          'shj_nbanks{}_attn_type{}_k{}_{}units.pdf'.format(
-                              n_banks, problem+1, k, n_units))
-        )
-        plt.savefig(figname)
-    plt.show()
-
-    # plot separately to compare to single bank
-    plt.plot(attn[:, :, 0])
-    plt.title('attn, type {}, c = {}'.format(problem+1, params['c'][0]))
-    plt.ylim([attn.min()-.01,
-              attn.max()+.01])
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                          'shj_nbanks{}_attn_sep_type{}_c{}_k{}_{}units.pdf'.format(
-                              n_banks, problem+1, params['c'][0], k, n_units))
-        )
-        plt.savefig(figname)    
-    plt.show()
-
-    plt.plot(attn[:, :, 1])
-    plt.title('attn, type {}, c = {}'.format(problem+1, params['c'][1]))
-    plt.ylim([attn.min()-.01,
-              attn.max()+.01])
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                          'shj_nbanks{}_attn_sep_type{}_c{}_k{}_{}units.pdf'.format(
-                              n_banks, problem+1, params['c'][1], k, n_units))
-        )
-        plt.savefig(figname)
-    plt.show()
-
 
 # %%
 

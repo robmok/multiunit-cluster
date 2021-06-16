@@ -431,35 +431,6 @@ shj = (
 # ax.set_ylim([0., .55])
 # ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
-# plot to compare with n banks
-plt.plot(pt_all.mean(axis=0).T)
-plt.title('c = {}'.format(params['c']))
-plt.ylim([0., .55])
-if saveplots:
-    figname = (
-        os.path.join(figdir,
-                     'shj_curves_c{}_k{}_{}units_{}sims.pdf'.format(
-                     params['c'], k, n_units, niter))
-    )
-    plt.savefig(figname)
-plt.show()
-
-# attn
-i = 0  # sim number
-for problem in range(6):
-    attn = attn_trace[problem][i]
-    plt.plot(attn)
-    plt.title('attn, type {}, c = {}'.format(problem+1, params['c']))
-    plt.ylim([attn.min()-.01,
-              attn.max()+.01])
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                         'shj_attn_type{}_c{}_k{}_{}units.pdf'.format(
-                             problem+1, params['c'], k, n_units))
-        )
-        plt.savefig(figname)
-    plt.show()
 # %% plotting weights to compare to nbank model
 
 # i = 0
