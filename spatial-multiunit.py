@@ -179,7 +179,6 @@ for ibatch in range(nbatch):
                           dtype=torch.float32)
 
     train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
-    # train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
 
     print(len(model.recruit_units_trl))
 
@@ -308,16 +307,17 @@ attn_type = 'dimensional_local'
 path = generate_path(n_trials, n_dims)
 
 # random numbers - not a path
-# path = np.around(np.random.rand(n_trials, n_dims), decimals=3)
+path = torch.tensor(np.around(np.random.rand(n_trials, n_dims), decimals=3))
 
-n_units = 2000
-k = .01
+n_units = 1000
+k = .05
 
 # annealed lr
 orig_lr = .2
 ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
+plt.plot(lr)
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -326,26 +326,14 @@ params = {
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .0,
     'lr_nn': .25,
-    'lr_clusters': np.array(lr) * 0 + .15,
-    'lr_clusters_group': .5,
+    'lr_clusters': lr,  # np.array(lr) * 0 + .01,
+    'lr_clusters_group': .85,
     'k': k
     }
-
-# batch training
-# batch_size = n_trials * .001  # 1  # if 1, means trial-wise
-# nbatch = int(n_trials // batch_size)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
 train_unsupervised_simple(model, path, n_epochs)
-
-# for ibatch in range(nbatch):
-#     batch_trials = [int(batch_size * (ibatch)),
-#                     int((batch_size * ibatch) + batch_size)]
-#     inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
-#                           dtype=torch.float32)
-
-#     train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -360,7 +348,7 @@ ax.set_ylim([0, 1])
 plt.show()
 
 # over time
-plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
+plot_trials = torch.tensor(torch.linspace(0, n_trials, 10),
                             dtype=torch.long)
 
 for i in plot_trials[0:-1]:
@@ -370,6 +358,47 @@ for i in plot_trials[0:-1]:
     plt.xlim([-.05, 1.05])
     plt.ylim([-.05, 1.05])
     plt.pause(.5)
+
+
+n_trials_test = int(n_trials * .5)
+# path_test = generate_path(n_trials_test, n_dims, seed=None)
+path_test = torch.tensor(
+    np.around(np.random.rand(n_trials_test, n_dims), decimals=3))
+
+# get act
+nbins = 40
+act_test = []
+for itrial in range(n_trials_test):
+    if np.mod(itrial, 1000) == 0:
+        print(itrial)
+    dim_dist = abs(path_test[itrial] - model.units_pos)
+    dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+    act = _compute_act(dist, model.params['c'], model.params['p'])
+    # act[~model.active_units] = 0  # not connected, no act
+    _, win_ind = torch.topk(act,
+                            int(model.n_units * model.params['k']))
+    act_test.append(act[win_ind].sum().detach())
+act_map = _compute_activation_map(
+    path_test, torch.tensor(act_test), nbins, statistic='sum')
+norm_mat = normalise_act_map(nbins, act_map.binnumber)
+
+# plot normalized act_map
+ind = np.nonzero(norm_mat)
+act_map_norm = act_map.statistic.copy()
+act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+plt.imshow(act_map_norm,
+            vmin=np.percentile(act_map_norm, 1),
+            vmax=np.percentile(act_map_norm, 99))
+plt.show()
+
+# compute grid scores
+score_60, score_90, _, _, sac = _compute_grid_scores(act_map_norm)
+
+print(score_60, score_90)
+
+# autocorrelogram
+plt.imshow(sac)
+plt.show()
 
 # %% run sims
 
