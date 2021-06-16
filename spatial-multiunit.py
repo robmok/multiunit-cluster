@@ -146,9 +146,12 @@ plt.show()
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
 #- with p=2 (gauss, may have slightly more fields)
+
+# new thresh
+
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.5,  # low for smaller/more fields, high for larger/fewer fields.
+    'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .3,
@@ -298,7 +301,7 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 50000
+n_trials = 100000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -308,7 +311,7 @@ path = generate_path(n_trials, n_dims)
 # path = np.around(np.random.rand(n_trials, n_dims), decimals=3)
 
 n_units = 2000
-k = .1
+k = .01
 
 # annealed lr
 orig_lr = .2
@@ -323,27 +326,26 @@ params = {
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .0,
     'lr_nn': .25,
-    'lr_clusters': lr,  # np.array(lr) * 0 + .25,
-    'lr_clusters_group': .25,
+    'lr_clusters': np.array(lr) * 0 + .15,
+    'lr_clusters_group': .5,
     'k': k
     }
 
 # batch training
-# for batch, c needs to be higher or thresh lower
-batch_size = n_trials * .001  # 1  # if 1, means trial-wise
-nbatch = int(n_trials // batch_size)
+# batch_size = n_trials * .001  # 1  # if 1, means trial-wise
+# nbatch = int(n_trials // batch_size)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
-for ibatch in range(nbatch):
+train_unsupervised_simple(model, path, n_epochs)
 
-    batch_trials = [int(batch_size * (ibatch)),
-                    int((batch_size * ibatch) + batch_size)]
-    inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
-                          dtype=torch.float32)
+# for ibatch in range(nbatch):
+#     batch_trials = [int(batch_size * (ibatch)),
+#                     int((batch_size * ibatch) + batch_size)]
+#     inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
+#                           dtype=torch.float32)
 
-    train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
-
+#     train_unsupervised_simple(model, inputs, n_epochs, batch_upd=ibatch)
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -357,17 +359,17 @@ ax.set_xlim([0, 1])
 ax.set_ylim([0, 1])
 plt.show()
 
-# # over time
-# plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
-#                            dtype=torch.long)
+# over time
+plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
+                            dtype=torch.long)
 
-# for i in plot_trials[0:-1]:
+for i in plot_trials[0:-1]:
 
-#     plt.scatter(results[i, :, 0],
-#                 results[i, :, 1])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
+    plt.scatter(results[i, :, 0],
+                results[i, :, 1])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
 
 # %% run sims
 

@@ -400,11 +400,39 @@ for problem in range(6):
     if saveplots:
         figname = (
             os.path.join(figdir,
-                         'shj_nbanks{}_attn_type{}_k{}_{}units.pdf'.format(
-                             n_banks, problem+1, k, n_units))
+                          'shj_nbanks{}_attn_type{}_k{}_{}units.pdf'.format(
+                              n_banks, problem+1, k, n_units))
         )
         plt.savefig(figname)
     plt.show()
+
+    # plot separately to compare to single bank
+    plt.plot(attn[:, :, 0])
+    plt.title('attn, type {}, c = {}'.format(problem+1, params['c'][0]))
+    plt.ylim([attn.min()-.01,
+              attn.max()+.01])
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                          'shj_nbanks{}_attn_sep_type{}_c{}_k{}_{}units.pdf'.format(
+                              n_banks, problem+1, params['c'][0], k, n_units))
+        )
+        plt.savefig(figname)    
+    plt.show()
+
+    plt.plot(attn[:, :, 1])
+    plt.title('attn, type {}, c = {}'.format(problem+1, params['c'][1]))
+    plt.ylim([attn.min()-.01,
+              attn.max()+.01])
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                          'shj_nbanks{}_attn_sep_type{}_c{}_k{}_{}units.pdf'.format(
+                              n_banks, problem+1, params['c'][1], k, n_units))
+        )
+        plt.savefig(figname)
+    plt.show()
+
 
 # %%
 
@@ -474,34 +502,52 @@ plt.show()
 
 
 # weights
-w = w_trace[problem][i]
+for problem in range(6):
+    w = w_trace[problem][i]
+    
+    # ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+    ylims = (-.06, .06)
+    
+    w0 = w[:, :, model.bmask[0]]
+    w0 = torch.reshape(w0, (w0.shape[0], w0.shape[1] * w0.shape[2]))
+    plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+    plt.ylim(ylims)
+    plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c'][0]))
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                          'shj_nbanks{}_assocw_sep_type{}_c{}_k{}_{}units.pdf'.format(
+                              n_banks, problem+1, params['c'][0], k, n_units))
+        )
+        plt.savefig(figname)
+    plt.show()
+    
+    w1 = w[:, :, model.bmask[1]]
+    w1 = torch.reshape(w1, (w1.shape[0], w1.shape[1] * w1.shape[2]))
+    plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
+    plt.ylim(ylims)
+    plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c'][1]))
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                          'shj_nbanks{}_assocw_sep_type{}_c{}_k{}_{}units.pdf'.format(
+                              n_banks, problem+1, params['c'][1], k, n_units))
+        )
+        plt.savefig(figname)
+    plt.show()
 
-# ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
-ylims = (-.06, .06)
 
-w0 = w[:, :, model.bmask[0]]
-w0 = torch.reshape(w0, (w0.shape[0], w0.shape[1] * w0.shape[2]))
-plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
-plt.ylim(ylims)
-plt.show()
+# # weight change over time
+# winsize = 16  # ntrials to compute running average
 
-w1 = w[:, :, model.bmask[1]]
-w1 = torch.reshape(w1, (w1.shape[0], w1.shape[1] * w1.shape[2]))
-plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
-plt.ylim(ylims)
-plt.show()
+# t1 = sliding_window(torch.sum(w0.abs(), dim=1), winsize)
+# t2 = sliding_window(torch.sum(w1.abs(), dim=1), winsize)
 
-# weight change over time
-winsize = 16  # ntrials to compute running average
+# ylims = (0, torch.max(torch.tensor([np.diff(t1), np.diff(t2)])) + .01)
 
-t1 = sliding_window(torch.sum(w0.abs(), dim=1), winsize)
-t2 = sliding_window(torch.sum(w1.abs(), dim=1), winsize)
-
-ylims = (0, torch.max(torch.tensor([np.diff(t1), np.diff(t2)])) + .01)
-
-plt.plot(np.diff(t1))
-plt.ylim(ylims)
-plt.show()
-plt.plot(np.diff(t2))
-plt.ylim(ylims)
-plt.show()
+# plt.plot(np.diff(t1))
+# plt.ylim(ylims)
+# plt.show()
+# plt.plot(np.diff(t2))
+# plt.ylim(ylims)
+# plt.show()

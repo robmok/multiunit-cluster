@@ -232,7 +232,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 50
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -445,30 +445,44 @@ if saveplots:
 plt.show()
 
 # attn
-# i = 0  # sim number
-# for problem in range(6):
-#     attn = torch.stack(attn_trace[problem], dim=0)
-#     plt.plot(attn[i])
-#     plt.title('attn, type {}, c = {}'.format(problem+1, params['c']))
-#     plt.ylim([attn[i].min()-.01,
-#               attn[i].max()+.01])
-#     plt.show()
-
+i = 0  # sim number
+for problem in range(6):
+    attn = attn_trace[problem][i]
+    plt.plot(attn)
+    plt.title('attn, type {}, c = {}'.format(problem+1, params['c']))
+    plt.ylim([attn.min()-.01,
+              attn.max()+.01])
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                         'shj_attn_type{}_c{}_k{}_{}units.pdf'.format(
+                             problem+1, params['c'], k, n_units))
+        )
+        plt.savefig(figname)
+    plt.show()
 # %% plotting weights to compare to nbank model
 
-i = 0
-problem = 5
-
-w = w_trace[problem][i]
+# i = 0
+# problem = 5
 
 # ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
 ylims = (-.06, .06)
 
-w0 = torch.reshape(w, (w.shape[0], w.shape[1] * w.shape[2]))
+for problem in range(6):
+    w = w_trace[problem][i]
+    w0 = torch.reshape(w, (w.shape[0], w.shape[1] * w.shape[2]))
+    plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+    plt.ylim(ylims)
+    plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c']))
+    if saveplots:
+        figname = (
+            os.path.join(figdir,
+                         'shj_assocw_type{}_c{}_k{}_{}units.pdf'.format(
+                             problem+1, params['c'], k, n_units))
+        )
+        plt.savefig(figname)
+    plt.show()
 
-plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
-plt.ylim(ylims)
-plt.show()
 
 # %% lesioning experiments
 
