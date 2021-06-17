@@ -141,17 +141,12 @@ lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 plt.plot(torch.tensor(lr))
 plt.show()
 
-# c=1.4 w thresh=.95 for 7 fields, 50k trials ann=100
-# c=1.5 w thresh=.75 for 3 fields, 50k trials ann=100
-# thresh=.9
-# - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
-#- with p=2 (gauss, may have slightly more fields)
 
-# new thresh
+# fixed thresh
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.
+    'c': 1.2,  # low for larger/fewer fields, high for smaller/more fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .3,
@@ -300,7 +295,7 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 100000
+n_trials = 500000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -309,11 +304,23 @@ path = generate_path(n_trials, n_dims)
 # random numbers - not a path
 path = torch.tensor(np.around(np.random.rand(n_trials, n_dims), decimals=3))
 
+
+# n_units=1k, k=.05, orig_lr=.2, group=.85 works (20 clusters)
+# n_units=1k, k=.1/.2, orig_lr=.1, group=.65/85 works (10 clusters), 10k trials
+# - when k>.13 not working.. group needs to be >.9, lr_clus needs to be tiny.
+# e.g. k=.15, orig_lr=.005 looks ok. potential prob - need diff lrs for different ks?
+
+# try smaller k with lower lrs - might work; just more trials
+# - yep k=.1 still ok w orig_lr=.005. - needs 50k trials now. (20 not enough)
+# - as with k=.15, seems like clusters are more central, then expands out
+# I guess this is coz the 2nd update pulls them in, then later when virtual
+# clusters form, the 1st lr over takes
+
 n_units = 1000
-k = .05
+k = .1
 
 # annealed lr
-orig_lr = .2
+orig_lr = .005
 ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
@@ -321,13 +328,13 @@ plt.plot(lr)
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.2,  # low for smaller/more fields, high for larger/fewer fields.
+    'c': 1.2,
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .0,
     'lr_nn': .25,
-    'lr_clusters': lr,  # np.array(lr) * 0 + .01,
-    'lr_clusters_group': .85,
+    'lr_clusters': lr,  # np.array(lr) * 0 + .001,
+    'lr_clusters_group': .95,
     'k': k
     }
 
@@ -360,10 +367,10 @@ for i in plot_trials[0:-1]:
     plt.pause(.5)
 
 
-n_trials_test = int(n_trials * .5)
-# path_test = generate_path(n_trials_test, n_dims, seed=None)
-path_test = torch.tensor(
-    np.around(np.random.rand(n_trials_test, n_dims), decimals=3))
+# n_trials_test = int(n_trials * .5)
+# # path_test = generate_path(n_trials_test, n_dims, seed=None)
+# path_test = torch.tensor(
+#     np.around(np.random.rand(n_trials_test, n_dims), decimals=3))
 
 # get act
 nbins = 40
@@ -424,7 +431,9 @@ nbatch = int(n_trials // batch_size)
 
 # thresh=.9
 # - c=2/2.5, 3 fields. c=1.3-1.7, 4-7 fields. c=1.2, 9-10. c=1, 30+
-# ran 1.3
+
+# re-run with new thresh
+
 c_vals = [1.2, 1.6, 2.]
 c_vals = [1.4, 1.5]
 
