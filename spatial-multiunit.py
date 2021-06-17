@@ -316,8 +316,10 @@ path = torch.tensor(np.around(np.random.rand(n_trials, n_dims), decimals=3))
 # I guess this is coz the 2nd update pulls them in, then later when virtual
 # clusters form, the 1st lr over takes
 
+# - ok now 50k trials doens't work for k=.15. too much learning at the start now?
+
 n_units = 1000
-k = .1
+k = .15
 
 # annealed lr
 orig_lr = .005
