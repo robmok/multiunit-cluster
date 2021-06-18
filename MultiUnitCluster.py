@@ -522,61 +522,62 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 pass
             else:
 
-                # update attention - still needs testing
-                win_ind = model.winning_units
-                lose_ind = (model.winning_units == 0) & model.active_units
+                # update attention
+                if model.params['lr_attn'] > 0:
+                    win_ind = model.winning_units
+                    lose_ind = (model.winning_units == 0) & model.active_units
 
-                act_1 = (
-                    torch.sum(
-                        _compute_act(
-                            _compute_dist(
-                                abs(x - model.units_pos[win_ind]),
-                                model.attn, model.params['r']),
-                            model.params['c'], model.params['p']))
+                    act_1 = (
+                        torch.sum(
+                            _compute_act(
+                                _compute_dist(
+                                    abs(x - model.units_pos[win_ind]),
+                                    model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
 
-                    - torch.sum(
-                        _compute_act(
-                            _compute_dist(
-                                abs(x - model.units_pos[lose_ind]),
-                                model.attn, model.params['r']),
-                            model.params['c'], model.params['p']))
-                    )
-
-                # compute gradient
-                act_1.backward(retain_graph=True)
-
-                if batch_upd is None:
-                    # divide grad by n active units (scales to any n_units)
-                    model.attn.data += (
-                        model.params['lr_attn']  # [itrl]  # when annealing
-                        * (model.attn.grad / model.n_units))
-
-                    # ensure attention are non-negative
-                    model.attn.data = torch.clamp(model.attn.data, min=0.)
-                    # sum attention weights to 1
-                    model.attn.data = (
-                        model.attn.data / torch.sum(model.attn.data)
+                        - torch.sum(
+                            _compute_act(
+                                _compute_dist(
+                                    abs(x - model.units_pos[lose_ind]),
+                                    model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
                         )
-                    # save updated attn ws
-                    model.attn_trace.append(model.attn.detach().clone())
 
-                else:  # batch - save the update
-                    # - save the update then mean then normalise?
-                    # - or get the update, normalize attn by when it would be,
-                    # and subtract that - save that as the update
-                    # ... not sure if it's the same - try both
+                    # compute gradient
+                    act_1.backward(retain_graph=True)
 
-                    # save gradient
-                    upd_attn[:, itrl_b] = (model.params['lr_attn'] # [itrl]  # when annealing
-                                           * (model.attn.grad / model.n_units))
+                    if batch_upd is None:
+                        # divide grad by n active units (scales to any n_units)
+                        model.attn.data += (
+                            model.params['lr_attn']  # [itrl]  # when annealing
+                            * (model.attn.grad / model.n_units))
 
-                    # # OR add grad, norm then subtract to get the norm'd upd
-                    # attn_tmp = model.attn.data + (model.params['lr_attn'] # [itrl]  # when annealing
-                    #                               * (model.attn.grad /
-                    #                                  model.n_units))
-                    # attn_tmp = torch.clamp(attn_tmp, min=0.)
-                    # attn_tmp = attn_tmp / torch.sum(attn_tmp)
-                    # upd_attn[:, itrl_b] = attn_tmp - model.attn.data
+                        # ensure attention are non-negative
+                        model.attn.data = torch.clamp(model.attn.data, min=0.)
+                        # sum attention weights to 1
+                        model.attn.data = (
+                            model.attn.data / torch.sum(model.attn.data)
+                            )
+                        # save updated attn ws
+                        model.attn_trace.append(model.attn.detach().clone())
+
+                    else:  # batch - save the update
+                        # - save the update then mean then normalise?
+                        # - or get the update, normalize attn by when it would be,
+                        # and subtract that - save that as the update
+                        # ... not sure if it's the same - try both
+
+                        # save gradient
+                        upd_attn[:, itrl_b] = (model.params['lr_attn'] # [itrl]  # when annealing
+                                               * (model.attn.grad / model.n_units))
+
+                        # # OR add grad, norm then subtract to get the norm'd upd
+                        # attn_tmp = model.attn.data + (model.params['lr_attn'] # [itrl]  # when annealing
+                        #                               * (model.attn.grad /
+                        #                                  model.n_units))
+                        # attn_tmp = torch.clamp(attn_tmp, min=0.)
+                        # attn_tmp = attn_tmp / torch.sum(attn_tmp)
+                        # upd_attn[:, itrl_b] = attn_tmp - model.attn.data
 
                 # update units - double update rule
                 # - step 1 - winners update towards input
@@ -627,7 +628,8 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 model.recruit_units_trl.append(itrl)
 
                 # save updated attn ws - even if don't update
-                model.attn_trace.append(model.attn.detach().clone())
+                # if model.params['lr_attn'] > 0:
+                #     model.attn_trace.append(model.attn.detach().clone())
 
                 # update units positions - double update rule
                 # - only matters when there is noise
@@ -674,13 +676,14 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
         # save updated unit positions
         model.units_pos_trace.append(model.units_pos.detach().clone())
 
-        model.attn.data += upd_attn.mean(axis=1)
-        # normalise
-        model.attn.data = torch.clamp(model.attn.data, min=0.)
-        model.attn.data = (
-            model.attn.data / torch.sum(model.attn.data)
-            )
-        model.attn_trace.append(model.attn.detach().clone())
+        if model.params['lr_attn'] > 0:
+            model.attn.data += upd_attn.mean(axis=1)
+            # normalise
+            model.attn.data = torch.clamp(model.attn.data, min=0.)
+            model.attn.data = (
+                model.attn.data / torch.sum(model.attn.data)
+                )
+            model.attn_trace.append(model.attn.detach().clone())
 
     # return upd_pos, upd_attn  # if batch. actually don't need it, just upd.
 
