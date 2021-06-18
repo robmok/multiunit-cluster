@@ -312,7 +312,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         torch.tensor(
                             norm.rvs(loc=noise['update1'][0],
                                      scale=noise['update1'][1],
-                                     size=(len(update), 1)))
+                                     size=(len(update), model.n_dims)))
                             )
 
                 # - step 2 - winners update towards self
@@ -329,7 +329,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         torch.tensor(
                             norm.rvs(loc=noise['update2'][0],
                                      scale=noise['update2'][1],
-                                     size=(len(update), 1)))
+                                     size=(len(update), model.n_dims)))
                             )
 
                 # save updated unit positions
@@ -387,7 +387,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         torch.tensor(
                             norm.rvs(loc=noise['recruit'][0],
                                      scale=noise['recruit'][1],
-                                     size=(len(recruit_ind), 1)))
+                                     size=(len(recruit_ind), model.n_dims)))
                             )
 
                 # go through update again after cluster added

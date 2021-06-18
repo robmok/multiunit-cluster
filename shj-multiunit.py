@@ -130,7 +130,7 @@ params = {
     'lr_attn': .35,
     'lr_nn': .15/lr_scale,
     'lr_clusters': .05,
-    'lr_clusters_group': .2,
+    'lr_clusters_group': .5,
     'k': k
     }
 # # high c
@@ -159,19 +159,19 @@ lesions = None  # if no lesions
 # noise - mean and sd of noise to be added
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .0],  # unit position updates 1 & 2
-          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-          'recruit': [0., .1],  # recruitment position placement - hmm, fewer units better...?
-          'act': [.5, .1]}  # unit activations (non-negative)
+# noise = {'update1': [0, .1],  # unit position updates 1 & 2
+#           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+#           'recruit': [0., .1],  # recruitment position placement - hmm, fewer units better...?
+#           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=False, lesions=lesions,
+    model, inputs, output, n_epochs, shuffle=True, lesions=lesions,
     noise=noise)
 
 # # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
-# print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
+print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
 # # print(np.unique(np.around(model.attn.detach().numpy()[model.active_units], decimals=2), axis=0))
 # print(model.attn)
 
