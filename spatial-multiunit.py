@@ -112,7 +112,7 @@ def _compute_act(dist, c, p):
 
 n_dims = 2
 n_epochs = 1
-n_trials = 20000
+n_trials = 100000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -138,8 +138,8 @@ orig_lr = .2
 ann_c = (1/n_trials)/n_trials # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
-plt.plot(torch.tensor(lr))
-plt.show()
+# plt.plot(torch.tensor(lr))
+# plt.show()
 
 
 # fixed thresh
@@ -149,10 +149,10 @@ params = {
     'c': 1.2,  # low for larger/fewer fields, high for smaller/more fields.
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
-    'lr_attn': .3,
+    'lr_attn': .0,
     'lr_nn': .25,
     'lr_clusters':  lr,  # .01,
-    'lr_clusters_group': .25,
+    'lr_clusters_group': .15,
     'k': k
     }
 
@@ -161,7 +161,7 @@ params = {
 
 # batch training
 # for batch, c needs to be higher or thresh lower
-batch_size = n_trials * .01
+batch_size = n_trials * .005
 nbatch = int(n_trials // batch_size)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
@@ -235,7 +235,7 @@ for i in plot_trials[0:-1]:
 
 # plot activation after training - unit positions at the end, fixed
 # generate new test path
-n_trials_test = n_trials // 2
+n_trials_test = n_trials // 4
 path_test = generate_path(n_trials_test, n_dims, seed=None)
 
 # get act
