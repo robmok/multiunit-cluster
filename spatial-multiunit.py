@@ -152,7 +152,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .25,
     'lr_clusters':  lr,  # .01,
-    'lr_clusters_group': .15,
+    'lr_clusters_group': .1,
     'k': k
     }
 
@@ -194,6 +194,8 @@ plt.show()
 # over time
 plot_trials = torch.tensor(torch.linspace(0, nbatch * n_epochs, 20),
                             dtype=torch.long)
+
+# plot_trials = torch.arange(10)
 
 for i in plot_trials[0:-1]:
     plt.scatter(results[i, model.active_units, 0],
@@ -418,7 +420,7 @@ n_sims = 100
 # model spec
 n_dims = 2
 n_epochs = 1
-n_trials = 50000
+n_trials = 100000
 attn_type = 'dimensional_local'
 
 # run over different k values, n_units, c vals
@@ -428,7 +430,7 @@ n_units = 1000
 k = .01
 
 # batch params
-batch_size = n_trials * .01
+batch_size = n_trials * .005
 nbatch = int(n_trials // batch_size)
 
 # thresh=.9
@@ -437,7 +439,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.4, 1.5]
+c_vals = [1.2]
 
 # annealed lr
 orig_lr = .2
@@ -460,11 +462,12 @@ params = {
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': 0.,  # lr_attn,
-    'lr_nn': .25,
+    'lr_nn': .0,
     'lr_clusters': lr,  # annealed
-    'lr_clusters_group': .2,
+    'lr_clusters_group': .5,
     'k': k
     }
+
 
 # dfs - gridscore, recruit n, seeds (in 1 df, load and save)
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
@@ -495,7 +498,7 @@ grouplr{}_attnlr{}_thresh.95_{}sims'.format(n_units, params['k'], orig_lr,
     )
 
 # load and add to sims (if True) or make new files (if False)
-load = True
+load = False
 if load:
     df_gscore = pd.read_pickle(fname1)
     df_recruit = pd.read_pickle(fname2)
@@ -554,7 +557,7 @@ for c in c_vals:
 
         # generate new test path
         nbins = 40
-        n_trials_test = int(n_trials * .75)  # .5 ok, .75 - safe all covered
+        n_trials_test = int(n_trials * .25)  # .5 for 50k trials.
         path_test = generate_path(n_trials_test, n_dims, seed=None)
         act_test = []
         for itrial in range(n_trials_test):
