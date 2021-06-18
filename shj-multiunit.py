@@ -129,8 +129,8 @@ params = {
     'beta': 1.,
     'lr_attn': .35,
     'lr_nn': .15/lr_scale,
-    'lr_clusters': .01,
-    'lr_clusters_group': .3,
+    'lr_clusters': .05,
+    'lr_clusters_group': .2,
     'k': k
     }
 # # high c
@@ -159,10 +159,10 @@ lesions = None  # if no lesions
 # noise - mean and sd of noise to be added
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 noise = None
-# noise = {'update1': [0, .01],  # unit position updates 1 & 2
-#          'update2': [0, .01],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-#          'recruit': [0., .0],  # recruitment position placement - hmm, fewer units better...?
-#          'act': [.5, .1]}  # unit activations (non-negative)
+noise = {'update1': [0, .0],  # unit position updates 1 & 2
+          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+          'recruit': [0., .1],  # recruitment position placement - hmm, fewer units better...?
+          'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -195,14 +195,33 @@ plt.plot(torch.stack(model.attn_trace, dim=0))
 # plt.savefig(figname)
 plt.show()
 
-# # unit positions
-# results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
-# plt.scatter(results[:, 0], results[:, 1])
-# # plt.xlim([-1, 1])
-# # plt.ylim([-1, 1])
-# plt.gca().set_aspect('equal', adjustable='box')
-# # plt.axis('equal')
-# plt.show()
+
+
+# unit positions
+results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
+plt.scatter(results[:, 0], results[:, 1])
+# plt.xlim([-1, 1])
+# plt.ylim([-1, 1])
+plt.gca().set_aspect('equal', adjustable='box')
+# plt.axis('equal')
+plt.show()
+
+# over time
+results = torch.stack(model.units_pos_trace, dim=0)[:, model.active_units]
+
+plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
+                            dtype=torch.long)
+
+# plot_trials = torch.arange(10)
+
+for i in plot_trials[0:-1]:
+    plt.scatter(results[i, :, 0],
+                results[i, :, 1])
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.pause(.5)
+
+
 
 # explore lesion units ++ 
 # model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0

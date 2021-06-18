@@ -33,8 +33,8 @@ def generate_path(n_trials, n_dims, seed=None):
     if seed:
         torch.manual_seed(seed)
 
-    # step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
-    step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
+    step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+    # step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
     path = np.zeros([n_trials, n_dims])
     path[0] = np.around(np.random.rand(2), decimals=3)  # origin
     for itrial in range(1, n_trials):
@@ -534,8 +534,8 @@ for c in c_vals:
 
     for isim in range(n_sims):
 
-        print(isim)
-
+        print('sim {}'.format(isim))
+        
         # params to change over loops
         params['c'] = c
 
@@ -553,7 +553,7 @@ for c in c_vals:
 
             train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
 
-            # print(len(model.recruit_units_trl))
+        print(len(model.recruit_units_trl))
 
         # generate new test path
         nbins = 40
