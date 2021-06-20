@@ -150,7 +150,7 @@ params = {
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 1,  # response parameter, non-negative
     'lr_attn': .0,
-    'lr_nn': .25,
+    'lr_nn': .0,
     'lr_clusters':  lr,  # .01,
     'lr_clusters_group': .1,
     'k': k
@@ -161,7 +161,7 @@ params = {
 
 # batch training
 # for batch, c needs to be higher or thresh lower
-batch_size = n_trials * .005
+batch_size = 200 #  n_trials * .005
 nbatch = int(n_trials // batch_size)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
@@ -177,7 +177,7 @@ for ibatch in range(nbatch):
 
     print(len(model.recruit_units_trl))
 
-# %% plot
+# % plot
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -237,7 +237,7 @@ for i in plot_trials[0:-1]:
 
 # plot activation after training - unit positions at the end, fixed
 # generate new test path
-n_trials_test = n_trials // 4
+n_trials_test = n_trials // 2
 path_test = generate_path(n_trials_test, n_dims, seed=None)
 
 # get act
@@ -464,7 +464,7 @@ params = {
     'lr_attn': 0.,  # lr_attn,
     'lr_nn': .0,
     'lr_clusters': lr,  # annealed
-    'lr_clusters_group': .5,
+    'lr_clusters_group': .1,
     'k': k
     }
 
@@ -472,29 +472,25 @@ params = {
 # dfs - gridscore, recruit n, seeds (in 1 df, load and save)
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 fname1 = (
-    os.path.join(wd, 'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
-                                                params['lr_clusters_group'],
-                                                params['lr_attn'], n_sims))
+    os.path.join(wd,'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
+grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
+orig_lr,params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
     )
 fname2 = (
     os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
-                                                params['lr_clusters_group'],
-                                                params['lr_attn'], n_sims))
+grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
+orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
     )
 fname3 = (
     os.path.join(wd, 'spatial_seeds_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.95_{}sims.pkl'.format(n_units, params['k'], orig_lr,
-                                                params['lr_clusters_group'],
-                                                params['lr_attn'], n_sims))
+grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
+orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
     )
 # clus positions, activation map
 fname4 = (
-    os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.95_{}sims'.format(n_units, params['k'], orig_lr,
-                                            params['lr_clusters_group'],
-                                            params['lr_attn'], n_sims))
+    os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr\
+{}_grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(n_units, params['k'],
+orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
     )
 
 # load and add to sims (if True) or make new files (if False)
@@ -620,8 +616,8 @@ act_maps = f['act_map']
 df_gscore.hist(bins=20)
 if saveplots:
     figname = (
-        os.path.join(figdir, 'spatial_gscore_hist_{}units_k{}_startlr{}_grouplr{}_thresh.95.pdf'.format(
-            n_units, k, orig_lr, params['lr_clusters_group']))
+        os.path.join(figdir, 'spatial_gscore_hist_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls.pdf'.format(
+            n_units, k, orig_lr, params['lr_clusters_group'], n_trials))
     )
     plt.savefig(figname)
 plt.show()
@@ -629,8 +625,8 @@ plt.show()
 df_recruit.hist()
 if saveplots:
     figname = (
-        os.path.join(figdir, 'spatial_recruit_hist_{}units_k{}_startlr{}_grouplr{}_thresh.95.pdf'.format(
-            n_units, k, orig_lr, params['lr_clusters_group']))
+        os.path.join(figdir, 'spatial_recruit_hist_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls.pdf'.format(
+            n_units, k, orig_lr, params['lr_clusters_group'], n_trials))
     )
     plt.savefig(figname)
 plt.show()
@@ -649,8 +645,8 @@ ax[1].imshow(sac)
 ax[1].set_title('g = {}'.format(np.around(df_gscore[c][isim], decimals=3)))
 if saveplots:
     figname = (
-        os.path.join(figdir, 'spatial_actmap_xcorr_c{}_{}units_k{}_startlr{}_grouplr{}_thresh.95_sim{}.pdf'.format(
-            c, n_units, k, orig_lr, params['lr_clusters_group'], isim))
+        os.path.join(figdir, 'spatial_actmap_xcorr_c{}_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls_sim{}.pdf'.format(
+            c, n_units, k, orig_lr, params['lr_clusters_group'], n_trials, isim))
     )
     plt.savefig(figname)
 plt.show()
