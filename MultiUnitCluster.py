@@ -623,7 +623,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                 winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
                 update = (
                     (winner_mean - model.units_pos[win_ind])
-                    * model.params['lr_clusters_group']
+                    * model.params['lr_clusters_group'][itrl]
                     )
                 
                 # add noise to 2nd update?
@@ -633,7 +633,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                             norm.rvs(loc=noise['update2'][0],
                                      scale=noise['update2'][1],
                                      size=(len(update), model.n_dims)))
-                        * model.params['lr_clusters_group']
+                        * model.params['lr_clusters_group'][itrl]
                         )
 
                 if batch_upd is None:
@@ -718,7 +718,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                     model.units_pos[recruit_ind], axis=0)
                 update = (
                     (winner_mean - model.units_pos[recruit_ind])
-                    * model.params['lr_clusters_group'])
+                    * model.params['lr_clusters_group'][itrl])
                 model.units_pos[recruit_ind] += update
                 
                 # save updated unit positions - if update within batch

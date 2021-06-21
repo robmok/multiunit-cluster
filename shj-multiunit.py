@@ -158,8 +158,9 @@ lesions = None  # if no lesions
 
 # noise - mean and sd of noise to be added
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
+# - 
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
+noise = {'update1': [0, .2],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
           'recruit': [0., .1],  # recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)

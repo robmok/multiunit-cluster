@@ -141,6 +141,8 @@ lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # plt.plot(torch.tensor(lr))
 # plt.show()
 
+# annealed for 2nd update
+lr_group = np.array(lr) * 2.5
 
 # fixed thresh
 
@@ -152,12 +154,12 @@ params = {
     'lr_attn': .0,
     'lr_nn': .0,
     'lr_clusters':  lr,  # .01,
-    'lr_clusters_group': .15,  # .1 w/out noise (.15 still ok. .2 too much, pulls toward each other).
+    'lr_clusters_group': lr_group,  # .1 w/out noise (.15 still ok. .2 too much, pulls toward each other).
     'k': k
     }
 
 noise = None
-noise = {'update1': [0, .01],  # unit position updates 1 & 2
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
          'recruit': [0., .0],  # recruitment position placement
          }
@@ -456,6 +458,9 @@ lr = [orig_lr / (1 + (ann_decay * i)) for i in range(n_trials)]
 # plt.plot(torch.tensor(lr))
 # plt.show()
 
+# annealed for 2nd update
+lr_group = np.array(lr) * 2
+
 # orig_lr = .0001
 # # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 # ann_c = (1/n_trials)/n_trials
@@ -470,10 +475,9 @@ params = {
     'lr_attn': 0.,  # lr_attn,
     'lr_nn': .0,
     'lr_clusters': lr,  # annealed
-    'lr_clusters_group': .1,
+    'lr_clusters_group': lr_group,
     'k': k
     }
-
 
 # dfs - gridscore, recruit n, seeds (in 1 df, load and save)
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
@@ -580,6 +584,8 @@ for c in c_vals:
 
         # compute grid scores
         score_60_, score_90_, _, _, sac = _compute_grid_scores(act_map_norm)
+        
+        print(score_60_)
 
         # save stuff
         score_60.append(score_60_)
