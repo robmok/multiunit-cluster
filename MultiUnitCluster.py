@@ -30,6 +30,7 @@ class MultiUnitCluster(nn.Module):
         # history
         self.attn_trace = []
         self.units_pos_trace = []
+        self.units_pos_bothupd_trace = []
         self.units_act_trace = []
         self.recruit_units_trl = []
         self.fc1_w_trace = []
@@ -317,6 +318,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 model.units_pos[win_ind] += update
 
+                # store unit positions after both upds
+                model.units_pos_bothupd_trace.append(
+                    model.units_pos.detach().clone())
+
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(model.units_pos[win_ind], axis=0)
                 update = (
@@ -338,6 +343,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
+                model.units_pos_bothupd_trace.append(
+                    model.units_pos.detach().clone())  # store both upds
 
             # save acc per trial
             trial_acc[itrl] = torch.argmax(out.data) == target
@@ -430,6 +437,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                             )
 
                 model.units_pos[model.winning_units] += update
+                
+                # store unit positions after both upds
+                model.units_pos_bothupd_trace.append(
+                    model.units_pos.detach().clone())
 
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(
@@ -450,9 +461,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 model.units_pos[model.winning_units] += update
 
-
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
+                model.units_pos_bothupd_trace.append(
+                    model.units_pos.detach().clone())
 
                 # add noise to 2nd update?
                 if noise:
