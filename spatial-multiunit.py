@@ -112,7 +112,7 @@ def _compute_act(dist, c, p):
 
 n_dims = 2
 n_epochs = 1
-n_trials = 25000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -134,17 +134,17 @@ n_units = 1000
 k = .01
 
 # annealed lr
-orig_lr = .2
+orig_lr = .3
 ann_c = (1/n_trials)/n_trials # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 # plt.plot(torch.tensor(lr))
 # plt.show()
 
-# annealed for 2nd update
-lr_group = np.array(lr) * 2.5
+# annealing for 2nd update
+lr_group = np.array(lr) * 1.5 # 1.5, max 2. if too high will go toward centre.
 
-# fixed thresh
+# fixed thresh: .7
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -154,14 +154,14 @@ params = {
     'lr_attn': .0,
     'lr_nn': .0,
     'lr_clusters':  lr,  # .01,
-    'lr_clusters_group': lr_group,  # .1 w/out noise (.15 still ok. .2 too much, pulls toward each other).
+    'lr_clusters_group': lr_group,  # .1 w/out noise (.15 ok. .2 too much)
     'k': k
     }
 
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
-         'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-         'recruit': [0., .0],  # recruitment position placement
+noise = {'update1': [0, .025],  # unit position updates 1 & 2
+         'update2': [0, .025],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+         'recruit': [0., .025],  # recruitment position placement
          }
 
 # model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
