@@ -152,9 +152,15 @@ params = {
     'lr_attn': .0,
     'lr_nn': .0,
     'lr_clusters':  lr,  # .01,
-    'lr_clusters_group': .1,
+    'lr_clusters_group': .15,  # .1 w/out noise. 
     'k': k
     }
+
+noise = None
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
+         'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+         'recruit': [0., .1],  # recruitment position placement
+         }
 
 # model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 # train_unsupervised(model, torch.tensor(path, dtype=torch.float32), n_epochs)

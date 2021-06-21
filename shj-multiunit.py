@@ -161,7 +161,7 @@ lesions = None  # if no lesions
 noise = None
 # noise = {'update1': [0, .1],  # unit position updates 1 & 2
 #           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-#           'recruit': [0., .1],  # recruitment position placement - hmm, fewer units better...?
+#           'recruit': [0., .1],  # recruitment position placement
 #           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)

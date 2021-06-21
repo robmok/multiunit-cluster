@@ -460,7 +460,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget
 
 
-def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
+def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
     """
     batch_upd : if not None, this is the batch number. input trials and batch
     number each time you call train_unsupervised, it will update the mean
@@ -585,6 +585,16 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                     (x - model.units_pos[win_ind])
                     * model.params['lr_clusters'][itrl]
                     )
+
+                # add noise to updates
+                if noise:
+                    update += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['update1'][0],
+                                     scale=noise['update1'][1],
+                                     size=(len(update), model.n_dims)))
+                            )
+
                 if batch_upd is None:
                     model.units_pos[win_ind] += update
                 else:  # save update
@@ -596,6 +606,16 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                     (winner_mean - model.units_pos[win_ind])
                     * model.params['lr_clusters_group']
                     )
+                
+                # add noise to 2nd update?
+                if noise:
+                    update += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['update2'][0],
+                                     scale=noise['update2'][1],
+                                     size=(len(update), 1)))
+                        )
+
                 if batch_upd is None:
                     model.units_pos[win_ind] += update
                     # save updated unit positions
@@ -626,6 +646,15 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 model.winning_units[recruit_ind] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
                 model.recruit_units_trl.append(itrl)
+                
+                # add noise to recruited positions
+                if noise:
+                    model.units_pos[recruit_ind] += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['recruit'][0],
+                                     scale=noise['recruit'][1],
+                                     size=(len(recruit_ind), model.n_dims)))
+                            )
 
                 # save updated attn ws - even if don't update
                 # if model.params['lr_attn'] > 0:
@@ -637,6 +666,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                     (x - model.units_pos[recruit_ind])
                     * model.params['lr_clusters'][itrl]
                     )
+                
                 if batch_upd is None:
                     model.units_pos[recruit_ind] += update
                 else:  # save update
