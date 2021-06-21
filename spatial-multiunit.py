@@ -134,7 +134,7 @@ n_units = 1000
 k = .01
 
 # annealed lr
-orig_lr = .4
+orig_lr = .2
 ann_c = (1/n_trials)/n_trials # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
