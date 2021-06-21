@@ -112,7 +112,7 @@ def _compute_act(dist, c, p):
 
 n_dims = 2
 n_epochs = 1
-n_trials = 100000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -134,7 +134,7 @@ n_units = 1000
 k = .01
 
 # annealed lr
-orig_lr = .2
+orig_lr = .4
 ann_c = (1/n_trials)/n_trials # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
@@ -439,7 +439,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.2]
+c_vals = [1.2]  # started 12:21pm
 
 # annealed lr
 orig_lr = .2
@@ -553,7 +553,7 @@ for c in c_vals:
 
         # generate new test path
         nbins = 40
-        n_trials_test = int(n_trials * .25)  # .5 for 50k trials.
+        n_trials_test = int(n_trials * .5)  # .5 for 50k trials.
         path_test = generate_path(n_trials_test, n_dims, seed=None)
         act_test = []
         for itrial in range(n_trials_test):

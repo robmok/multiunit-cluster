@@ -624,7 +624,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 model.active_units[recruit_ind] = True  # set ws to active
                 model.winning_units[:] = 0  # clear
                 model.winning_units[recruit_ind] = True
-                model.units_pos[recruit_ind] = x  # place at curr stim
+                # model.units_pos[recruit_ind] = x  # place at curr stim
                 model.recruit_units_trl.append(itrl)
 
                 # save updated attn ws - even if don't update
@@ -633,14 +633,35 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
 
                 # update units positions - double update rule
                 # - only matters when there is noise
+                # update = (
+                #     (x - model.units_pos[recruit_ind])
+                #     * model.params['lr_clusters'][itrl]
+                #     )
+                # if batch_upd is None:
+                #     model.units_pos[recruit_ind] += update
+                # else:  # save update
+                #     upd_pos[recruit_ind, itrl_b] = update
+
+                # # - step 2 - winners update towards self
+                # winner_mean = torch.mean(
+                #     model.units_pos[recruit_ind], axis=0)
+                # update = (
+                #     (winner_mean - model.units_pos[recruit_ind])
+                #     * model.params['lr_clusters_group'])
+                # if batch_upd is None:
+                #     model.units_pos[recruit_ind] += update
+                #     # save updated unit positions
+                #     model.units_pos_trace.append(
+                #         model.units_pos.detach().clone())
+                # else:  # add to the update
+                #     upd_pos[recruit_ind, itrl_b] += update
+                    
+                # recruit without placing on item - recruit and update WITHIN batch
                 update = (
                     (x - model.units_pos[recruit_ind])
                     * model.params['lr_clusters'][itrl]
                     )
-                if batch_upd is None:
-                    model.units_pos[recruit_ind] += update
-                else:  # save update
-                    upd_pos[recruit_ind, itrl_b] = update
+                model.units_pos[recruit_ind] += update
 
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(
@@ -648,13 +669,21 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None):
                 update = (
                     (winner_mean - model.units_pos[recruit_ind])
                     * model.params['lr_clusters_group'])
-                if batch_upd is None:
-                    model.units_pos[recruit_ind] += update
-                    # save updated unit positions
-                    model.units_pos_trace.append(
-                        model.units_pos.detach().clone())
-                else:  # add to the update
-                    upd_pos[recruit_ind, itrl_b] += update
+                model.units_pos[recruit_ind] += update
+                
+                # save updated unit positions - if update within batch
+                # model.units_pos_trace.append(
+                #     model.units_pos.detach().clone())
+                
+                # update and clear saved updates up till recruit
+                upd_pos_mean = np.nanmean(upd_pos, axis=1)
+                upd_pos_mean[np.isnan(upd_pos_mean)] = 0  # turns nans to 0
+                model.units_pos += upd_pos_mean
+                # save updated unit positions
+                # model.units_pos_trace.append(model.units_pos.detach().clone())
+                
+                # clear
+                upd_pos[:] = float('nan')
 
             # save acts - may want to have it separately for recruit and upd?
             model.fc1_act_trace.append(
