@@ -119,7 +119,6 @@ keep going around, whereas lr_group model settles to the centre pretty quickly
 
 """
 
-
 # # pr target
 # plt.plot(1 - trial_ptarget.detach())
 # plt.ylim([0, .5])
@@ -215,7 +214,89 @@ output = torch.cat([torch.zeros(npoints, dtype=torch.long),
                     torch.ones(npoints, dtype=torch.long)])
 
 
+# TODO
+# do this in train later - just need to save the shuffled inputs/outputs
+shuffle_ind = torch.randperm(len(inputs))
+inputs = inputs[shuffle_ind]
+output = output[shuffle_ind]
 
+# model
+attn_type = 'dimensional_local'
+n_units = 500
+n_dims = inputs.shape[1]
+loss_type = 'cross_entropy'
+k = .05
+n_epochs = 1
+
+# new local attn - scaling lr
+lr_scale = (n_units * k) / 1
+params = {
+    'r': 1,
+    'c': 1.,
+    'p': 1,
+    'phi': 2.5,
+    'beta': 1.,
+    'lr_attn': .0,
+    'lr_nn': .1/lr_scale,
+    'lr_clusters': .05,
+    'lr_clusters_group': .1,
+    'k': k
+    }
+
+lesions = None
+
+# noise - mean and sd of noise to be added
+noise = None
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
+          'update2': [0, .0],  # no noise here also makes sense
+          'recruit': [0., .01],  # recruitment position placement
+          'act': [.0, .0]}  # unit activations (non-negative)
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
+
+model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+    model, inputs, output, n_epochs, shuffle=False, lesions=lesions,
+    noise=noise)
+
+# pr target
+plt.plot(1 - trial_ptarget.detach())
+plt.ylim([0, .5])
+plt.show()
+
+# # attention weights
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# plt.show()
+
+# plot both updates
+
+# each trial presented twice - to plot with double update
+inputs_d = torch.stack([np.repeat(inputs[:, 0], 2),
+                        np.repeat(inputs[:, 1], 2)]).T
+
+results = torch.stack(
+    model.units_pos_bothupd_trace, dim=0)[:, model.active_units]
+
+# plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
+#                             dtype=torch.long)
+
+plot_trials = torch.arange(50)
+
+for i in plot_trials[0:-1]:
+
+    plt.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.5)
+    plt.contour(x, y, rv2.pdf(pos), cmap='Greens', alpha=.5)
+
+    plt.scatter(results[i, :, 0],
+                results[i, :, 1], s=5)
+
+    plt.scatter(inputs_d[i, 0],
+                inputs_d[i, 1], c='red', marker='x', s=20, linewidth=.75)
+
+    plt.xlim([-.05, 1.05])
+    plt.ylim([-.05, 1.05])
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    plt.pause(.25)
 
 
 
