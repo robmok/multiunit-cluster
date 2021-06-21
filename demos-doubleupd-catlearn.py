@@ -26,10 +26,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-
 # one 2D gaussian - k units update
-# - maybe show 'latent' and active units?
-
 
 # sample from a 2D gaussian
 mu1 = np.array([.25, .75])
@@ -54,31 +51,33 @@ ax1.set_facecolor((.8, .8, .8))
 ax1.scatter(x1[:, 0], x1[:, 1],
             c=np.expand_dims(np.array([.4, .4, .4]), axis=0),
             marker='x', s=7, linewidth=.75)
-plt.xlim([0, 1])
-plt.ylim([0, 1])
-plt.gca().set_aspect('equal', adjustable='box')
+ax1.set_aspect('equal', adjustable='box')
 
+# 3d plot
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+ax.plot_surface(x, y, rv1.pdf(pos), cmap='Greys', linewidth=0)
+ax.grid(False)
+ax.set_zticks([])
+plt.show()
 
 # assign label - just one 'category'
 inputs = torch.tensor(x1, dtype=torch.float32)
 output = torch.zeros(npoints, dtype=torch.long)
 
-# %%
+n_epochs = 1
+
 # double update demo
 
-# - torch model
-
+# model
 attn_type = 'dimensional_local'
 n_units = 500
 n_dims = inputs.shape[1]
 loss_type = 'cross_entropy'
-
 k = .05
 
-n_epochs = 1
-
-# new local attn - scaling lr
+# scaling lr
 lr_scale = (n_units * k) / 1
+
 params = {
     'r': 1,
     'c': 1.,
@@ -87,8 +86,8 @@ params = {
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .05,
-    'lr_clusters_group': .1,
+    'lr_clusters': .1,
+    'lr_clusters_group': .15,
     'k': k
     }
 
@@ -97,9 +96,9 @@ lesions = None
 # noise - mean and sd of noise to be added
 noise = None
 noise = {'update1': [0, .15],  # unit position updates 1 & 2
-          'update2': [0, .0],  # no noise here also makes sense
-          'recruit': [0., .05],  # recruitment position placement
-          'act': [.0, .0]}  # unit activations (non-negative)
+         'update2': [0, .0],  # no noise here also makes sense
+         'recruit': [0., .05],  # recruitment position placement
+         'act': [.0, .0]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -109,8 +108,7 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 
 """
 - looking good
-- might be worth doing annealing to show it settles into the centre of distr?
-- or just make the lr's small enough - this works... unless lr_group too big
+- annealing / make the lr's small enough - works... unless lr_group too big
 since that makes it stick around where most dots are.
 
 - compare with lr_group vs no lr_group effects: with upd1 noise sd=1, can see
@@ -119,18 +117,9 @@ keep going around, whereas lr_group model settles to the centre pretty quickly
 
 """
 
-# # pr target
-# plt.plot(1 - trial_ptarget.detach())
-# plt.ylim([0, .5])
-# plt.show()
-
-# # attention weights
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# plt.show()
-
 # plot both updates
 
-# each trial presented twice - to plot with double update
+# have each trial twice - to plot with double update with same stim
 inputs_d = torch.stack([np.repeat(inputs[:, 0], 2),
                         np.repeat(inputs[:, 1], 2)]).T
 
@@ -144,32 +133,25 @@ plot_trials = torch.arange(50)
 
 for i in plot_trials[0:-1]:
 
-    plt.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.5)
+    fig = plt.figure(dpi=200)
+    ax = fig.add_subplot(111)
 
-    plt.scatter(results[i, :, 0],
-                results[i, :, 1], s=5)
+    # plot distribution stimuli come from (2d gaussian)
+    ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.35)
 
-    plt.scatter(inputs_d[i, 0],
-                inputs_d[i, 1], c='red', marker='x', s=20, linewidth=.75)
+    # stimulus pos on trial i
+    ax.scatter(inputs_d[i, 0],
+               inputs_d[i, 1], c='black', marker='x', s=25, linewidth=1.2)
 
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.gca().set_aspect('equal', adjustable='box')
+    # unit pos on trial i - showing double update
+    ax.scatter(results[i, :, 0], results[i, :, 1], s=8)
+
+    ax.set_facecolor((.8, .8, .8))
+    ax.set_xlim([-.05, 1.05])
+    ax.set_ylim([-.05, 1.05])
+    ax.set_aspect('equal', adjustable='box')
 
     plt.pause(.25)
-
-
-
-
-# plot
-
-# aspect = 1
-# fig, ax = plt.subplots(1, 3)
-# for itrl in range(3):
-#     ax[itrl].scatter(x1[itrl, 0], x1[itrl, 1], s=7)
-#     ax[itrl].set_xlim([0, 1])
-#     ax[itrl].set_ylim([0, 1])
-#     ax[itrl].set_aspect(aspect)
 
 
 # %% concept learning toy example
@@ -187,7 +169,7 @@ pos = np.dstack((x, y))
 rv1 = multivariate_normal([mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]])
 rv2 = multivariate_normal([mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]])
 
-# % sampling
+# sampling
 npoints = 200
 x1 = np.random.multivariate_normal(
     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
@@ -201,18 +183,26 @@ ax1.contour(x, y, rv2.pdf(pos), cmap='Greens')
 ax1.set_xlim([0, 1])
 ax1.set_ylim([0, 1])
 ax1.set_facecolor((.5, .5, .5))
-ax1.scatter(x1[:, 0], x1[:, 1], c='blue', s=7)
-ax1.scatter(x2[:, 0], x2[:, 1], c='green', s=7)
-plt.xlim([0, 1])
-plt.ylim([0, 1])
-plt.gca().set_aspect('equal', adjustable='box')
+ax1.scatter(x1[:, 0], x1[:, 1], marker='x', c='blue', s=7, linewidth=.75)
+ax1.scatter(x2[:, 0], x2[:, 1], marker='x', c='green', s=7, linewidth=.75)
+ax1.set_aspect('equal', adjustable='box')
+plt.show()
 
-# assign label (output)
+# 3d plot
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+ax.plot_surface(x, y, rv1.pdf(pos), cmap='GnBu', alpha=.75)
+ax.plot_surface(x, y, rv2.pdf(pos), cmap='RdPu', alpha=.5)
+ax.grid(False)
+ax.set_zticks([])
+plt.show()
+
+# assign category label (output)
 inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
                     torch.tensor(x2, dtype=torch.float32)])
 output = torch.cat([torch.zeros(npoints, dtype=torch.long),
                     torch.ones(npoints, dtype=torch.long)])
 
+n_epochs = 1
 
 # TODO
 # do this in train later - just need to save the shuffled inputs/outputs
@@ -226,20 +216,19 @@ n_units = 500
 n_dims = inputs.shape[1]
 loss_type = 'cross_entropy'
 k = .05
-n_epochs = 1
 
-# new local attn - scaling lr
 lr_scale = (n_units * k) / 1
+
 params = {
     'r': 1,
-    'c': 1.,
+    'c': .75,
     'p': 1,
     'phi': 2.5,
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .05,
-    'lr_clusters_group': .1,
+    'lr_clusters': .1,
+    'lr_clusters_group': .13,
     'k': k
     }
 
@@ -247,7 +236,7 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
+noise = {'update1': [0, .2],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense
           'recruit': [0., .01],  # recruitment position placement
           'act': [.0, .0]}  # unit activations (non-negative)
@@ -283,32 +272,27 @@ plot_trials = torch.arange(50)
 
 for i in plot_trials[0:-1]:
 
-    plt.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.5)
-    plt.contour(x, y, rv2.pdf(pos), cmap='Greens', alpha=.5)
+    fig = plt.figure(dpi=200)
+    ax = fig.add_subplot(111)
 
-    plt.scatter(results[i, :, 0],
-                results[i, :, 1], s=5)
+    # plot distribution stimuli come from (2d gaussian)
+    ax.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.25)
+    ax.contour(x, y, rv2.pdf(pos), cmap='Greens', alpha=.25)
 
-    plt.scatter(inputs_d[i, 0],
-                inputs_d[i, 1], c='red', marker='x', s=20, linewidth=.75)
+    # stimulus pos on trial i
+    ax.scatter(inputs_d[i, 0],
+               inputs_d[i, 1], c='black', marker='x', s=25, linewidth=1.2)
 
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.gca().set_aspect('equal', adjustable='box')
+    # unit pos on trial i - showing double update
+    ax.scatter(results[i, :, 0], results[i, :, 1], c='grey', s=8)
+
+    ax.set_facecolor((.8, .8, .8))
+    ax.set_xlim([-.05, 1.05])
+    ax.set_ylim([-.05, 1.05])
+    ax.set_aspect('equal', adjustable='box')
 
     plt.pause(.25)
 
 
-
-
-# recruit with noise - show double update
-
-
-# update with noise - show double update
-
-
-
-
 # maybe show latent vs active units?
-
 
