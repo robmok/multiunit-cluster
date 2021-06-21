@@ -227,8 +227,8 @@ params = {
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .1,
-    'lr_clusters_group': .13,
+    'lr_clusters': .075,
+    'lr_clusters_group': .1,
     'k': k
     }
 
@@ -236,7 +236,7 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .2],  # unit position updates 1 & 2
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense
           'recruit': [0., .01],  # recruitment position placement
           'act': [.0, .0]}  # unit activations (non-negative)
