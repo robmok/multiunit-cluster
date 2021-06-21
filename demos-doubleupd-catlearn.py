@@ -51,21 +51,36 @@ ax1.contour(x, y, rv1.pdf(pos), cmap='Blues')
 ax1.set_xlim([0, 1])
 ax1.set_ylim([0, 1])
 ax1.set_facecolor((.8, .8, .8))
-ax1.scatter(x1[:, 0], x1[:, 1], c=(.4, .4, .4), s=7)
+ax1.scatter(x1[:, 0], x1[:, 1],
+            c=np.expand_dims(np.array([.4, .4, .4]), axis=0),
+            marker='x', s=7, linewidth=.75)
 plt.xlim([0, 1])
 plt.ylim([0, 1])
 plt.gca().set_aspect('equal', adjustable='box')
 
 
 # double update demo
-aspect = 1
-fig, ax = plt.subplots(1, 3)
-for itrl in range(3):
-    ax[itrl].scatter(x1[itrl, 0], x1[itrl, 1], s=7)
-    ax[itrl].set_xlim([0, 1])
-    ax[itrl].set_ylim([0, 1])
-    ax[itrl].set_aspect(aspect)
 
+# - torch model
+
+
+
+
+
+
+
+
+
+
+# plot
+
+# aspect = 1
+# fig, ax = plt.subplots(1, 3)
+# for itrl in range(3):
+#     ax[itrl].scatter(x1[itrl, 0], x1[itrl, 1], s=7)
+#     ax[itrl].set_xlim([0, 1])
+#     ax[itrl].set_ylim([0, 1])
+#     ax[itrl].set_aspect(aspect)
 
 
 # %% concept learning toy example
