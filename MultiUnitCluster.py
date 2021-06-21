@@ -437,7 +437,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                             )
 
                 model.units_pos[model.winning_units] += update
-                
+
                 # store unit positions after both upds
                 model.units_pos_bothupd_trace.append(
                     model.units_pos.detach().clone())

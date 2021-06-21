@@ -87,8 +87,8 @@ params = {
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .15,
-    'lr_clusters_group': .35,
+    'lr_clusters': .05,
+    'lr_clusters_group': .1,
     'k': k
     }
 
@@ -96,9 +96,9 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .05],  # unit position updates 1 & 2
+noise = {'update1': [0, .15],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense
-          'recruit': [0., .1],  # recruitment position placement
+          'recruit': [0., .05],  # recruitment position placement
           'act': [.0, .0]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
@@ -107,17 +107,30 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
     model, inputs, output, n_epochs, shuffle=False, lesions=lesions,
     noise=noise)
 
+"""
+- looking good
+- might be worth doing annealing to show it settles into the centre of distr?
+- or just make the lr's small enough - this works... unless lr_group too big
+since that makes it stick around where most dots are.
 
-# pr target
-plt.plot(1 - trial_ptarget.detach())
-plt.ylim([0, .5])
-plt.show()
+- compare with lr_group vs no lr_group effects: with upd1 noise sd=1, can see
+this. lr_clusters = .05, lr_group = .1, pretty good. no lr_group means units
+keep going around, whereas lr_group model settles to the centre pretty quickly
+
+"""
+
+
+# # pr target
+# plt.plot(1 - trial_ptarget.detach())
+# plt.ylim([0, .5])
+# plt.show()
 
 # # attention weights
 # plt.plot(torch.stack(model.attn_trace, dim=0))
 # plt.show()
 
 # plot both updates
+
 # each trial presented twice - to plot with double update
 inputs_d = torch.stack([np.repeat(inputs[:, 0], 2),
                         np.repeat(inputs[:, 1], 2)]).T
@@ -127,6 +140,7 @@ results = torch.stack(
 
 # plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
 #                             dtype=torch.long)
+
 plot_trials = torch.arange(50)
 
 for i in plot_trials[0:-1]:
@@ -138,12 +152,12 @@ for i in plot_trials[0:-1]:
 
     plt.scatter(inputs_d[i, 0],
                 inputs_d[i, 1], c='red', marker='x', s=20, linewidth=.75)
-    
+
     plt.xlim([-.05, 1.05])
     plt.ylim([-.05, 1.05])
     plt.gca().set_aspect('equal', adjustable='box')
 
-    plt.pause(.5)
+    plt.pause(.25)
 
 
 
