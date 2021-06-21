@@ -112,7 +112,7 @@ def _compute_act(dist, c, p):
 
 n_dims = 2
 n_epochs = 1
-n_trials = 50000
+n_trials = 25000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -152,14 +152,14 @@ params = {
     'lr_attn': .0,
     'lr_nn': .0,
     'lr_clusters':  lr,  # .01,
-    'lr_clusters_group': .15,  # .1 w/out noise. 
+    'lr_clusters_group': .15,  # .1 w/out noise (.15 still ok. .2 too much, pulls toward each other).
     'k': k
     }
 
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
+noise = {'update1': [0, .01],  # unit position updates 1 & 2
          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-         'recruit': [0., .1],  # recruitment position placement
+         'recruit': [0., .0],  # recruitment position placement
          }
 
 # model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
@@ -179,7 +179,7 @@ for ibatch in range(nbatch):
     inputs = torch.tensor(path[batch_trials[0]:batch_trials[1]],
                           dtype=torch.float32)
 
-    train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch)
+    train_unsupervised(model, inputs, n_epochs, batch_upd=ibatch, noise=noise)
 
     print(len(model.recruit_units_trl))
 
