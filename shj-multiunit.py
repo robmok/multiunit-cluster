@@ -62,7 +62,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 1
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -123,13 +123,13 @@ params = {
 # - editing to show double update effect - mainly lr_group
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': .7,  # w/ attn grad normalized, c can be large now
+    'c': .75, 
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 9.,
     'beta': 1.,
     'lr_attn': .35,  # this scales at grad computation now
     'lr_nn': .0075/lr_scale,  # scale by n_units*k
-    'lr_clusters': .075,
+    'lr_clusters': .1,
     'lr_clusters_group': .12,
     'k': k
     }
@@ -281,7 +281,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 1
+niter = 10
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -322,14 +322,14 @@ for i in range(niter):
             'beta': 1.,
             'lr_attn': .35,  # this scales at grad computation now
             'lr_nn': .0075/lr_scale,  # scale by n_units*k
-            'lr_clusters': .075,
-            'lr_clusters_group': .1,
+            'lr_clusters': .075,  # .075/.1
+            'lr_clusters_group': .12,
             'k': k
             }
     
         # # trying with higher c - flipping 1 & 6
         # # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
-        # # now type II also can be slow, types 3-5 faster - as brad predicted
+        # # now type II also can be slow, types 3-5 faster - as brad p redicted
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
         #     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
