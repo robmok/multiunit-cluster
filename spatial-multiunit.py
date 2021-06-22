@@ -447,7 +447,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.6]  # sim 6 started ~ 16:27
+c_vals = [1.8]  # sim 6 started ~ 16:27. 77 at 17:31. slightly faster?
 
 # annealed lr
 orig_lr = .2

@@ -121,18 +121,18 @@ params = {
 
 # plotting to compare with nbank model
 # low c
-params = {
-    'r': 1,
-    'c': 1.,
-    'p': 1,
-    'phi': 1.5,
-    'beta': 1.,
-    'lr_attn': .35,
-    'lr_nn': .15/lr_scale,
-    'lr_clusters': .05,
-    'lr_clusters_group': .3,
-    'k': k
-    }
+# params = {
+#     'r': 1,
+#     'c': 1.,
+#     'p': 1,
+#     'phi': 1.5,
+#     'beta': 1.,
+#     'lr_attn': .35,
+#     'lr_nn': .15/lr_scale,
+#     'lr_clusters': .05,
+#     'lr_clusters_group': .3,
+#     'k': k
+#     }
 # # high c
 # params = {
 #     'r': 1,
@@ -284,122 +284,121 @@ for i in range(niter):
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
         lr_scale = (n_units * k) / 1
 
-        # new local attn
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .8,  # w/ attn grad normalized, c can be large now
+            'c': .7,  # w/ attn grad normalized, c can be large now
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 10.5,
+            'phi': 9.,
             'beta': 1.,
-            'lr_attn': .15,  # this scales at grad computation now
-            'lr_nn': .025/lr_scale,  # scale by n_units*k
-            'lr_clusters': .01,
+            'lr_attn': .35,  # this scales at grad computation now
+            'lr_nn': .0075/lr_scale,  # scale by n_units*k
+            'lr_clusters': .075,
             'lr_clusters_group': .1,
             'k': k
             }
     
-        # trying with higher c - flipping 1 & 6
-        # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
-        # now type II also can be slow, types 3-5 faster - as brad predicted
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.5,
-            'beta': 1.,
-            'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
-            'lr_nn': .025/lr_scale,  # scale by n_units*k
-            'lr_clusters': .01,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # trying with higher c - flipping 1 & 6
+        # # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
+        # # now type II also can be slow, types 3-5 faster - as brad predicted
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 1.5,
+        #     'beta': 1.,
+        #     'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
+        #     'lr_nn': .025/lr_scale,  # scale by n_units*k
+        #     'lr_clusters': .01,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
-        # c param testing new - try to use same phi. adjust lr_nn
-        # low c
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .8,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.5,
-            'beta': 1.,
-            'lr_attn': .15,
-            'lr_nn': .15/lr_scale,  # scale by n_units*k
-            'lr_clusters': .01,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # c param testing new - try to use same phi. adjust lr_nn
+        # # low c
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .8,  # w/ attn grad normalized, c can be large now
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 1.5,
+        #     'beta': 1.,
+        #     'lr_attn': .15,
+        #     'lr_nn': .15/lr_scale,  # scale by n_units*k
+        #     'lr_clusters': .01,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
-        # high c
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 3.,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.5, 
-            'beta': 1.,
-            'lr_attn': .002,
-            'lr_nn': .025/lr_scale,  # scale by n_units*k
-            'lr_clusters': .01,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # high c
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': 3.,
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 1.5, 
+        #     'beta': 1.,
+        #     'lr_attn': .002,
+        #     'lr_nn': .025/lr_scale,  # scale by n_units*k
+        #     'lr_clusters': .01,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
-        # comparing with n_banks model
-        # low c
-        params = {
-            'r': 1,
-            'c': .75,
-            'p': 1,
-            'phi': 1.3,
-            'beta': 1,
-            'lr_attn': .2,
-            'lr_nn': .1/lr_scale,
-            'lr_clusters': .05,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # comparing with n_banks model
+        # # low c
+        # params = {
+        #     'r': 1,
+        #     'c': .75,
+        #     'p': 1,
+        #     'phi': 1.3,
+        #     'beta': 1,
+        #     'lr_attn': .2,
+        #     'lr_nn': .1/lr_scale,
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
-        # high c
-        params = {
-            'r': 1,
-            'c': 2.6,
-            'p': 1,
-            'phi': 1.1,
-            'beta': 1,
-            'lr_attn': .002,
-            'lr_nn': .02/lr_scale,  # .01/.02
-            'lr_clusters': .05,
-            'lr_clusters_group': .1,
-            'k': k
-            }        
+        # # high c
+        # params = {
+        #     'r': 1,
+        #     'c': 2.6,
+        #     'p': 1,
+        #     'phi': 1.1,
+        #     'beta': 1,
+        #     'lr_attn': .002,
+        #     'lr_nn': .02/lr_scale,  # .01/.02
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }        
                 
-        # v2
-        # low c
-        params = {
-            'r': 1,
-            'c': .75,
-            'p': 1,
-            'phi': 1.,
-            'beta': 1,
-            'lr_attn': .2,
-            'lr_nn': .1/lr_scale,
-            'lr_clusters': .05,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # v2
+        # # low c
+        # params = {
+        #     'r': 1,
+        #     'c': .75,
+        #     'p': 1,
+        #     'phi': 1.,
+        #     'beta': 1,
+        #     'lr_attn': .2,
+        #     'lr_nn': .1/lr_scale,
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
-        # high c
-        params = {
-            'r': 1,
-            'c': 2.5,
-            'p': 1,
-            'phi': 2.,
-            'beta': 1,
-            'lr_attn': .005,
-            'lr_nn': .002/lr_scale,
-            'lr_clusters': .05,
-            'lr_clusters_group': .1,
-            'k': k
-            }
+        # # high c
+        # params = {
+        #     'r': 1,
+        #     'c': 2.5,
+        #     'p': 1,
+        #     'phi': 2.,
+        #     'beta': 1,
+        #     'lr_attn': .005,
+        #     'lr_nn': .002/lr_scale,
+        #     'lr_clusters': .05,
+        #     'lr_clusters_group': .1,
+        #     'k': k
+        #     }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -417,6 +416,11 @@ plt.plot(pt_all.mean(axis=0).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('1', '2', '3', '4', '5', '6'))
 plt.show()
+
+# for i in range(6):
+#     plt.plot(torch.stack(attn_trace[i])[0])
+#     plt.show()
+
 
 # the human data from nosofsky, et al. replication
 shj = (
@@ -444,12 +448,12 @@ shj = (
 # ax[1].set_aspect(17)
 # plt.show()
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(shj.T, 'k')
-# ax.plot(pt_all.mean(axis=0).T, 'o-')
-# # ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
-# ax.set_ylim([0., .55])
-# ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj.T, 'k')
+ax.plot(pt_all.mean(axis=0).T, 'o-')
+# ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
+ax.set_ylim([0., .55])
+ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
 
 # %% plotting weights to compare to nbank model
 
