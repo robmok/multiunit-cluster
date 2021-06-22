@@ -438,7 +438,7 @@ n_units = 1000
 k = .01
 
 # batch params
-batch_size = n_trials * .005
+batch_size = 200  # n_trials * .005
 nbatch = int(n_trials // batch_size)
 
 # thresh=.9
@@ -447,7 +447,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.2]  # started 12:21pm
+c_vals = [1.2]  # running batchsize=200
 
 # annealed lr
 orig_lr = .2
@@ -459,7 +459,9 @@ lr = [orig_lr / (1 + (ann_decay * i)) for i in range(n_trials)]
 # plt.show()
 
 # annealed for 2nd update
-lr_group = np.array(lr) * 2
+anneal_lr_group = True
+if anneal_lr_group:
+    lr_group = np.array(lr) * 2
 
 # orig_lr = .0001
 # # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
@@ -479,29 +481,54 @@ params = {
     'k': k
     }
 
-# dfs - gridscore, recruit n, seeds (in 1 df, load and save)
+# # dfs - gridscore, recruit n, seeds (in 1 df, load and save)
+# wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
+# fname1 = (
+#     os.path.join(wd,'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
+# grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
+# orig_lr,params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+#     )
+# fname2 = (
+#     os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
+# grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
+# orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+#     )
+# fname3 = (
+#     os.path.join(wd, 'spatial_seeds_batch_ann_cvals_{}units_k{}_startlr{}_\
+# grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
+# orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+#     )
+# # clus positions, activation map
+# fname4 = (
+#     os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr\
+# {}_grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(n_units, params['k'],
+# orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+#     )
+
+# if annealed lr group
+
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 fname1 = (
-    os.path.join(wd,'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
-orig_lr,params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+    os.path.join(wd,'spatial_gscore_batch{}_ann_cvals_{}units_k{}_startlr{}_\
+startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     )
 fname2 = (
-    os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
-orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+    os.path.join(wd, 'spatial_recruit_batch{}_ann_cvals_{}units_k{}_startlr{}_\
+startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     )
 fname3 = (
-    os.path.join(wd, 'spatial_seeds_batch_ann_cvals_{}units_k{}_startlr{}_\
-grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
-orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
+    os.path.join(wd, 'spatial_seeds_batch{}_ann_cvals_{}units_k{}_startlr{}_\
+startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     )
 # clus positions, activation map
 fname4 = (
-    os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr\
-{}_grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(n_units, params['k'],
-orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
-    )
+    os.path.join(wd, 'spatial_actmapclus_batch{}_ann_cvals_{}units_k{}_startlr\
+{}startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(batch_size, n_units, params['k'],
+orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
+    ) 
 
 # load and add to sims (if True) or make new files (if False)
 load = False
@@ -541,7 +568,7 @@ for c in c_vals:
     for isim in range(n_sims):
 
         print('sim {}'.format(isim))
-        
+
         # params to change over loops
         params['c'] = c
 
