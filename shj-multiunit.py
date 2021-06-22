@@ -284,6 +284,7 @@ for i in range(niter):
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
         lr_scale = (n_units * k) / 1
 
+        # new shj pattern - with phi in the model now
         params = {
             'r': 1,  # 1=city-block, 2=euclid
             'c': .7,  # w/ attn grad normalized, c can be large now
