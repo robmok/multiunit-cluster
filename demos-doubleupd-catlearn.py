@@ -16,6 +16,7 @@ import numpy as np
 import torch
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
+import imageio
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
@@ -25,6 +26,8 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
+
+saveplots = False
 
 # one 2D gaussian - k units update
 
@@ -53,12 +56,12 @@ ax1.scatter(x1[:, 0], x1[:, 1],
             marker='x', s=7, linewidth=.75)
 ax1.set_aspect('equal', adjustable='box')
 
-# 3d plot
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-ax.plot_surface(x, y, rv1.pdf(pos), cmap='Greys', linewidth=0)
-ax.grid(False)
-ax.set_zticks([])
-plt.show()
+# # 3d plot
+# fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+# ax.plot_surface(x, y, rv1.pdf(pos), cmap='Greys', linewidth=0)
+# ax.grid(False)
+# ax.set_zticks([])
+# plt.show()
 
 # assign label - just one 'category'
 inputs = torch.tensor(x1, dtype=torch.float32)
@@ -80,14 +83,14 @@ lr_scale = (n_units * k) / 1
 
 params = {
     'r': 1,
-    'c': 1.,
+    'c': .5,
     'p': 1,
     'phi': 2.5,
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
     'lr_clusters': .1,
-    'lr_clusters_group': .15,
+    'lr_clusters_group': .5,
     'k': k
     }
 
@@ -95,9 +98,9 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .15],  # unit position updates 1 & 2
+noise = {'update1': [0, .2],  # unit position updates 1 & 2
          'update2': [0, .0],  # no noise here also makes sense
-         'recruit': [0., .05],  # recruitment position placement
+         'recruit': [0., .0],  # recruitment position placement
          'act': [.0, .0]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
@@ -112,8 +115,13 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 since that makes it stick around where most dots are.
 
 - compare with lr_group vs no lr_group effects: with upd1 noise sd=1, can see
-this. lr_clusters = .05, lr_group = .1, pretty good. no lr_group means units
+this. lr_clusters = .05, lr_group = .2-.5, good. no lr_group means units
 keep going around, whereas lr_group model settles to the centre pretty quickly
+
+- more noise, e.g. sd=2., also works, but now every trial is just expanding
+due to noise, then going together. Shows it works to combat noise, but not
+sure the brain does this...? TBF, the no lr_group does a bad job with this.
+needs lr_group higher - .35-5
 
 """
 
@@ -131,7 +139,15 @@ results = torch.stack(
 
 plot_trials = torch.arange(50)
 
-for i in plot_trials[0:-1]:
+# make dir for trial-by-trial images
+dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
+     n_units, k, params['lr_clusters'], params['lr_clusters_group'],
+     noise['update1'][1], noise['recruit'][1])
+if saveplots:
+    if not os.path.exists(os.path.join(figdir, dn)):
+        os.makedirs(os.path.join(figdir, dn))
+
+for i in plot_trials:
 
     fig = plt.figure(dpi=200)
     ax = fig.add_subplot(111)
@@ -151,10 +167,17 @@ for i in plot_trials[0:-1]:
     ax.set_ylim([-.05, 1.05])
     ax.set_aspect('equal', adjustable='box')
 
+    # save
+    if saveplots:
+        figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+        plt.savefig(figname)
+
     plt.pause(.25)
 
 
 # %% concept learning toy example
+
+saveplots = True
 
 # make 2 categories - sample from two 2D gaussians
 mu1 = np.array([.75, .75])
@@ -170,7 +193,7 @@ rv1 = multivariate_normal([mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]])
 rv2 = multivariate_normal([mu2[0], mu2[1]], [[var2[0], cov2], [cov2, var2[1]]])
 
 # sampling
-npoints = 200
+npoints = 50
 x1 = np.random.multivariate_normal(
     [mu1[0], mu1[1]], [[var1[0], cov1], [cov1, var1[1]]], npoints)
 x2 = np.random.multivariate_normal(
@@ -179,7 +202,7 @@ x2 = np.random.multivariate_normal(
 fig = plt.figure(dpi=200)
 ax1 = fig.add_subplot(111)
 ax1.contour(x, y, rv1.pdf(pos), cmap='Blues')
-ax1.contour(x, y, rv2.pdf(pos), cmap='Greens')
+ax1.contour(x, y, rv2.pdf(pos), cmap='Oranges')
 ax1.set_xlim([0, 1])
 ax1.set_ylim([0, 1])
 ax1.set_facecolor((.5, .5, .5))
@@ -189,12 +212,12 @@ ax1.set_aspect('equal', adjustable='box')
 plt.show()
 
 # 3d plot
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-ax.plot_surface(x, y, rv1.pdf(pos), cmap='GnBu', alpha=.75)
-ax.plot_surface(x, y, rv2.pdf(pos), cmap='RdPu', alpha=.5)
-ax.grid(False)
-ax.set_zticks([])
-plt.show()
+# fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+# ax.plot_surface(x, y, rv1.pdf(pos), cmap='GnBu', alpha=.75)
+# ax.plot_surface(x, y, rv2.pdf(pos), cmap='RdPu', alpha=.5)
+# ax.grid(False)
+# ax.set_zticks([])
+# plt.show()
 
 # assign category label (output)
 inputs = torch.cat([torch.tensor(x1, dtype=torch.float32),
@@ -221,14 +244,14 @@ lr_scale = (n_units * k) / 1
 
 params = {
     'r': 1,
-    'c': .75,
+    'c': .25,
     'p': 1,
     'phi': 2.5,
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .075,
-    'lr_clusters_group': .1,
+    'lr_clusters': .1,
+    'lr_clusters_group': .0,
     'k': k
     }
 
@@ -270,14 +293,22 @@ results = torch.stack(
 
 plot_trials = torch.arange(50)
 
-for i in plot_trials[0:-1]:
+# make dir for trial-by-trial images
+dn = 'demos_catlearn_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
+     n_units, k, params['lr_clusters'], params['lr_clusters_group'],
+     noise['update1'][1], noise['recruit'][1])
+if saveplots:
+    if not os.path.exists(os.path.join(figdir, dn)):
+        os.makedirs(os.path.join(figdir, dn))
+
+for i in plot_trials:
 
     fig = plt.figure(dpi=200)
     ax = fig.add_subplot(111)
 
     # plot distribution stimuli come from (2d gaussian)
-    ax.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.25)
-    ax.contour(x, y, rv2.pdf(pos), cmap='Greens', alpha=.25)
+    ax.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.5)
+    ax.contour(x, y, rv2.pdf(pos), cmap='Oranges', alpha=.5)
 
     # stimulus pos on trial i
     ax.scatter(inputs_d[i, 0],
@@ -286,13 +317,44 @@ for i in plot_trials[0:-1]:
     # unit pos on trial i - showing double update
     ax.scatter(results[i, :, 0], results[i, :, 1], c='grey', s=8)
 
-    ax.set_facecolor((.8, .8, .8))
+    ax.set_facecolor((.85, .85, .85))
     ax.set_xlim([-.05, 1.05])
     ax.set_ylim([-.05, 1.05])
     ax.set_aspect('equal', adjustable='box')
+
+    # save
+    if saveplots:
+        figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+        plt.savefig(figname)
 
     plt.pause(.25)
 
 
 # maybe show latent vs active units?
 
+# %% make gifs
+# https://stackoverflow.com/questions/753190/programmatically-generate-video-or-animated-gif-in-python
+
+savegif = False
+
+lr_clusters = .1
+lr_clusters_group = .5  # 0, .2, .4, .5, skipping .4 sometimes for dupd
+upd1noise = .2  # .1/.2
+recnoise = 0.  # atm, 0 for dupd, .01 for catlearn
+
+# # double update
+# dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
+#       n_units, k, lr_clusters, lr_clusters_group, upd1noise, recnoise)
+
+# catlearn
+dn = 'demos_catlearn_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
+      n_units, k, lr_clusters, lr_clusters_group, upd1noise, recnoise)
+
+images = []
+for i in range(50):
+    fname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+    images.append(imageio.imread(fname))
+
+if savegif:
+    imageio.mimsave(
+        os.path.join(figdir, dn, 'trials.gif'), images, duration=.4)
