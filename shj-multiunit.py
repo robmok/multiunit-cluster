@@ -62,7 +62,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 1
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -114,8 +114,23 @@ params = {
     'beta': 1.,
     'lr_attn': .15,  # this scales at grad computation now
     'lr_nn': .015/lr_scale,  # scale by n_units*k
-    'lr_clusters': .01,
+    'lr_clusters': .05,
     'lr_clusters_group': .1,
+    'k': k
+    }
+
+# new shj pattern - with phi in the model now
+# - editing to show double update effect - mainly lr_group
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .7,  # w/ attn grad normalized, c can be large now
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 9.,
+    'beta': 1.,
+    'lr_attn': .35,  # this scales at grad computation now
+    'lr_nn': .0075/lr_scale,  # scale by n_units*k
+    'lr_clusters': .075,
+    'lr_clusters_group': .12,
     'k': k
     }
 
@@ -160,7 +175,7 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 # - 
 noise = None
-noise = {'update1': [0, .2],  # unit position updates 1 & 2
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
           'recruit': [0., .1],  # recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
@@ -215,14 +230,28 @@ plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
 
 # plot_trials = torch.arange(10)
 
+# # plot 2d
+# for i in plot_trials[0:-1]:
+#     plt.scatter(results[i, :, 0],
+#                 results[i, :, 1])
+#     plt.xlim([-.05, 1.05])
+#     plt.ylim([-.05, 1.05])
+#     plt.pause(.5)
+
+# 3d
+lims = (-.05, 1.05)
 for i in plot_trials[0:-1]:
-    plt.scatter(results[i, :, 0],
-                results[i, :, 1])
-    plt.xlim([-.05, 1.05])
-    plt.ylim([-.05, 1.05])
-    plt.pause(.5)
+    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+    ax.scatter(results[i, :, 0],
+               results[i, :, 1],
+               results[i, :, 2],
+               )
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+    ax.set_zlim(lims)
+    ax.grid(False)
 
-
+    plt.pause(.25)
 
 # explore lesion units ++ 
 # model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0
