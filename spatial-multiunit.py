@@ -438,7 +438,7 @@ n_units = 1000
 k = .01
 
 # batch params
-batch_size = 200  # n_trials * .005
+batch_size = 500  # n_trials * .005
 nbatch = int(n_trials // batch_size)
 
 # thresh=.9
@@ -447,7 +447,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.2]  # running batchsize=200
+c_vals = [1.6]  # sim 6 started ~ 16:27
 
 # annealed lr
 orig_lr = .2
@@ -531,7 +531,7 @@ orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     ) 
 
 # load and add to sims (if True) or make new files (if False)
-load = False
+load = True
 if load:
     df_gscore = pd.read_pickle(fname1)
     df_recruit = pd.read_pickle(fname2)

@@ -177,7 +177,7 @@ for i in plot_trials:
 
 # %% concept learning toy example
 
-saveplots = True
+saveplots = False
 
 # make 2 categories - sample from two 2D gaussians
 mu1 = np.array([.75, .75])
