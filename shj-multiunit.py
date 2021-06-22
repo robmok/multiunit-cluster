@@ -62,7 +62,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 1
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -223,12 +223,12 @@ plt.gca().set_aspect('equal', adjustable='box')
 plt.show()
 
 # over time
-results = torch.stack(model.units_pos_trace, dim=0)[:, model.active_units]
+results = torch.stack(model.units_pos_bothupd_trace, dim=0)[:, model.active_units]
 
 plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
                             dtype=torch.long)
 
-# plot_trials = torch.arange(10)
+# plot_trials = torch.arange(50)
 
 # # plot 2d
 # for i in plot_trials[0:-1]:
@@ -239,18 +239,29 @@ plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
 #     plt.pause(.5)
 
 # 3d
-lims = (-.05, 1.05)
+# https://matplotlib.org/stable/gallery/color/named_colors.html
+lims = (0, 1)
+# lims = (-.05, 1.05)
 for i in plot_trials[0:-1]:
-    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+    fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=150)
     ax.scatter(results[i, :, 0],
                results[i, :, 1],
-               results[i, :, 2],
-               )
+               results[i, :, 2], c='mediumturquoise')  # cornflowerblue / mediumturquoise
     ax.set_xlim(lims)
     ax.set_ylim(lims)
     ax.set_zlim(lims)
-    ax.grid(False)
-
+    # ax.grid(False)
+    # ax.set_xticks([])  # ([0, 1])
+    # ax.set_yticks([])  # ([0, 1])
+    # ax.set_zticks([])  # ([0, 1])
+    
+    # keep grid lines, remove labels
+    labels = ['', '', '', '', '', '']
+    labels = [0, '', '', '', '', 1]
+    ax.set_xticklabels(labels)
+    ax.set_yticklabels(labels)
+    ax.set_zticklabels(labels)
+    
     plt.pause(.25)
 
 # explore lesion units ++ 
