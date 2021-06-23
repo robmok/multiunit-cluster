@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import itertools as it
+import imageio
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
@@ -21,6 +22,10 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %%  SHJ single problem
+
+saveplots = True  # 3d plots
+
+plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
@@ -62,7 +67,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 1
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -187,7 +192,7 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
     noise=noise)
 
 # # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
-print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
+# print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
 # # print(np.unique(np.around(model.attn.detach().numpy()[model.active_units], decimals=2), axis=0))
 # print(model.attn)
 
@@ -211,32 +216,41 @@ plt.plot(torch.stack(model.attn_trace, dim=0))
 # plt.savefig(figname)
 plt.show()
 
+# # unit positions
+# results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
+# plt.scatter(results[:, 0], results[:, 1])
+# # plt.xlim([-1, 1])
+# # plt.ylim([-1, 1])
+# plt.gca().set_aspect('equal', adjustable='box')
+# # plt.axis('equal')
+# plt.show()
+
+# plot 3d - unit positions over time
+results = torch.stack(
+    model.units_pos_bothupd_trace, dim=0)[:, model.active_units]
+
+if plot_seq == 'epoch':  # plot from start to end in n sections
+    n_ims = 20
+    plot_trials = torch.tensor(
+        torch.linspace(0, len(inputs) * n_epochs, n_ims), dtype=torch.long)
+elif plot_seq == 'trls':  # plot first n trials
+    plot_n_trials = 50
+    plot_trials = torch.arange(plot_n_trials)
 
 
-# unit positions
-results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
-plt.scatter(results[:, 0], results[:, 1])
-# plt.xlim([-1, 1])
-# plt.ylim([-1, 1])
-plt.gca().set_aspect('equal', adjustable='box')
-# plt.axis('equal')
-plt.show()
+# make dir for trial-by-trial images
+dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
+      'upd1noise{}_recnoise{}'.format(
+          plot_seq, problem+1, n_units, k, params['lr_clusters'],
+          params['lr_clusters_group'], params['c'], params['phi'],
+          params['lr_attn'], params['lr_nn'], noise['update1'][1],
+          noise['recruit'][1])
+      )
 
-# over time
-results = torch.stack(model.units_pos_bothupd_trace, dim=0)[:, model.active_units]
+if saveplots:
+    if not os.path.exists(os.path.join(figdir, dn)):
+        os.makedirs(os.path.join(figdir, dn))
 
-plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
-                            dtype=torch.long)
-
-# plot_trials = torch.arange(50)
-
-# # plot 2d
-# for i in plot_trials[0:-1]:
-#     plt.scatter(results[i, :, 0],
-#                 results[i, :, 1])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
 
 # 3d
 # https://matplotlib.org/stable/gallery/color/named_colors.html
@@ -250,22 +264,63 @@ for i in plot_trials[0:-1]:
     ax.set_xlim(lims)
     ax.set_ylim(lims)
     ax.set_zlim(lims)
-    # ax.grid(False)
-    # ax.set_xticks([])  # ([0, 1])
-    # ax.set_yticks([])  # ([0, 1])
-    # ax.set_zticks([])  # ([0, 1])
-    
+
     # keep grid lines, remove labels
-    labels = ['', '', '', '', '', '']
+    # labels = ['', '', '', '', '', '']
     labels = [0, '', '', '', '', 1]
     ax.set_xticklabels(labels)
     ax.set_yticklabels(labels)
     ax.set_zticklabels(labels)
-    
+
+    # save
+    if saveplots:
+        figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+        plt.savefig(figname)
+
     plt.pause(.25)
 
 # explore lesion units ++ 
 # model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0
+
+# %% make gifs
+
+savegif = False
+
+plot_seq = 'trls'  # epoch/trls
+
+# set params
+problem = 1  # 0, 1, 5 right now
+lr_clusters = .1
+lr_clusters_group = .0
+upd1noise = .1  # .1 for now. can try .2
+recnoise = .1  # atm, 0 for dupd, .01 for catlearn
+
+# load from dir
+dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
+      'upd1noise{}_recnoise{}'.format(
+          plot_seq, problem+1, n_units, k, lr_clusters,
+          lr_clusters_group, params['c'], params['phi'],
+          params['lr_attn'], params['lr_nn'], upd1noise,
+          recnoise)
+      )
+
+if plot_seq == 'epoch':  # plot from start to end in n sections
+    n_ims = 20
+    plot_trials = torch.tensor(
+        torch.linspace(0, len(inputs) * n_epochs, n_ims), dtype=torch.long)
+elif plot_seq == 'trls':  # plot first n trials
+    plot_n_trials = 50
+    plot_trials = torch.arange(plot_n_trials)
+
+
+images = []
+for i in plot_trials[0:-1]:
+    fname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+    images.append(imageio.imread(fname))
+
+if savegif:
+    imageio.mimsave(
+        os.path.join(figdir, dn, 'trials.gif'), images, duration=.4)
 
 # %% SHJ 6 problems
 

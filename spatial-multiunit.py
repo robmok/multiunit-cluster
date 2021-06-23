@@ -447,7 +447,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.8]  # sim 6 started ~ 16:27. 77 at 17:31. slightly faster?
+c_vals = [1.4]  # 1.4/1.6/1.8 without group nneal
 
 # annealed lr
 orig_lr = .2
@@ -459,9 +459,11 @@ lr = [orig_lr / (1 + (ann_decay * i)) for i in range(n_trials)]
 # plt.show()
 
 # annealed for 2nd update
-anneal_lr_group = True
+anneal_lr_group = False
 if anneal_lr_group:
     lr_group = np.array(lr) * 2
+else:
+    lr_group = np.array(lr) * 0 + .1
 
 # orig_lr = .0001
 # # 1/annC*nBatch = nBatch: constant to calc 1/annEpsDecay
@@ -481,54 +483,54 @@ params = {
     'k': k
     }
 
-# # dfs - gridscore, recruit n, seeds (in 1 df, load and save)
-# wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
-# fname1 = (
-#     os.path.join(wd,'spatial_gscore_batch_ann_cvals_{}units_k{}_startlr{}_\
-# grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
-# orig_lr,params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
-#     )
-# fname2 = (
-#     os.path.join(wd, 'spatial_recruit_batch_ann_cvals_{}units_k{}_startlr{}_\
-# grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
-# orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
-#     )
-# fname3 = (
-#     os.path.join(wd, 'spatial_seeds_batch_ann_cvals_{}units_k{}_startlr{}_\
-# grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(n_units, params['k'],
-# orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
-#     )
-# # clus positions, activation map
-# fname4 = (
-#     os.path.join(wd, 'spatial_actmapclus_batch_ann_cvals_{}units_k{}_startlr\
-# {}_grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(n_units, params['k'],
-# orig_lr, params['lr_clusters_group'], params['lr_attn'], n_trials, n_sims))
-#     )
-
-# if annealed lr group
-
+# dfs - gridscore, recruit n, seeds (in 1 df, load and save)
 wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 fname1 = (
     os.path.join(wd,'spatial_gscore_batch{}_ann_cvals_{}units_k{}_startlr{}_\
-startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
 orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     )
 fname2 = (
     os.path.join(wd, 'spatial_recruit_batch{}_ann_cvals_{}units_k{}_startlr{}_\
-startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
 orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     )
 fname3 = (
     os.path.join(wd, 'spatial_seeds_batch{}_ann_cvals_{}units_k{}_startlr{}_\
-startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
 orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
     )
 # clus positions, activation map
 fname4 = (
     os.path.join(wd, 'spatial_actmapclus_batch{}_ann_cvals_{}units_k{}_startlr\
-{}startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(batch_size, n_units, params['k'],
+{}_grouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(batch_size, n_units, params['k'],
 orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
-    ) 
+    )
+
+# if annealed lr group
+
+# wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
+# fname1 = (
+#     os.path.join(wd,'spatial_gscore_batch{}_ann_cvals_{}units_k{}_startlr{}_\
+# startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+# orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
+#     )
+# fname2 = (
+#     os.path.join(wd, 'spatial_recruit_batch{}_ann_cvals_{}units_k{}_startlr{}_\
+# startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+# orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
+#     )
+# fname3 = (
+#     os.path.join(wd, 'spatial_seeds_batch{}_ann_cvals_{}units_k{}_startlr{}_\
+# startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims.pkl'.format(batch_size, n_units, params['k'],
+# orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
+#     )
+# # clus positions, activation map
+# fname4 = (
+#     os.path.join(wd, 'spatial_actmapclus_batch{}_ann_cvals_{}units_k{}_startlr\
+# {}startgrouplr{}_attnlr{}_thresh.7_{}ktrls_{}sims'.format(batch_size, n_units, params['k'],
+# orig_lr, lr_group[0], params['lr_attn'], n_trials, n_sims))
+#     ) 
 
 # load and add to sims (if True) or make new files (if False)
 load = True
