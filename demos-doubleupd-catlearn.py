@@ -27,7 +27,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-saveplots = False
+saveplots = True
 
 # one 2D gaussian - k units update
 
@@ -90,7 +90,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
     'lr_clusters': .1,
-    'lr_clusters_group': .5,
+    'lr_clusters_group': .2,
     'k': k
     }
 
@@ -164,9 +164,15 @@ for i in plot_trials:
     ax.scatter(results[i, :, 0], results[i, :, 1],
                s=8, edgecolors='black', linewidth=.2, zorder=2)
 
-    ax.set_facecolor((.8, .8, .8))
-    ax.set_xlim([-.05, 1.05])
-    ax.set_ylim([-.05, 1.05])
+    # ax.set_facecolor((.8, .8, .8))
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
+    # labels = [0, '', '', '', '', 1]
+    ax.set_xticks([])
+    ax.set_yticks([])
+    # ax.set_xticklabels([])
+    # ax.set_yticklabels([])
+    # ax.axis('off')
     ax.set_aspect('equal', adjustable='box')
 
     # save

@@ -447,9 +447,9 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [1.8]  # to do 1.8/2. without group anneal. .8.9 min per sim
+c_vals = [1.8]  # to do 2. without group anneal. .8.9 min per sim - 
 
-# c_vals = [2.]  # with anneal. slower. 1.16 min/sim
+# c_vals = [1.3]  # with anneal. slower. 1.16 min/sim
 
 # annealed lr
 orig_lr = .2
@@ -461,7 +461,7 @@ lr = [orig_lr / (1 + (ann_decay * i)) for i in range(n_trials)]
 # plt.show()
 
 # annealed for 2nd update
-anneal_lr_group = True
+anneal_lr_group = False
 if anneal_lr_group:
     lr_group = np.array(lr) * 2
 else:
