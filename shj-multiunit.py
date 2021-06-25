@@ -67,7 +67,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 5
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -266,11 +266,16 @@ for i in plot_trials[0:-1]:
     ax.set_zlim(lims)
 
     # keep grid lines, remove labels
-    # labels = ['', '', '', '', '', '']
+    # # labels = ['', '', '', '', '', '']
     labels = [0, '', '', '', '', 1]
     ax.set_xticklabels(labels)
     ax.set_yticklabels(labels)
     ax.set_zticklabels(labels)
+    
+    # remove grey color - white
+    ax.w_xaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+    ax.w_yaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+    ax.w_zaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
 
     # save
     if saveplots:

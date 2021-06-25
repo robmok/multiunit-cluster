@@ -27,7 +27,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-saveplots = True
+saveplots = False
 
 # one 2D gaussian - k units update
 
@@ -90,7 +90,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
     'lr_clusters': .1,
-    'lr_clusters_group': .2,
+    'lr_clusters_group': .5,
     'k': k
     }
 
@@ -182,10 +182,9 @@ for i in plot_trials:
 
     plt.pause(.25)
 
-
 # %% concept learning toy example
 
-saveplots = False
+saveplots = True
 
 # make 2 categories - sample from two 2D gaussians
 mu1 = np.array([.75, .75])
@@ -259,7 +258,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
     'lr_clusters': .1,
-    'lr_clusters_group': .0,
+    'lr_clusters_group': .5,
     'k': k
     }
 
@@ -267,10 +266,10 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
-          'update2': [0, .0],  # no noise here also makes sense
-          'recruit': [0., .01],  # recruitment position placement
-          'act': [.0, .0]}  # unit activations (non-negative)
+noise = {'update1': [0, .2],  # unit position updates 1 & 2
+         'update2': [0, .0],  # no noise here also makes sense
+         'recruit': [0., .01],  # recruitment position placement
+         'act': [.0, .0]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -328,8 +327,10 @@ for i in plot_trials:
                c='grey', edgecolors='black', linewidth=.2, s=8, zorder=2)
 
     # ax.set_facecolor((.85, .85, .85))
-    ax.set_xlim([-.05, 1.05])
-    ax.set_ylim([-.05, 1.05])
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.set_aspect('equal', adjustable='box')
 
     # save
