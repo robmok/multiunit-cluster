@@ -153,14 +153,16 @@ for i in plot_trials:
     ax = fig.add_subplot(111)
 
     # plot distribution stimuli come from (2d gaussian)
-    ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.35)
+    ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.75)
 
     # stimulus pos on trial i
     ax.scatter(inputs_d[i, 0],
-               inputs_d[i, 1], c='black', marker='x', s=25, linewidth=1.2)
+               inputs_d[i, 1],
+               c='black', marker='x', s=25, linewidth=1.2, zorder=3)
 
     # unit pos on trial i - showing double update
-    ax.scatter(results[i, :, 0], results[i, :, 1], s=8)
+    ax.scatter(results[i, :, 0], results[i, :, 1],
+               s=8, edgecolors='black', linewidth=.2, zorder=2)
 
     ax.set_facecolor((.8, .8, .8))
     ax.set_xlim([-.05, 1.05])
@@ -307,17 +309,19 @@ for i in plot_trials:
     ax = fig.add_subplot(111)
 
     # plot distribution stimuli come from (2d gaussian)
-    ax.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.5)
-    ax.contour(x, y, rv2.pdf(pos), cmap='Oranges', alpha=.5)
+    ax.contour(x, y, rv1.pdf(pos), cmap='Blues', alpha=.75)
+    ax.contour(x, y, rv2.pdf(pos), cmap='Oranges', alpha=.75)
 
     # stimulus pos on trial i
     ax.scatter(inputs_d[i, 0],
-               inputs_d[i, 1], c='black', marker='x', s=25, linewidth=1.2)
+               inputs_d[i, 1],
+               c='black', marker='x', s=25, linewidth=1.2, zorder=3)
 
     # unit pos on trial i - showing double update
-    ax.scatter(results[i, :, 0], results[i, :, 1], c='grey', s=8)
+    ax.scatter(results[i, :, 0], results[i, :, 1],
+               c='grey', edgecolors='black', linewidth=.2, s=8, zorder=2)
 
-    ax.set_facecolor((.85, .85, .85))
+    # ax.set_facecolor((.85, .85, .85))
     ax.set_xlim([-.05, 1.05])
     ax.set_ylim([-.05, 1.05])
     ax.set_aspect('equal', adjustable='box')
