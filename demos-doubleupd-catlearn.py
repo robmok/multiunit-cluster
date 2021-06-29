@@ -27,7 +27,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-saveplots = False
+saveplots = True
 
 # one 2D gaussian - k units update
 
@@ -90,7 +90,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
     'lr_clusters': .1,
-    'lr_clusters_group': .5,
+    'lr_clusters_group': .0,
     'k': k
     }
 
@@ -98,7 +98,7 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .2],  # unit position updates 1 & 2
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
          'update2': [0, .0],  # no noise here also makes sense
          'recruit': [0., .0],  # recruitment position placement
          'act': [.0, .0]}  # unit activations (non-negative)
@@ -258,7 +258,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
     'lr_clusters': .1,
-    'lr_clusters_group': .5,
+    'lr_clusters_group': .4,
     'k': k
     }
 
@@ -266,7 +266,7 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .2],  # unit position updates 1 & 2
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
          'update2': [0, .0],  # no noise here also makes sense
          'recruit': [0., .01],  # recruitment position placement
          'act': [.0, .0]}  # unit activations (non-negative)
@@ -349,9 +349,9 @@ for i in plot_trials:
 savegif = False
 
 lr_clusters = .1
-lr_clusters_group = .5  # 0, .2, .4, .5, skipping .4 sometimes for dupd
+lr_clusters_group = .0  # 0, .2, .4, .5, skipping .4 sometimes for dupd
 upd1noise = .2  # .1/.2
-recnoise = 0.  # atm, 0 for dupd, .01 for catlearn
+recnoise = 0.01  # atm, 0 for dupd, .01 for catlearn
 
 # # double update
 # dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(

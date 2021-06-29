@@ -23,7 +23,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %%  SHJ single problem
 
-saveplots = True  # 3d plots
+saveplots = False  # 3d plots
 
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
@@ -67,7 +67,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -291,12 +291,12 @@ for i in plot_trials[0:-1]:
 
 savegif = False
 
-plot_seq = 'trls'  # epoch/trls
+plot_seq = 'epoch'  # epoch/trls
 
 # set params
-problem = 1  # 0, 1, 5 right now
+problem = 5  # 0, 1, 5 right now
 lr_clusters = .1
-lr_clusters_group = .0
+lr_clusters_group = .12
 upd1noise = .1  # .1 for now. can try .2
 recnoise = .1  # atm, 0 for dupd, .01 for catlearn
 
