@@ -23,7 +23,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %%  SHJ single problem
 
-saveplots = False  # 3d plots
+saveplots = True  # 3d plots
 
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
@@ -135,7 +135,7 @@ params = {
     'lr_attn': .35,  # this scales at grad computation now
     'lr_nn': .0075/lr_scale,  # scale by n_units*k
     'lr_clusters': .1,
-    'lr_clusters_group': .12,
+    'lr_clusters_group': .0,
     'k': k
     }
 
@@ -180,7 +180,7 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 # - 
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
+noise = {'update1': [0, .2],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
           'recruit': [0., .1],  # recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
@@ -289,7 +289,7 @@ for i in plot_trials[0:-1]:
 
 # %% make gifs
 
-savegif = False
+savegif = True
 
 plot_seq = 'epoch'  # epoch/trls
 
@@ -297,7 +297,7 @@ plot_seq = 'epoch'  # epoch/trls
 problem = 5  # 0, 1, 5 right now
 lr_clusters = .1
 lr_clusters_group = .12
-upd1noise = .1  # .1 for now. can try .2
+upd1noise = .2  # .1 for now. can try .2
 recnoise = .1  # atm, 0 for dupd, .01 for catlearn
 
 # load from dir
