@@ -447,7 +447,7 @@ nbatch = int(n_trials // batch_size)
 # re-run with new thresh
 
 c_vals = [1.2, 1.6, 2.]
-c_vals = [.8]
+c_vals = [.8]  # run .8 for no anneal
 
 # c_vals = [1.3]  # with anneal. slower. 1.16 min/sim
 
