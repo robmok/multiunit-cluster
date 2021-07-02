@@ -23,7 +23,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %%  SHJ single problem
 
-saveplots = True  # 3d plots
+saveplots = False  # 3d plots
 
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
@@ -67,7 +67,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 5
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -97,32 +97,32 @@ n_epochs = 16
 # new local attn - scaling lr
 lr_scale = (n_units * k) / 1
 
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .9, # w/ attn grad normalized, c can be large now
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 18.5,
-    'beta': 1.,
-    'lr_attn': .15, # this scales at grad computation now
-    'lr_nn': .01/lr_scale,  # scale by n_units*k
-    'lr_clusters': .01,
-    'lr_clusters_group': .1,
-    'k': k
-    }
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': .9, # w/ attn grad normalized, c can be large now
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 18.5,
+#     'beta': 1.,
+#     'lr_attn': .15, # this scales at grad computation now
+#     'lr_nn': .01/lr_scale,  # scale by n_units*k
+#     'lr_clusters': .01,
+#     'lr_clusters_group': .1,
+#     'k': k
+#     }
 
-# shj params
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.,  # w/ attn grad normalized, c can be large now
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 12.5,
-    'beta': 1.,
-    'lr_attn': .15,  # this scales at grad computation now
-    'lr_nn': .015/lr_scale,  # scale by n_units*k
-    'lr_clusters': .05,
-    'lr_clusters_group': .1,
-    'k': k
-    }
+# # shj params
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 1.,  # w/ attn grad normalized, c can be large now
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 12.5,
+#     'beta': 1.,
+#     'lr_attn': .15,  # this scales at grad computation now
+#     'lr_nn': .015/lr_scale,  # scale by n_units*k
+#     'lr_clusters': .05,
+#     'lr_clusters_group': .1,
+#     'k': k
+#     }
 
 # new shj pattern - with phi in the model now
 # - editing to show double update effect - mainly lr_group
@@ -180,7 +180,7 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 # - 
 noise = None
-noise = {'update1': [0, .2],  # unit position updates 1 & 2
+noise = {'update1': [0, .1],  # unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
           'recruit': [0., .1],  # recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
@@ -294,10 +294,10 @@ savegif = True
 plot_seq = 'epoch'  # epoch/trls
 
 # set params
-problem = 5  # 0, 1, 5 right now
+problem = 4  # 0, 1, 4, 5 right now
 lr_clusters = .1
-lr_clusters_group = .12
-upd1noise = .2  # .1 for now. can try .2
+lr_clusters_group = .0
+upd1noise = .1  # .1/.2
 recnoise = .1  # atm, 0 for dupd, .01 for catlearn
 
 # load from dir
