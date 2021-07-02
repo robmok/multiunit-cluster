@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import itertools as it
 import imageio
 import time
+from scipy import stats
 from scipy import optimize as opt
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
@@ -888,6 +889,19 @@ plt.rcdefaults()
 
 # %% grid search, fit shj
 
+"""
+TODO
+
+- add fit_params to model class: if fit_params...), which to allow
+- check if the way i specified 'args' is correct.
+from: https://stackoverflow.com/questions/19843752/structure-of-inputs-to-scipy-minimize-function
+The short answer is that G ['params' here] is maintained by the optimizer as
+part of the minimization process, while the (D_neg, D, and C) [here
+(sim_info, six_problems, beh_seq)] arguments are passed in as-is from the args
+tuple.
+
+
+"""
 
 # the human data from nosofsky, et al. replication
 shj = (
@@ -906,23 +920,70 @@ shj = (
     )
 
 # run all SHJ
-behavior_sequence = shj.T
+beh_seq = shj.T
+
+
+def negloglik(model_pr, beh_seq):
+    return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
+
 
 # define model to run
 # - set up model, run through each shj problem, compute nll
-def run_muc(params, model_info, beh_seq):
-    pass
+def run_shj_muc(params, sim_info, six_problems, beh_seq):
+    """
+    niter: number of runs per SHJ problem with different sequences (randomised)
+    """
+
+    nll_all = torch.zeros(6)
+    pt_all = torch.zeros([sim_info['niter'], 6, 16])
+
+    # run niterations, 6 problems
+    for i, problem in it.product(range(sim_info['niter']), range(6)):
+
+        stim = six_problems[problem]
+        stim = torch.tensor(stim, dtype=torch.float)
+        inputs = stim[:, 0:-1]
+        output = stim[:, -1].long()  # integer
+        # 16 per block
+        inputs = inputs.repeat(2, 1)
+        output = output.repeat(2).T
+        n_dims = inputs.shape[1]
+
+        # initialize model
+        model = MultiUnitCluster(sim_info['n_units'], n_dims,
+                                 sim_info['attn_type'],
+                                 sim_info['k'],
+                                 params=params)
+
+        model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
+            model, inputs, output, 16, shuffle=True)
+
+        pt_all[i, problem] = 1 - epoch_ptarget.detach()
+
+    for problem in range(6):
+        nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
+                                     beh_seq[:, problem])
+
+    return nll_all.sum()
 
 
+sim_info = {
+    'n_units': n_units,
+    'attn_type': 'dimensional_local',
+    'k': k,
+    'niter': niter
+    }
 
 # grid search
-
 # define ranges of each param
-# - here are 3 params:
+# - here are 3 params
+# TODO - need to add this to model - if fit_params...)
 ranges = (slice(.1, .75, .15), slice(.005, .35, .075), slice(.005, .35, .075))
 
 t0 = time.time()
-resbrute = opt.brute(run_muc, ranges, full_output=True, finish=opt.fmin)
+resbrute = opt.brute(run_shj_muc, ranges,
+                     args=(sim_info, six_problems, beh_seq),
+                     full_output=True, finish=opt.fmin)
 t1 = time.time()
 
 print(t1-t0)
