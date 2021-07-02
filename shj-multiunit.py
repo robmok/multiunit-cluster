@@ -13,6 +13,8 @@ import torch
 import matplotlib.pyplot as plt
 import itertools as it
 import imageio
+import time
+from scipy import optimize as opt
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
@@ -884,3 +886,43 @@ plt.rcdefaults()
 # import pandas as pd
 # df_sum = pd.DataFrame(columns=['acc', 'k', 'n_uni'ts, 'n_lesions', 'lesion trials', 'sim_num'])
 
+# %% grid search, fit shj
+
+
+# the human data from nosofsky, et al. replication
+shj = (
+    np.array([[0.211, 0.025, 0.003, 0., 0., 0., 0., 0.,
+               0., 0., 0., 0., 0., 0., 0., 0.],
+              [0.378, 0.156, 0.083, 0.056, 0.031, 0.027, 0.028, 0.016,
+               0.016, 0.008, 0., 0.002, 0.005, 0.003, 0.002, 0.],
+              [0.459, 0.286, 0.223, 0.145, 0.081, 0.078, 0.063, 0.033,
+               0.023, 0.016, 0.019, 0.009, 0.008, 0.013, 0.009, 0.013],
+              [0.422, 0.295, 0.222, 0.172, 0.148, 0.109, 0.089, 0.062,
+               0.025, 0.031, 0.019, 0.025, 0.005, 0., 0., 0.],
+              [0.472, 0.331, 0.23, 0.139, 0.106, 0.081, 0.067,
+               0.078, 0.048, 0.045, 0.05, 0.036, 0.031, 0.027, 0.016, 0.014],
+              [0.498, 0.341, 0.284, 0.245, 0.217, 0.192, 0.192, 0.177,
+               0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
+    )
+
+# run all SHJ
+behavior_sequence = shj.T
+
+# define model to run
+# - set up model, run through each shj problem, compute nll
+def run_muc(params, model_info, beh_seq):
+    pass
+
+
+
+# grid search
+
+# define ranges of each param
+# - here are 3 params:
+ranges = (slice(.1, .75, .15), slice(.005, .35, .075), slice(.005, .35, .075))
+
+t0 = time.time()
+resbrute = opt.brute(run_muc, ranges, full_output=True, finish=opt.fmin)
+t1 = time.time()
+
+print(t1-t0)
