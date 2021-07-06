@@ -662,7 +662,6 @@ saveplots = False
 
 anneal_lr_group = True
 
-
 n_sims = 100
 # model spec
 n_dims = 2
@@ -766,7 +765,6 @@ else:
 df_gscore = pd.read_pickle(fname1)
 df_recruit = pd.read_pickle(fname2)
 
-
 # gscore
 g = sns.catplot(data=df_gscore, kind="violin")
 sns.stripplot(color="k", alpha=0.2, size=3,
@@ -789,10 +787,18 @@ sns.swarmplot(alpha=0.2, size=3,
 g.ax.set_ylim(0., 18.)
 plt.show()
 
-g = sns.swarmplot(size=3,
+g = sns.swarmplot(size=.4,  # smaller size to plot all dots.. but color light
                   data=df_recruit)
-g.ax.set_ylim(0., 18.)
+g.set_ylim(0., 18.)
 plt.show()
+
+
+# fig, ax = plt.subplots()
+# ax.hist(df_gscore[.8], alpha=.5)
+# ax.spines['top'].set_visible(False)
+# ax.spines['left'].set_visible(False)
+# ax.spines['right'].set_visible(False)
+# ax.grid(color='grey', linestyle='-', linewidth=.25, alpha=.5)
 
 # %% plot actmaps and xcorrs
 

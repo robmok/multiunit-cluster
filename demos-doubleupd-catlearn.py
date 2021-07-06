@@ -27,7 +27,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-saveplots = True
+saveplots = False
 
 # one 2D gaussian - k units update
 
