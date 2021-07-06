@@ -69,7 +69,21 @@ class MultiUnitCluster(nn.Module):
                 'lr_nn': start_params[3],
                 'lr_clusters': start_params[4],
                 'lr_clusters_group': start_params[5],
+                'k': k
                 }
+
+        # if fit_params:
+        #     self.params = {
+        #         'r': 1,
+        #         'c': start_params[0],
+        #         'p': 1,
+        #         'phi': 1,
+        #         'lr_attn': 0.35,
+        #         'lr_nn': 0.0003,
+        #         'lr_clusters': 0.075,
+        #         'lr_clusters_group': 0.12,
+        #         'k': k
+        #         }
 
         # units
         self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
