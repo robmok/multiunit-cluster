@@ -292,7 +292,7 @@ for i in plot_trials[0:-1]:
 
 # %% make gifs
 
-savegif = True
+savegif = False
 
 plot_seq = 'epoch'  # epoch/trls
 
@@ -892,7 +892,6 @@ plt.rcdefaults()
 """
 TODO
 
-- add fit_params to model class: if fit_params...), which to allow
 - check if the way i specified 'args' is correct.
 from: https://stackoverflow.com/questions/19843752/structure-of-inputs-to-scipy-minimize-function
 The short answer is that G ['params' here] is maintained by the optimizer as
@@ -929,7 +928,7 @@ def negloglik(model_pr, beh_seq):
 
 # define model to run
 # - set up model, run through each shj problem, compute nll
-def run_shj_muc(params, sim_info, six_problems, beh_seq):
+def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
     """
     niter: number of runs per SHJ problem with different sequences (randomised)
     """
@@ -953,7 +952,8 @@ def run_shj_muc(params, sim_info, six_problems, beh_seq):
         model = MultiUnitCluster(sim_info['n_units'], n_dims,
                                  sim_info['attn_type'],
                                  sim_info['k'],
-                                 params=params)
+                                 params=None,
+                                 fit_params=True, start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, 16, shuffle=True)
@@ -964,26 +964,77 @@ def run_shj_muc(params, sim_info, six_problems, beh_seq):
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    return nll_all.sum()
+    # return nll_all.sum()
+    return nll_all.sum(), pt_all.mean(axis=0)  # run gridsearch myself
 
+
+# sim_info = {
+#     'n_units': 500,
+#     'attn_type': 'dimensional_local',
+#     'k': .05,
+#     'niter': 1  # niter
+#     }
+
+# # grid search
+# # define ranges of each param
+# # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
+# ranges = (slice(1., 1.1, .1),  # c
+#           slice(1., 1.1, .1),
+#           slice(.2, .3, .1),
+#           slice(.0003, .0004, .0001),
+#           slice(.075, .1, .025),
+#           slice(.12, .13, .01)
+#           )
+
+# t0 = time.time()
+# resbrute = opt.brute(run_shj_muc, ranges,
+#                      args=(sim_info, six_problems, beh_seq),
+#                      full_output=True, finish=None)  # finish=opt.fmin)
+# t1 = time.time()
+
+# print(t1-t0)
+
+'''
+resbrute[3] is the full grid
+
+# 2.4s for 1 param each - 1 iter
+# 152.35s for 2 params each (2.4**6 is ~191.1s)
+
+# hmm, how to get pt back...? maybe can't here
+# - maybe code up myself.. since want the whole grid anyway.
+'''
 
 sim_info = {
-    'n_units': n_units,
+    'n_units': 500,
     'attn_type': 'dimensional_local',
-    'k': k,
-    'niter': niter
+    'k': .05,
+    'niter': 1  # niter
     }
 
+lr_scale = (n_units * k) / 1
+
+# c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
+ranges = ([torch.arange(1., 1.2, .1),
+          torch.arange(1., 1.2, .1),
+          torch.arange(.2, .4, .1),
+          torch.arange(.0075, .01, .0025) / lr_scale,
+          torch.arange(.075, .125, .025),
+          torch.arange(.12, .13, .01)])
+
+# set up and save nll, pt, and fit_params
+param_sets = torch.tensor(list(it.product(*ranges)))
+pt_all = torch.zeros([len(param_sets), 6, 16])
+nlls = torch.zeros(len(param_sets))
+
 # grid search
-# define ranges of each param
-# - here are 3 params
-# TODO - need to add this to model - if fit_params...)
-ranges = (slice(.1, .75, .15), slice(.005, .35, .075), slice(.005, .35, .075))
-
 t0 = time.time()
-resbrute = opt.brute(run_shj_muc, ranges,
-                     args=(sim_info, six_problems, beh_seq),
-                     full_output=True, finish=opt.fmin)
-t1 = time.time()
+for i, fit_params in enumerate(it.product(*ranges)):
+    nlls[i], pt_all[i] = run_shj_muc(
+        fit_params, sim_info, six_problems, beh_seq)
 
+t1 = time.time()
 print(t1-t0)
+
+# 142.9s - 2 params each, 1 iter. same as above
+
+
