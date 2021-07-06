@@ -964,12 +964,12 @@ sim_info = {
 lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
-ranges = ([torch.arange(1., 1.2, .1),
-          torch.arange(1., 1.2, .1),
-          torch.arange(.2, .4, .1),
-          torch.arange(.0075, .01, .0025) / lr_scale,
-          torch.arange(.075, .125, .025),
-          torch.arange(.12, .13, .01)])
+ranges = ([torch.arange(1., 1.3, .1),
+          torch.arange(1., 1.3, .1),
+          torch.arange(.2, .5, .1),
+          torch.arange(.0075, .0125, .0025) / lr_scale,
+          torch.arange(.075, .15, .025),
+          torch.arange(.12, .14, .01)])
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -985,6 +985,48 @@ for i, fit_params in enumerate(it.product(*ranges)):
 t1 = time.time()
 print(t1-t0)
 
-# 142.9s - 2 params each, 1 iter. same as above
+"""
+2.25s for 1 param, 1 iter (6)
+142.9s / 2.38 mins - 2 params each, 1 iter (64)
+if 3 params, 1296 combinations, 1296*2.25=2916/6=48.6 min
+
+- this is just 2 values per param and 1 sim. prob run 50 sims: 2.25*50=112.5s
+    - 2 params: 112.5*64=7200/60/60=2 hours
+    - 3 params: 112.5*1296=145800/60/60=40.5 hours
+
+- w/ 10 values per param, there are 100 combinations. w/ 20, 400 combinations
+w/ 40
+    - 2 params, 20 values: 112.5*400=45000/60/60=12.5 hours
+    - 2 params, 30 values: 112.5*900=101250/60/60=28.125 hours
+    - 2 params, 40 values: 112.5*1600=180000/60/60=50 hours
+
+    - 3 params, 10 values: 112.5*1000=112500/60/60=31.25 hours
+    - 3 params, 20 values: 112.5*8000=900000/60/60=250 hours - 10+ days
+
+    - 4 params, 10 values: 112.5*10000=1125000/60/60=312.5 hours - 12.5+ days
+
+---> so worth splitting up the possible params into separate chunks, run
+separately on love06.
+- can run 2 params per set
+
+
+TODO:
+- figure out what parameters ranges and stepsizes for each param are sensible
+- split into manageable chunks
+
+
+
+
+
+
+"""
+
+ranges = ([torch.arange(1., 3, .1),
+          torch.arange(1., 3, .1),
+          torch.arange(1., 3, .1)])
+
+len(list(it.product(*ranges)))
+
+
 
 
