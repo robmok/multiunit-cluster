@@ -19,7 +19,8 @@ from scipy.stats import norm
 
 
 class MultiUnitCluster(nn.Module):
-    def __init__(self, n_units, n_dims, attn_type, k, params=None):
+    def __init__(self, n_units, n_dims, attn_type, k, params=None,
+                 fit_params=False, start_params=False):
         super(MultiUnitCluster, self).__init__()
         self.attn_type = attn_type
         self.n_units = n_units
@@ -56,6 +57,18 @@ class MultiUnitCluster(nn.Module):
                 'lr_clusters': .15,
                 'lr_clusters_group': .95,
                 'k': k
+                }
+
+        if fit_params:
+            self.params = {
+                'r': 1,
+                'c': start_params[0],
+                'p': 1,
+                'phi': start_params[1],
+                'lr_attn': start_params[2],
+                'lr_nn': start_params[3],
+                'lr_clusters': start_params[4],
+                'lr_clusters_group': start_params[5],
                 }
 
         # units
