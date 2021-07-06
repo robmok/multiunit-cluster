@@ -889,19 +889,6 @@ plt.rcdefaults()
 
 # %% grid search, fit shj
 
-"""
-TODO
-
-- check if the way i specified 'args' is correct.
-from: https://stackoverflow.com/questions/19843752/structure-of-inputs-to-scipy-minimize-function
-The short answer is that G ['params' here] is maintained by the optimizer as
-part of the minimization process, while the (D_neg, D, and C) [here
-(sim_info, six_problems, beh_seq)] arguments are passed in as-is from the args
-tuple.
-
-
-"""
-
 # the human data from nosofsky, et al. replication
 shj = (
     np.array([[0.211, 0.025, 0.003, 0., 0., 0., 0., 0.,
@@ -964,45 +951,8 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    # return nll_all.sum()
-    return nll_all.sum(), pt_all.mean(axis=0)  # run gridsearch myself
+    return nll_all.sum(), pt_all.mean(axis=0)  # to run gridsearch and save pt
 
-
-# sim_info = {
-#     'n_units': 500,
-#     'attn_type': 'dimensional_local',
-#     'k': .05,
-#     'niter': 1  # niter
-#     }
-
-# # grid search
-# # define ranges of each param
-# # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
-# ranges = (slice(1., 1.1, .1),  # c
-#           slice(1., 1.1, .1),
-#           slice(.2, .3, .1),
-#           slice(.0003, .0004, .0001),
-#           slice(.075, .1, .025),
-#           slice(.12, .13, .01)
-#           )
-
-# t0 = time.time()
-# resbrute = opt.brute(run_shj_muc, ranges,
-#                      args=(sim_info, six_problems, beh_seq),
-#                      full_output=True, finish=None)  # finish=opt.fmin)
-# t1 = time.time()
-
-# print(t1-t0)
-
-'''
-resbrute[3] is the full grid
-
-# 2.4s for 1 param each - 1 iter
-# 152.35s for 2 params each (2.4**6 is ~191.1s)
-
-# hmm, how to get pt back...? maybe can't here
-# - maybe code up myself.. since want the whole grid anyway.
-'''
 
 sim_info = {
     'n_units': 500,
