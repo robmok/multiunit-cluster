@@ -115,8 +115,8 @@ beh_seq = shj.T
 
 
 # start
-# run 7 sets
-iset = 0
+# run 8 sets - started 23:56, Wed 7/7/21
+iset = 8
 
 n_units = 500
 k = .05
@@ -190,13 +190,14 @@ fn = os.path.join(datadir,
 t0 = time.time()
 for i, fit_params in enumerate(param_sets_curr):
 
-    print('Running param set {}/{}'.format(i+1, len(param_sets_curr)))
+    print('Running param set {}/{} in set {}'.format(
+        i+1, len(param_sets_curr), iset))
 
     nlls[i], pt_all[i], rec_all[i], seeds_all[i] = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq)
 
     # save at certain points
-    if (i == 1) | (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
+    if (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all, seeds_all]
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
