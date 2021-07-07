@@ -1036,6 +1036,8 @@ lr_clusters_group - .1 to .9 in .15 steps; 6
 - 574.19/25 cores = 22.9 days
 - 574.19/50 cores = 11 days
 
+
+
 TODO:
 - figure out what parameters ranges and stepsizes for each param are sensible
 - split into manageable chunks?
