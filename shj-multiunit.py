@@ -962,7 +962,7 @@ sim_info = {
     'n_units': 500,
     'attn_type': 'dimensional_local',
     'k': .05,
-    'niter': 2  # niter
+    'niter': 1  # niter
     }
 
 lr_scale = (n_units * k) / 1
@@ -992,62 +992,28 @@ t1 = time.time()
 print(t1-t0)
 
 """
-2.25s for 1 param value, 1 iter (6)
+2.16-2.25s for 1 param value, 1 iter (6) - i.e. 1 run of 1 set of param vals
 142.9s / 2.38 mins - 2 param values each, 1 iter (64)
-if 3 params, 1296 combinations, 1296*2.25=2916/6=48.6 min
+(on love06, v similar
+2.28-2.36s for 1 param value param (6), 1 iter (6)
+144.95s / 2.41s for 2 values per param (6), 1 iter (64))
 
-- this is just 2 values per param and 1 sim. prob run 50 sims: 2.25*50=112.5s
-    - 2 params: 112.5*64=7200/60/60=2 hours
-    - 3 params: 112.5*1296=145800/60/60=40.5 hours
+- this is 1 values per param and 1 sim. prob run 50 iters: 2.25*50=112.5s
+112.5/60 = 1.875 mins for 1 set of param values
 
-- w/ 10 values per param, there are 100 combinations. w/ 20, 400 combinations
-w/ 40
-    - 2 params, 20 values: 112.5*400=45000/60/60=12.5 hours
-    - 2 params, 30 values: 112.5*900=101250/60/60=28.125 hours
-    - 2 params, 40 values: 112.5*1600=180000/60/60=50 hours
-
-    - 3 params, 10 values: 112.5*1000=112500/60/60=31.25 hours
-    - 3 params, 20 values: 112.5*8000=900000/60/60=250 hours - 10+ days
-
-    - 4 params, 10 values: 112.5*10000=1125000/60/60=312.5 hours - 12.5+ days
-
--- recalculate
-
-2.25*50 sims = 112.5/60 = 1.875 mins per param values
-
-- average 20 steps per param
+average 20 steps per param
 - for 6 params, there are 64,000,000 sims to run
 - 1.875*64000000 = 120000000 mins = 2000000 hours = 83333.33 days = 228.3 yrs
-
-- average 10 steps, 6 params, 1,000,000 to run
+average 10 steps, 6 params, 1,000,000 to run
 - 1.875*1000000 = 1875000 mins = 31250 hours = 1302 days = 3.567 years
 
 ok, assume above is 1 CPU, and I have n CPUs
 - n = 8, 1302/8=162.75 days
 - n = 16, 81.375 days
 - n = 60, 21.7 days
-
-maybe this is OK, on a super computer it'll be faster. 2-3 weeks compute time
+--> maybe this is OK, on a super computer it'll be faster. 2-3 weeks compute time
 
 --
--on love06
-2.28-2.36s for 1 param value param (6), 1 iter (6)
-144.95s / 2.41s for 2 values per param (6), 1 iter (64)
-
----> so worth splitting up the possible params into separate chunks, run
-separately on love06.
-- can run 2 params per set
-- remember to save periodically (outside of func, in loop)
-- save n recruited too, and maybe trial (save recruit_units_trl)
-- set and save seed - shuffle_seed - OK
-
-
-TODO:
-- figure out what parameters ranges and stepsizes for each param are sensible
-- split into manageable chunks
-
-
-
 # intuition
 c - 0.5-2 in 0.1 steps; 16 values
 phi - 1-20 in 0.5 steps; 40
@@ -1066,6 +1032,15 @@ lr_clusters - .005-.5 in .05 steps; 11
 lr_clusters_group - .1 to .9 in .15 steps; 6
 
 --> this is about half of 10 values; 440980 param combinations
+- 1.875*440980=826837.5/60=13780.625/24=574.19 days=2.166 years
+- 574.19/25 cores = 22.9 days
+- 574.19/50 cores = 11 days
+
+TODO:
+- figure out what parameters ranges and stepsizes for each param are sensible
+- split into manageable chunks?
+
+- remember to save periodically (outside of func, in loop)
 
 
 """
