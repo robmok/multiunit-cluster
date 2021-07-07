@@ -922,9 +922,12 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
 
     nll_all = torch.zeros(6)
     pt_all = torch.zeros([sim_info['niter'], 6, 16])
+    rec_all = [[] for i in range(6)]
+
+    seeds = torch.randperm(sim_info['niter']*100)[:sim_info['niter']]
 
     # run niterations, 6 problems
-    for i, problem in it.product(range(sim_info['niter']), range(6)):
+    for problem, i in it.product(range(6), range(sim_info['niter'])):
 
         stim = six_problems[problem]
         stim = torch.tensor(stim, dtype=torch.float)
@@ -943,22 +946,23 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
                                  fit_params=True, start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, 16, shuffle=True)
+            model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i])
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
+        rec_all[problem].append(model.recruit_units_trl)
 
     for problem in range(6):
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    return nll_all.sum(), pt_all.mean(axis=0)  # to run gridsearch and save pt
+    return nll_all.sum(), pt_all.mean(axis=0), rec_all, seeds
 
 
 sim_info = {
     'n_units': 500,
     'attn_type': 'dimensional_local',
     'k': .05,
-    'niter': 1  # niter
+    'niter': 2  # niter
     }
 
 lr_scale = (n_units * k) / 1
@@ -975,19 +979,21 @@ ranges = ([torch.arange(1., 1.1, .1),
 param_sets = torch.tensor(list(it.product(*ranges)))
 pt_all = torch.zeros([len(param_sets), 6, 16])
 nlls = torch.zeros(len(param_sets))
+rec_all = [[] for i in range(len(param_sets))]
+seeds_all = [[] for i in range(len(param_sets))]
 
 # grid search
 t0 = time.time()
 for i, fit_params in enumerate(it.product(*ranges)):
-    nlls[i], pt_all[i] = run_shj_muc(
+    nlls[i], pt_all[i], rec_all[i], seeds_all[i] = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq)
 
 t1 = time.time()
 print(t1-t0)
 
 """
-2.25s for 1 param, 1 iter (6)
-142.9s / 2.38 mins - 2 params each, 1 iter (64)
+2.25s for 1 param value, 1 iter (6)
+142.9s / 2.38 mins - 2 param values each, 1 iter (64)
 if 3 params, 1296 combinations, 1296*2.25=2916/6=48.6 min
 
 - this is just 2 values per param and 1 sim. prob run 50 sims: 2.25*50=112.5s
@@ -1005,7 +1011,25 @@ w/ 40
 
     - 4 params, 10 values: 112.5*10000=1125000/60/60=312.5 hours - 12.5+ days
 
+-- recalculate
 
+2.25*50 sims = 112.5/60 = 1.875 mins per param values
+
+- average 20 steps per param
+- for 6 params, there are 64,000,000 sims to run
+- 1.875*64000000 = 120000000 mins = 2000000 hours = 83333.33 days = 228.3 yrs
+
+- average 10 steps, 6 params, 1,000,000 to run
+- 1.875*1000000 = 1875000 mins = 31250 hours = 1302 days = 3.567 years
+
+ok, assume above is 1 CPU, and I have n CPUs
+- n = 8, 1302/8=162.75 days
+- n = 16, 81.375 days
+- n = 60, 21.7 days
+
+maybe this is OK, on a super computer it'll be faster. 2-3 weeks compute time
+
+--
 -on love06
 2.28-2.36s for 1 param value param (6), 1 iter (6)
 144.95s / 2.41s for 2 values per param (6), 1 iter (64)
@@ -1013,6 +1037,9 @@ w/ 40
 ---> so worth splitting up the possible params into separate chunks, run
 separately on love06.
 - can run 2 params per set
+- remember to save periodically (outside of func, in loop)
+- save n recruited too, and maybe trial (save recruit_units_trl)
+- set and save seed - shuffle_seed - OK
 
 
 TODO:
@@ -1021,14 +1048,34 @@ TODO:
 
 
 
+# intuition
+c - 0.5-2 in 0.1 steps; 16 values
+phi - 1-20 in 0.5 steps; 40
+lr_attn - 0.005-0.5 in .015 steps; 34
+lr_nn - 0.005-0.5 in .05 steps; 11
+lr_clusters - .005-.5 in .05 steps; 11
+lr_clusters_group - .1 to .9 in .1 steps; 9
 
+
+# try to make it 10 values per param or less
+c - 0.8-2 in 0.2 steps; 7
+phi - 1-19 in 2 steps; 10
+lr_attn - 0.005-0.5 in .05 steps; 11
+lr_nn - 0.005-0.5 in .05 steps; 11
+lr_clusters - .005-.5 in .05 steps; 11
+lr_clusters_group - .1 to .9 in .15 steps; 6
+
+--> this is about half of 10 values; 440980 param combinations
 
 
 """
 
-ranges = ([torch.arange(1., 3, .1),
-          torch.arange(1., 3, .1),
-          torch.arange(1., 3, .1)])
+ranges = ([torch.arange(7),
+          torch.arange(10),
+          torch.arange(11),
+          torch.arange(11),
+          torch.arange(11),
+          torch.arange(6)])
 
 len(list(it.product(*ranges)))
 
