@@ -964,12 +964,12 @@ sim_info = {
 lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
-ranges = ([torch.arange(1., 1.3, .1),
-          torch.arange(1., 1.3, .1),
-          torch.arange(.2, .5, .1),
-          torch.arange(.0075, .0125, .0025) / lr_scale,
-          torch.arange(.075, .15, .025),
-          torch.arange(.12, .14, .01)])
+ranges = ([torch.arange(1., 1.1, .1),
+          torch.arange(1., 1.1, .1),
+          torch.arange(.2, .4, .1),
+          torch.arange(.0075, .01, .0025) / lr_scale,
+          torch.arange(.075, .125, .025),
+          torch.arange(.12, .13, .01)])
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -1004,6 +1004,11 @@ w/ 40
     - 3 params, 20 values: 112.5*8000=900000/60/60=250 hours - 10+ days
 
     - 4 params, 10 values: 112.5*10000=1125000/60/60=312.5 hours - 12.5+ days
+
+
+-on love06
+2.28-2.36s for 1 param value param (6), 1 iter (6)
+144.95s / 2.41s for 2 values per param (6), 1 iter (64)
 
 ---> so worth splitting up the possible params into separate chunks, run
 separately on love06.
