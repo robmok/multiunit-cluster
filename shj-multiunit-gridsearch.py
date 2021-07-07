@@ -196,7 +196,7 @@ for i, fit_params in enumerate(param_sets_curr):
         fit_params, sim_info, six_problems, beh_seq)
 
     # save at certain points
-    if (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
+    if (i == 1) | (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all, seeds_all]
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
