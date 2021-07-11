@@ -116,7 +116,7 @@ beh_seq = shj.T
 
 # start
 # run 8 sets - started 23:56, Wed 7/7/21
-iset = 8
+iset = 16
 
 n_units = 500
 k = .05
