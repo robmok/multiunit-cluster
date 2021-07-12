@@ -17,13 +17,16 @@ from scipy import stats
 import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
+# unix
+sys.path.append('/home/rm05/Documents/GitHub/multiunit-cluster')
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+maindir = '/home/rm05/Documents/'
+
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
-
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -116,7 +119,7 @@ beh_seq = shj.T
 
 # start
 # run 8 sets - started 23:56, Wed 7/7/21
-iset = 16
+iset = 17
 
 n_units = 500
 k = .05
@@ -237,6 +240,12 @@ ok, assume above is 1 CPU, and I have n CPUs
 - n = 16, 81.375 days
 - n = 60, 21.7 days
 --> maybe this is OK, on a super computer it'll be faster. 2-3 weeks
+
+--
+on unix cluster
+
+- on login node, 0.4% of memory, 256*0.004=1.024GB. 1 sets of 50 takes 200.5s. actually slow. 
+
 
 --
 # intuition
