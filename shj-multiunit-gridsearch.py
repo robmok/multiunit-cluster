@@ -181,6 +181,22 @@ ranges = ([torch.arange(.8, 2.6, .2),
           torch.tensor([.05, .1])]
           )
 
+# trying for nbanks...
+# ranges = ([torch.arange(.8, 2.1, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.005, .5, .05) / lr_scale,
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.1, .9, .15),
+#           torch.arange(.8, 2.1, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.005, .5, .05) / lr_scale,
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.1, .9, .15)]
+#           )
+
+
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))

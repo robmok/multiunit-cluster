@@ -29,6 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
+plot3d = False
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
@@ -139,7 +140,7 @@ params = {
     'lr_attn': .35,  # this scales at grad computation now
     'lr_nn': .0075/lr_scale,  # scale by n_units*k
     'lr_clusters': .1,
-    'lr_clusters_group': .0,
+    'lr_clusters_group': .12,
     'k': k
     }
 
@@ -243,50 +244,51 @@ elif plot_seq == 'trls':  # plot first n trials
 
 
 # make dir for trial-by-trial images
-dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
-      'upd1noise{}_recnoise{}'.format(
-          plot_seq, problem+1, n_units, k, params['lr_clusters'],
-          params['lr_clusters_group'], params['c'], params['phi'],
-          params['lr_attn'], params['lr_nn'], noise['update1'][1],
-          noise['recruit'][1])
-      )
+if noise and saveplots:
+    dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_'
+          'nn{}_upd1noise{}_recnoise{}'.format(
+              plot_seq, problem+1, n_units, k, params['lr_clusters'],
+              params['lr_clusters_group'], params['c'], params['phi'],
+              params['lr_attn'], params['lr_nn'], noise['update1'][1],
+              noise['recruit'][1])
+          )
 
-if saveplots:
     if not os.path.exists(os.path.join(figdir, dn)):
         os.makedirs(os.path.join(figdir, dn))
 
 
 # 3d
 # https://matplotlib.org/stable/gallery/color/named_colors.html
-lims = (0, 1)
-# lims = (-.05, 1.05)
-for i in plot_trials[0:-1]:
-    fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=150)
-    ax.scatter(results[i, :, 0],
-               results[i, :, 1],
-               results[i, :, 2], c='mediumturquoise')  # cornflowerblue / mediumturquoise
-    ax.set_xlim(lims)
-    ax.set_ylim(lims)
-    ax.set_zlim(lims)
-
-    # keep grid lines, remove labels
-    # # labels = ['', '', '', '', '', '']
-    labels = [0, '', '', '', '', 1]
-    ax.set_xticklabels(labels)
-    ax.set_yticklabels(labels)
-    ax.set_zticklabels(labels)
+if plot3d:
+    lims = (0, 1)
+    # lims = (-.05, 1.05)
+    for i in plot_trials[0:-1]:
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=150)
+        ax.scatter(results[i, :, 0],
+                   results[i, :, 1],
+                   results[i, :, 2], c='mediumturquoise')  # cornflowerblue / mediumturquoise
+        ax.set_xlim(lims)
+        ax.set_ylim(lims)
+        ax.set_zlim(lims)
     
-    # remove grey color - white
-    ax.w_xaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-    ax.w_yaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-    ax.w_zaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-
-    # save
-    if saveplots:
-        figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
-        plt.savefig(figname)
-
-    plt.pause(.25)
+        # keep grid lines, remove labels
+        # # labels = ['', '', '', '', '', '']
+        labels = [0, '', '', '', '', 1]
+        ax.set_xticklabels(labels)
+        ax.set_yticklabels(labels)
+        ax.set_zticklabels(labels)
+        
+        # remove grey color - white
+        ax.w_xaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+        ax.w_yaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+        ax.w_zaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+    
+        # save
+        if saveplots:
+            figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+            plt.savefig(figname)
+    
+        plt.pause(.25)
 
 # explore lesion units ++ 
 # model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0
