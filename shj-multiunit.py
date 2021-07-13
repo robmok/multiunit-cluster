@@ -71,7 +71,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -184,16 +184,16 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 # - 
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
-          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-          'recruit': [0., .1],  # recruitment position placement
-          'act': [.5, .1]}  # unit activations (non-negative)
+# noise = {'update1': [0, .1],  # unit position updates 1 & 2
+#           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+#           'recruit': [0., .1],  # recruitment position placement
+#           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
     model, inputs, output, n_epochs, shuffle=True, lesions=lesions,
-    noise=noise)
+    noise=noise, shj_order=True)
 
 # # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
 # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))

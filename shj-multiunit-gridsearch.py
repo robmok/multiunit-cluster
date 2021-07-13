@@ -18,15 +18,16 @@ import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 # unix
-sys.path.append('/home/rm05/Documents/GitHub/multiunit-cluster')
+# sys.path.append('/home/rm05/Documents/GitHub/multiunit-cluster')
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-maindir = '/home/rm05/Documents/'
+# maindir = '/home/rm05/Documents/'
 
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
+
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -65,7 +66,8 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
                                  fit_params=True, start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i])
+            model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i],
+            shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         rec_all[problem].append(model.recruit_units_trl)
@@ -148,14 +150,36 @@ lr_scale = (n_units * k) / 1
 # lr_clusters - .005-.5 in .05 steps; 10
 # lr_clusters_group - .1 to .9 in .15 steps; 6
 
-# hmm should we have k as well...?
+# # 378000 param sets
+# ranges = ([torch.arange(.8, 2.1, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.005, .5, .05) / lr_scale,
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.1, .9, .15)])
 
+# add k, fewer lr_group
+# - with 3 k values, this is double of above: 756000
+# - with 2 k values (just to see how different): 504000. orig is .75 of this. will take 1.33*
 ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(1., 19., 2),
           torch.arange(.005, .5, .05),
           torch.arange(.005, .5, .05) / lr_scale,
           torch.arange(.005, .5, .05),
-          torch.arange(.1, .9, .15)])
+          torch.arange(.1, .9, .2),  # fewer: 4 vals
+          torch.tensor([.05, .1])]
+          )
+
+# try more 'ideally':
+# - 1458000
+ranges = ([torch.arange(.8, 2.6, .2),
+          torch.arange(1., 19., 2),
+          torch.arange(.005, .5, .05),
+          torch.arange(.005, .5, .05) / lr_scale,
+          torch.arange(.005, .5, .05),
+          torch.arange(.1, 1., .1),
+          torch.tensor([.05, .1])]
+          )
 
 
 # set up and save nll, pt, and fit_params
@@ -171,8 +195,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # - (1512*1.875)/60=47.25 hours; 2 days
 # note: I can run 7-8 at once with 8 cores
 
-# test if it takes 2 days or more. should be 45-47 hours per set
-# - run 7 sets
+# test - should be 45-47 hours per set.
+# - run 8 sets - result: takes 3.29 days - 79 hours
 # - tested w 11 param sets, 58kb. 58 * 1512=87.696 mb per set. sounds right
 
 # for set 1, set_n=1. do sims for: sets[set_n]:sets[set_n+1]

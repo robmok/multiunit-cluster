@@ -69,7 +69,7 @@ class MultiUnitCluster(nn.Module):
                 'lr_nn': start_params[3],
                 'lr_clusters': start_params[4],
                 'lr_clusters_group': start_params[5],
-                'k': k
+                'k': start_params[6],
                 }
 
         # if fit_params:
@@ -167,7 +167,7 @@ class MultiUnitCluster(nn.Module):
 
 
 def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
-          lesions=None, noise=None):
+          lesions=None, noise=None, shj_order=False):
 
     criterion = nn.CrossEntropyLoss()
 
@@ -210,6 +210,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
             output_ = output[shuffle_ind]
+
+            # 1st block, show 8 unique stim, then 8 again. after, shuffle 16
+            if shj_order:
+                shuffle_ind = torch.cat(
+                    [torch.randperm(len(inputs)//2),
+                     torch.randperm(len(inputs)//2) + len(inputs)//2])
+                inputs_ = inputs[shuffle_ind]
+                output_ = output[shuffle_ind]
+
         else:
             inputs_ = inputs
             output_ = output
