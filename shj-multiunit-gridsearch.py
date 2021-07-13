@@ -18,12 +18,12 @@ import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 # unix
-# sys.path.append('/home/rm05/Documents/GitHub/multiunit-cluster')
+sys.path.append('/home/rm05/Documents/GitHub/multiunit-cluster')
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-# maindir = '/home/rm05/Documents/'
+maindir = '/home/rm05/Documents/'
 
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
