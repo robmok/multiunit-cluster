@@ -220,7 +220,7 @@ sets = torch.arange(0, len(param_sets)+1, 1023)  # assuming 493 cores
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
 # testing speed
-param_sets_curr = param_sets_curr[0:1]
+# param_sets_curr = param_sets_curr[0:1]
 
 # use list, so can combine later
 pt_all = [[] for i in range(len(param_sets_curr))]
