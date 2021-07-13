@@ -120,8 +120,7 @@ beh_seq = shj.T
 
 
 # start
-# run 8 sets - started 23:56, Wed 7/7/21
-iset = 18
+iset = 0  # 18
 
 n_units = 500
 k = .05
@@ -172,14 +171,14 @@ ranges = ([torch.arange(.8, 2.1, .2),
 
 # try more 'ideally':
 # - 1458000
-ranges = ([torch.arange(.8, 2.6, .2),
-          torch.arange(1., 19., 2),
-          torch.arange(.005, .5, .05),
-          torch.arange(.005, .5, .05) / lr_scale,
-          torch.arange(.005, .5, .05),
-          torch.arange(.1, 1., .1),
-          torch.tensor([.05, .1])]
-          )
+# ranges = ([torch.arange(.8, 2.6, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.005, .5, .05) / lr_scale,
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.1, 1., .1),
+#           torch.tensor([.05, .1])]
+#           )
 
 # trying for nbanks...
 # ranges = ([torch.arange(.8, 2.1, .2),
@@ -219,6 +218,9 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 sets = torch.arange(0, len(param_sets)+1, 1512)
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
+# testing speed
+param_sets_curr = param_sets_curr[0:5]
+
 # use list, so can combine later
 pt_all = [[] for i in range(len(param_sets_curr))]
 nlls = [[] for i in range(len(param_sets_curr))]
@@ -240,7 +242,7 @@ for i, fit_params in enumerate(param_sets_curr):
         fit_params, sim_info, six_problems, beh_seq)
 
     # save at certain points
-    if (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
+    if (np.mod(i, 100) == 4) | (i == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all, seeds_all]
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
