@@ -18,7 +18,7 @@ import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 # unix
-sys.path.append('/home/rm05/Documents/GitHub/multiunit-cluster')
+sys.path.append('/home/rm05/Documents/multiunit-cluster')
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
