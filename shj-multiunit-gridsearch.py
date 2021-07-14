@@ -122,6 +122,9 @@ beh_seq = shj.T
 # start
 iset = 0  # 18
 
+# for cbu-cluster
+iset = sys.argv[-1]
+
 n_units = 500
 k = .05
 sim_info = {
@@ -134,13 +137,6 @@ sim_info = {
 lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
-# ranges = ([torch.arange(1., 1.1, .1),
-#           torch.arange(1., 1.1, .1),
-#           torch.arange(.2, .4, .1),
-#           torch.arange(.0075, .01, .0025) / lr_scale,
-#           torch.arange(.075, .125, .025),
-#           torch.arange(.12, .13, .01)])
-
 # # trying
 # c - 0.8-2 in 0.2 steps; 7
 # phi - 1-19 in 2 steps; 10
@@ -179,22 +175,6 @@ ranges = ([torch.arange(.8, 2.1, .2),
 #           torch.arange(.1, 1., .1),
 #           torch.tensor([.05, .1])]
 #           )
-
-# trying for nbanks...
-# ranges = ([torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.005, .5, .05) / lr_scale,
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.1, .9, .15),
-#           torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.005, .5, .05) / lr_scale,
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.1, .9, .15)]
-#           )
-
 
 
 # set up and save nll, pt, and fit_params
@@ -331,12 +311,3 @@ then run large chunks on super computers
 
 
 """
-
-ranges = ([torch.arange(7),
-          torch.arange(10),
-          torch.arange(11),
-          torch.arange(11),
-          torch.arange(11),
-          torch.arange(6)])
-
-len(list(it.product(*ranges)))
