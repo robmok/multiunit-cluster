@@ -123,7 +123,7 @@ beh_seq = shj.T
 iset = 0  # 18
 
 # for cbu-cluster
-iset = sys.argv[-1]
+iset = int(sys.argv[-1])
 
 n_units = 500
 k = .05
@@ -219,11 +219,11 @@ fn = os.path.join(datadir,
                   'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
 # grid search
-t0 = time.time()
+# t0 = time.time()
 for i, fit_params in enumerate(param_sets_curr):
 
-    print('Running param set {}/{} in set {}'.format(
-        i+1, len(param_sets_curr), iset))
+    # print('Running param set {}/{} in set {}'.format(
+    #     i+1, len(param_sets_curr), iset))
 
     nlls[i], pt_all[i], rec_all[i], seeds_all[i] = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq)
@@ -236,11 +236,11 @@ for i, fit_params in enumerate(param_sets_curr):
         open_file.close()
 
         # print time elapsed till now
-        t1 = time.time()
-        print(t1-t0)
+        # t1 = time.time()
+        # print(t1-t0)
 
-t1 = time.time()
-print(t1-t0)
+# t1 = time.time()
+# print(t1-t0)
 
 # # to load pickled list
 # open_file = open(fn, "rb")
