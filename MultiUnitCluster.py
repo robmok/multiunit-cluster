@@ -69,7 +69,7 @@ class MultiUnitCluster(nn.Module):
                 'lr_nn': start_params[3],
                 'lr_clusters': start_params[4],
                 'lr_clusters_group': start_params[5],
-                'k': start_params[6],
+                'k': k,  # start_params[6],
                 }
 
         # if fit_params:

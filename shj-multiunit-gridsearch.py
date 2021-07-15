@@ -165,14 +165,13 @@ lr_scale = (n_units * k) / 1
 #           torch.tensor([.05, .1])]
 #           )
 
-# new - coarser - 69120
+# new - coarser
 ranges = ([torch.arange(.8, 2.1, .3),
           torch.arange(1., 19., 2.5),
           torch.arange(.005, .5, .1),
           torch.arange(.005, .5, .1) / lr_scale,
           torch.arange(.005, .5, .1),
-          torch.arange(.1, .9, .2),  # fewer: 4 vals
-          torch.tensor([.05, .1])]
+          torch.arange(.1, .9, .2)]
           )
 
 # set up and save nll, pt, and fit_params
@@ -196,11 +195,12 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # sets = torch.arange(0, len(param_sets)+1, 1512)
 # sets = torch.arange(0, len(param_sets)+1, 1023)  # assuming 493 cores
 
-# run coarser - 40000 sets
-# - if assume 8-10 hours for 100 sets, .8 to 1. per set, 270hrs/24=11.25
+# run coarser - 40000 sets. 20k for 1 k value
+# - if assume 8-10 hours for 100 sets, .8 to 1 hr per set, 270hrs/24=11.25
 # - max wall time is 7 days
 # - 40000/250 sets=160 param sets. 160/24=6.66 days. 160*128=20480, more than
 # half, can do it in 2 weeks.
+# - with 1 k value, can do it in 1 week. let's do this
 sets = torch.arange(0, len(param_sets)+1, 160)  # 250 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
@@ -216,7 +216,7 @@ seeds_all = [[] for i in range(len(param_sets_curr))]
 
 # fname to save to
 fn = os.path.join(datadir,
-                  'shj_gsearch_{}units_set{}.pkl'.format(n_units, iset))
+                  'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
 # grid search
 t0 = time.time()
