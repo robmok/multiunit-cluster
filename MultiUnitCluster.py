@@ -138,8 +138,7 @@ class MultiUnitCluster(nn.Module):
 
         # compute attention-weighted dist & activation (based on similarity)
         act = self._compute_act(
-            dist, self.params['c'], self.params['p'])
-
+            dist, self.params['c'], self.params['p']).to(self.device)
 
         units_output = act * self.winning_units.to(self.device)
 
