@@ -134,11 +134,13 @@ class MultiUnitCluster(nn.Module):
         # distance measure. *attn works for both dimensional or unit-based
         dim_dist = abs(x - self.units_pos).to(self.device)
         dist = _compute_dist(
-            dim_dist, self.attn, self.params['r']).to(self.device)
+            dim_dist, self.attn, self.params['r'], device=self.device
+            ).to(self.device)
 
         # compute attention-weighted dist & activation (based on similarity)
         act = _compute_act(
-            dist, self.params['c'], self.params['p']).to(self.device)
+            dist, self.params['c'], self.params['p'], device=self.device
+            ).to(self.device)
 
         units_output = (act * self.winning_units).to(self.device)
 
@@ -245,9 +247,11 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos).to(device)
             dist = _compute_dist(
-                dim_dist, model.attn, model.params['r']).to(device)
+                dim_dist, model.attn, model.params['r'], device=model.device
+                ).to(device)
             act = _compute_act(
-                dist, model.params['c'], model.params['p']).to(device)
+                dist, model.params['c'], model.params['p'], device=model.device
+                ).to(device)
             act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
@@ -307,15 +311,19 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                             _compute_act(
                                 _compute_dist(
                                     abs(x - model.units_pos[win_ind]),
-                                    model.attn, model.params['r']),
-                                model.params['c'], model.params['p']))
+                                    model.attn, model.params['r'],
+                                    device=model.device),
+                                model.params['c'], model.params['p'],
+                                device=model.device))
 
                         - torch.sum(
                             _compute_act(
                                 _compute_dist(
                                     abs(x - model.units_pos[lose_ind]),
-                                    model.attn, model.params['r']),
-                                model.params['c'], model.params['p']))
+                                    model.attn, model.params['r'],
+                                    device=model.device),
+                                model.params['c'], model.params['p'],
+                                device=model.device))
                         ).to(device)
 
                     # compute gradient
@@ -564,8 +572,10 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
 
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
-            dist = _compute_dist(dim_dist, model.attn, model.params['r'])
-            act = _compute_act(dist, model.params['c'], model.params['p'])
+            dist = _compute_dist(dim_dist, model.attn, model.params['r'],
+                                 device=model.device)
+            act = _compute_act(dist, model.params['c'], model.params['p'],
+                               device=model.device)
             act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
@@ -607,15 +617,19 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                             _compute_act(
                                 _compute_dist(
                                     abs(x - model.units_pos[win_ind]),
-                                    model.attn, model.params['r']),
-                                model.params['c'], model.params['p']))
+                                    model.attn, model.params['r'],
+                                    device=model.device),
+                                model.params['c'], model.params['p'],
+                                device=model.device))
 
                         - torch.sum(
                             _compute_act(
                                 _compute_dist(
                                     abs(x - model.units_pos[lose_ind]),
-                                    model.attn, model.params['r']),
-                                model.params['c'], model.params['p']))
+                                    model.attn, model.params['r'],
+                                    device=model.device),
+                                model.params['c'], model.params['p'],
+                                device=model.device))
                         )
 
                     # compute gradient
@@ -914,9 +928,12 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
         model.units_pos_trace.append(model.units_pos.detach().clone())
 
 
-def _compute_dist(dim_dist, attn_w, r):
+def _compute_dist(dim_dist, attn_w, r, device=torch.device('cpu')):
     # since sqrt of 0 returns nan for gradient, need this bit
     # e.g. euclid, can't **(1/2)
+
+    dim_dist, attn_w, r = dim_dist.to(device), attn_w.to(device), r.to(device)
+
     if r > 1:
         d = torch.zeros(len(dim_dist))
         ind = torch.sum(dim_dist, axis=1) > 0
@@ -927,10 +944,12 @@ def _compute_dist(dim_dist, attn_w, r):
     return d
 
 
-def _compute_act(dist, c, p):
+def _compute_act(dist, c, p, device=torch.device('cpu')):
     """ c = 1  # ALCOVE - specificity of the node - free param
         p = 2  # p=1 exp, p=2 gauss
     """
+    dist, c, p = dist.to(device), c.to(device), p.to(device)
+
     # return torch.exp(-c * (dist**p))
     return c * torch.exp(-c * dist)  # sustain-like
 
