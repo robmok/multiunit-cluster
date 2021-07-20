@@ -38,7 +38,7 @@ def negloglik(model_pr, beh_seq):
 
 # define model to run
 # - set up model, run through each shj problem, compute nll
-def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
+def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device):
     """
     niter: number of runs per SHJ problem with different sequences (randomised)
     """
@@ -231,7 +231,7 @@ for i, fit_params in enumerate(param_sets_curr):
         i+1, len(param_sets_curr), iset))
 
     nlls[i], pt_all[i], rec_all[i], seeds_all[i] = run_shj_muc(
-        fit_params, sim_info, six_problems, beh_seq)
+        fit_params, sim_info, six_problems, beh_seq, device=device)
 
     # save at certain points
     if (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
