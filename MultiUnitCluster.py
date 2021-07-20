@@ -138,9 +138,11 @@ class MultiUnitCluster(nn.Module):
 
         # compute attention-weighted dist & activation (based on similarity)
         act = self._compute_act(
-            dist, self.params['c'], self.params['p'])
+            dist, self.params['c'], self.params['p']).to(self.device)
 
-        units_output = act.to(self.device) * self.winning_units.to(self.device)
+        print(act.is_cuda, self.winning_units.is_cuda)
+
+        units_output = act * self.winning_units.to(self.device)
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
