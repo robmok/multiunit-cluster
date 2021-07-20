@@ -28,6 +28,9 @@ maindir = '/home/rm05/Documents/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
+# gpu if available
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -63,7 +66,9 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq):
                                  sim_info['attn_type'],
                                  sim_info['k'],
                                  params=None,
-                                 fit_params=True, start_params=start_params)
+                                 fit_params=True,
+                                 start_params=start_params,
+                                 device=device).to(device)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i],
@@ -123,7 +128,7 @@ beh_seq = shj.T
 iset = 0  # 18
 
 # for cbu-cluster
-iset = int(sys.argv[-1])
+# iset = int(sys.argv[-1])
 
 n_units = 500
 k = .05
@@ -219,11 +224,11 @@ fn = os.path.join(datadir,
                   'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
 # grid search
-# t0 = time.time()
+t0 = time.time()
 for i, fit_params in enumerate(param_sets_curr):
 
-    # print('Running param set {}/{} in set {}'.format(
-    #     i+1, len(param_sets_curr), iset))
+    print('Running param set {}/{} in set {}'.format(
+        i+1, len(param_sets_curr), iset))
 
     nlls[i], pt_all[i], rec_all[i], seeds_all[i] = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq)
@@ -236,8 +241,8 @@ for i, fit_params in enumerate(param_sets_curr):
         open_file.close()
 
         # print time elapsed till now
-        # t1 = time.time()
-        # print(t1-t0)
+    t1 = time.time()
+    print(t1-t0)
 
 # t1 = time.time()
 # print(t1-t0)

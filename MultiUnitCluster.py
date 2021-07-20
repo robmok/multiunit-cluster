@@ -20,7 +20,8 @@ from scipy.stats import norm
 
 class MultiUnitCluster(nn.Module):
     def __init__(self, n_units, n_dims, attn_type, k, params=None,
-                 fit_params=False, start_params=False):
+                 fit_params=False, start_params=False,
+                 device=torch.device('cpu')):
         super(MultiUnitCluster, self).__init__()
         self.attn_type = attn_type
         self.n_units = n_units
@@ -167,7 +168,8 @@ class MultiUnitCluster(nn.Module):
 
 
 def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
-          lesions=None, noise=None, shj_order=False):
+          lesions=None, noise=None, shj_order=False,
+          device=torch.device('cpu')):
 
     criterion = nn.CrossEntropyLoss()
 
@@ -229,6 +231,9 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             # target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
             # target=output_[itrl]
+
+            # to gpu if available
+            x, target = x.to(device), target.to(device)
 
             # lesion trials
             if lesions:
@@ -310,7 +315,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                     abs(x - model.units_pos[lose_ind]),
                                     model.attn, model.params['r']),
                                 model.params['c'], model.params['p']))
-                        )
+                        ).to(device)
 
                     # compute gradient
                     act_1.backward(retain_graph=True)
