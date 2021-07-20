@@ -140,7 +140,7 @@ class MultiUnitCluster(nn.Module):
         act = self._compute_act(
             dist, self.params['c'], self.params['p'])
 
-        print('x: {}'.format(act))
+        print(self._compute_act(torch.tensor([]), 1, 1).to(self.device))
 
         units_output = act * self.winning_units.to(self.device)
 
