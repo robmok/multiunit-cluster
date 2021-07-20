@@ -29,6 +29,7 @@ class MultiUnitCluster(nn.Module):
         self.softmax = nn.Softmax(dim=0)
         self.logsoftmax = nn.LogSoftmax(dim=0)
         self.active_units = torch.zeros(n_units, dtype=torch.bool)
+        self.device = device
         # history
         self.attn_trace = []
         self.units_pos_trace = []
@@ -131,20 +132,15 @@ class MultiUnitCluster(nn.Module):
         # compute activations. stim x unit_pos x attn
 
         # distance measure. *attn works for both dimensional or unit-based
-        dim_dist = abs(x - self.units_pos)
-        dist = _compute_dist(dim_dist, self.attn, self.params['r'])
+        dim_dist = abs(x - self.units_pos).to(self.device)
+        dist = _compute_dist(
+            dim_dist, self.attn, self.params['r']).to(self.device)
 
         # compute attention-weighted dist & activation (based on similarity)
-        act = _compute_act(dist, self.params['c'], self.params['p'])
+        act = _compute_act(
+            dist, self.params['c'], self.params['p']).to(self.device)
 
-        norm_units = False
-        if norm_units:
-            beta = self.params['beta']
-            act.data[self.active_units] = (
-                (act.data[self.active_units]**beta) /
-                (torch.sum(act.data[self.active_units]**beta)))
-
-        units_output = act * self.winning_units
+        units_output = (act * self.winning_units).to(self.device)
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
@@ -164,7 +160,7 @@ class MultiUnitCluster(nn.Module):
         self.fc1_w_trace.append(self.fc1.weight.detach().clone())
         self.fc1_act_trace.append(out.detach().clone())
 
-        return out, pr
+        return out.to(self.device), pr.to(self.device)
 
 
 def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
@@ -247,14 +243,17 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         model.fc1.weight[:, les] = 0
 
             # find winners:largest acts that are connected (model.active_units)
-            dim_dist = abs(x - model.units_pos)
-            dist = _compute_dist(dim_dist, model.attn, model.params['r'])
-            act = _compute_act(dist, model.params['c'], model.params['p'])
+            dim_dist = abs(x - model.units_pos).to(device)
+            dist = _compute_dist(
+                dim_dist, model.attn, model.params['r']).to(device)
+            act = _compute_act(
+                dist, model.params['c'], model.params['p']).to(device)
             act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
             _, win_ind = torch.topk(act,
-                                    int(model.n_units * model.params['k']))
+                                    int(model.n_units
+                                        * model.params['k'])).to(device)
             # since topk takes top even if all 0s, remove the 0 acts
             if torch.any(act[win_ind] == 0):
                 win_ind = win_ind[act[win_ind] != 0]
@@ -272,8 +271,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             # zero out gradient for masked connections
             with torch.no_grad():
                 model.fc1.weight.grad.mul_(win_mask)
-                if model.attn_type == 'unit':  # mask other clusters' attn
-                    model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
+                # if model.attn_type == 'unit':  # mask other clusters' attn
+                #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
 
             # if local attn - clear attn grad computed above
             if model.attn_type[-5:] == 'local':
@@ -296,8 +295,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # if use local attention update - gradient ascent to unit acts
                 if model.attn_type[-5:] == 'local':
 
-                    win_ind = model.winning_units
-                    lose_ind = (model.winning_units == 0) & model.active_units
+                    win_ind = model.winning_units.to(device)
+                    lose_ind = (
+                        (model.winning_units == 0) & model.active_units
+                        ).to(device)
 
                     # compute gradient based on activation of winners *minus*
                     # losing units.
@@ -327,15 +328,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
-                if model.attn_type[0:4] == 'dime':
-                    model.attn.data = (
-                        model.attn.data / torch.sum(model.attn.data)
-                        )
-                elif model.attn_type[0:4] == 'unit':
-                    model.attn.data = (
-                        model.attn.data
-                        / torch.sum(model.attn.data, dim=1, keepdim=True)
-                        )
+                # if model.attn_type[0:4] == 'dime':
+                model.attn.data = (
+                    model.attn.data / torch.sum(model.attn.data)
+                    )
+                # elif model.attn_type[0:4] == 'unit':
+                #     model.attn.data = (
+                #         model.attn.data
+                #         / torch.sum(model.attn.data, dim=1, keepdim=True)
+                #         )
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -345,7 +346,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 update = (
                     (x - model.units_pos[win_ind])
                     * model.params['lr_clusters']
-                    )
+                    ).to(device)
 
                 # add noise to updates
                 if noise:
@@ -355,7 +356,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                      scale=noise['update1'][1],
                                      size=(len(update), model.n_dims)))
                         * model.params['lr_clusters']
-                            )
+                            ).to(device)
 
                 model.units_pos[win_ind] += update
 
@@ -368,7 +369,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 update = (
                     (winner_mean - model.units_pos[win_ind])
                     * model.params['lr_clusters_group']
-                    )
+                    ).to(device)
 
                 # add noise to 2nd update?
                 if noise:
@@ -378,7 +379,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                      scale=noise['update2'][1],
                                      size=(len(update), model.n_dims)))
                         * model.params['lr_clusters_group']
-                            )
+                            ).to(device)
 
                 model.units_pos[win_ind] += update
 
@@ -398,27 +399,30 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # 1st trial - select closest k inactive units
                 if itrl == 0:
                     act = _compute_act(
-                        dist, model.params['c'], model.params['p'])
+                        dist, model.params['c'], model.params['p']).to(device)
                     _, recruit_ind = (
                         torch.topk(act,
-                                   int(model.n_units * model.params['k'])))
+                                   int(model.n_units
+                                       * model.params['k']))).to(device)
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
 
                 # recruit and REPLACE k units that mispredicted
                 else:
-                    mispred_units = torch.argmax(
-                        model.fc1.weight[:, win_ind].detach(), dim=0) != target
+                    mispred_units = (
+                        torch.argmax(model.fc1.weight[:, win_ind].detach(),
+                                     dim=0) != target
+                        ).to(device)
 
                     # select closest n_mispredicted inactive units
-                    n_mispred_units = mispred_units.sum()
+                    n_mispred_units = mispred_units.sum().to(device)
                     act = _compute_act(
-                        dist, model.params['c'], model.params['p'])
+                        dist, model.params['c'], model.params['p']).to(device)
                     act[model.active_units] = 0  # REMOVE all active units
                     # find closest units excluding the active units to recruit
                     _, recruit_ind = (
-                        torch.topk(act, n_mispred_units))
+                        torch.topk(act, n_mispred_units)).to(device)
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
@@ -440,7 +444,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                             norm.rvs(loc=noise['recruit'][0],
                                      scale=noise['recruit'][1],
                                      size=(len(recruit_ind), model.n_dims)))
-                            )
+                            ).to(device)
 
                 # go through update again after cluster added
                 optimizer.zero_grad()
@@ -451,8 +455,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     win_mask[:] = 0  # clear
                     win_mask[:, model.winning_units] = True  # update w winners
                     model.fc1.weight.grad.mul_(win_mask)
-                    if model.attn_type == 'unit':
-                        model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
+                    # if model.attn_type == 'unit':
+                    #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
                 if model.attn_type[-5:] == 'local':
                     model.attn.grad[:] = 0  # clear grad
 
@@ -465,7 +469,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 update = (
                     (x - model.units_pos[model.winning_units])
                     * model.params['lr_clusters']
-                    )
+                    ).to(device)
 
                 # add noise to updates
                 if noise:
@@ -475,7 +479,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                      scale=noise['update1'][1],
                                      size=(len(update), model.n_dims)))
                         * model.params['lr_clusters']
-                            )
+                            ).to(device)
 
                 model.units_pos[model.winning_units] += update
 
@@ -485,10 +489,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 # - step 2 - winners update towards self
                 winner_mean = torch.mean(
-                    model.units_pos[model.winning_units], axis=0)
+                    model.units_pos[model.winning_units], axis=0).to(device)
                 update = (
                     (winner_mean - model.units_pos[model.winning_units])
-                    * model.params['lr_clusters_group'])
+                    * model.params['lr_clusters_group']).to(device)
 
                 # add noise to 2nd update?
                 if noise:
@@ -498,7 +502,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                      scale=noise['update2'][1],
                                      size=(len(update), model.n_dims)))
                         * model.params['lr_clusters_group']
-                            )
+                            ).to(device)
 
                 model.units_pos[model.winning_units] += update
 
@@ -514,7 +518,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                             norm.rvs(loc=noise['update2'][0],
                                      scale=noise['update2'][1],
                                      size=(len(update), model.n_dims)))
-                            )
+                            ).to(device)
 
             # tmp
             # model.winners_trace.append(model.units_pos[model.winning_units])
