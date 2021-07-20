@@ -131,8 +131,6 @@ class MultiUnitCluster(nn.Module):
 
         # compute activations. stim x unit_pos x attn
 
-        x = x.to(self.device)
-
         # distance measure. *attn works for both dimensional or unit-based
         dim_dist = abs(x - self.units_pos).to(self.device)
         dist = self._compute_dist(
@@ -142,7 +140,7 @@ class MultiUnitCluster(nn.Module):
         act = self._compute_act(
             dist, self.params['c'], self.params['p'])
 
-        units_output = (act.to(self.device) * self.winning_units).to(self.device)
+        units_output = (act.to(self.device) * self.winning_units)
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
