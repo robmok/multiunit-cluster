@@ -140,7 +140,8 @@ class MultiUnitCluster(nn.Module):
         act = self._compute_act(
             dist, self.params['c'], self.params['p']).to(self.device)
 
-        print(act.is_cuda, self.winning_units.is_cuda)
+        print(act.is_cuda)
+        print(self.winning_units.is_cuda)
 
         units_output = act * self.winning_units.to(self.device)
 
