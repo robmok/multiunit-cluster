@@ -23,13 +23,13 @@ sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 from MultiUnitCluster import (MultiUnitCluster, train)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-maindir = '/home/rm05/Documents/'
+# maindir = '/home/rm05/Documents/'
 
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
 # gpu if available
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 
 
 def negloglik(model_pr, beh_seq):
