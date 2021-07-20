@@ -164,10 +164,11 @@ class MultiUnitCluster(nn.Module):
 
     def _compute_dist(self, dim_dist, attn_w, r):
 
-        if dim_dist:
-            dim_dist, attn_w, r = (
-                dim_dist.to(self.device), attn_w.to(self.device), r.to(self.device)
-                )
+        dim_dist, attn_w, r = (
+            dim_dist.to(self.device),
+            attn_w.to(self.device),
+            torch.tensor(r).to(self.device)
+            )
 
         if r > 1:
             d = torch.zeros(len(dim_dist))
@@ -179,8 +180,8 @@ class MultiUnitCluster(nn.Module):
         return d
 
     def _compute_act(self, dist, c, p):
-        if dist:
-            dist, c, p = dist.to(self.device), c.to(self.device), p.to(self.device)
+        dist, c, p = (dist.to(self.device), torch.tensor(c).to(self.device),
+                      torch.tensor(p).to(self.device))
         return c * torch.exp(-c * dist)  # sustain-like
 
 
