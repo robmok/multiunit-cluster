@@ -293,7 +293,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             loss.backward()
             # zero out gradient for masked connections
             with torch.no_grad():
-                model.fc1.weight.grad.mul_(win_mask.to(device))
+                print(model.fc1.weight.grad.is_cuda)
+                win_mask = win_mask.to(device)
+                print(win_mask.is_cuda)
+                model.fc1.weight.grad.mul_(win_mask)
                 # if model.attn_type == 'unit':  # mask other clusters' attn
                 #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
 
