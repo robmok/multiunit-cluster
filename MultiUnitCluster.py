@@ -140,7 +140,7 @@ class MultiUnitCluster(nn.Module):
         act = self._compute_act(
             dist, self.params['c'], self.params['p']).to(self.device)
 
-        units_output = (act * self.winning_units).to(self.device)
+        units_output = (act * self.winning_units.to(self.device)).to(self.device)
 
         # save cluster positions and activations
         # self.units_pos_trace.append(self.units_pos.detach().clone())
