@@ -133,14 +133,12 @@ class MultiUnitCluster(nn.Module):
 
         # distance measure. *attn works for both dimensional or unit-based
         dim_dist = abs(x - self.units_pos).to(self.device)
-        dist = _compute_dist(
-            dim_dist, self.attn, self.params['r'], device=self.device
-            ).to(self.device)
+        dist = self._compute_dist(
+            dim_dist, self.attn, self.params['r']).to(self.device)
 
         # compute attention-weighted dist & activation (based on similarity)
-        act = _compute_act(
-            dist, self.params['c'], self.params['p'], device=self.device
-            ).to(self.device)
+        act = self._compute_act(
+            dist, self.params['c'], self.params['p']).to(self.device)
 
         units_output = (act * self.winning_units).to(self.device)
 
@@ -163,6 +161,19 @@ class MultiUnitCluster(nn.Module):
         self.fc1_act_trace.append(out.detach().clone())
 
         return out.to(self.device), pr.to(self.device)
+
+    def _compute_dist(self, dim_dist, attn_w, r):
+        if r > 1:
+            d = torch.zeros(len(dim_dist))
+            ind = (torch.sum(dim_dist, axis=1) > 0)
+            dim_dist_tmp = dim_dist[ind]
+            d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
+        else:
+            d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
+        return d
+
+    def _compute_act(self, dist, c, p):
+        return c * torch.exp(-c * dist)  # sustain-like
 
 
 def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
@@ -246,18 +257,17 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos).to(device)
-            dist = _compute_dist(
-                dim_dist, model.attn, model.params['r'], device=model.device
-                ).to(device)
-            act = _compute_act(
-                dist, model.params['c'], model.params['p'], device=model.device
-                ).to(device)
+            dist = model._compute_dist(dim_dist, model.attn, model.params['r']
+                                       ).to(device)
+            act = model._compute_act(dist, model.params['c'], model.params['p']
+                                     ).to(device)
             act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
             _, win_ind = torch.topk(act,
                                     int(model.n_units
-                                        * model.params['k'])).to(device)
+                                        * model.params['k']))
+            win_ind = win_ind.to(device)
             # since topk takes top even if all 0s, remove the 0 acts
             if torch.any(act[win_ind] == 0):
                 win_ind = win_ind[act[win_ind] != 0]
@@ -308,22 +318,22 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     # losing units.
                     act_1 = (
                         torch.sum(
-                            _compute_act(
-                                _compute_dist(
+                            model._compute_act(
+                                model._compute_dist(
                                     abs(x - model.units_pos[win_ind]),
-                                    model.attn, model.params['r'],
-                                    device=model.device),
-                                model.params['c'], model.params['p'],
-                                device=model.device))
+                                    model.attn, model.params['r']
+                                    ),
+                                model.params['c'], model.params['p']
+                                ))
 
                         - torch.sum(
-                            _compute_act(
-                                _compute_dist(
+                            model._compute_act(
+                                model._compute_dist(
                                     abs(x - model.units_pos[lose_ind]),
-                                    model.attn, model.params['r'],
-                                    device=model.device),
-                                model.params['c'], model.params['p'],
-                                device=model.device))
+                                    model.attn, model.params['r']
+                                    ),
+                                model.params['c'], model.params['p']
+                                ))
                         ).to(device)
 
                     # compute gradient
@@ -406,12 +416,14 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 # 1st trial - select closest k inactive units
                 if itrl == 0:
-                    act = _compute_act(
+                    act = model._compute_act(
                         dist, model.params['c'], model.params['p']).to(device)
                     _, recruit_ind = (
                         torch.topk(act,
                                    int(model.n_units
-                                       * model.params['k']))).to(device)
+                                       * model.params['k'])))
+                    recruit_ind = recruit_ind.to(device)
+
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
@@ -425,12 +437,14 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                     # select closest n_mispredicted inactive units
                     n_mispred_units = mispred_units.sum().to(device)
-                    act = _compute_act(
+                    act = model._compute_act(
                         dist, model.params['c'], model.params['p']).to(device)
                     act[model.active_units] = 0  # REMOVE all active units
                     # find closest units excluding the active units to recruit
                     _, recruit_ind = (
-                        torch.topk(act, n_mispred_units)).to(device)
+                        torch.topk(act, n_mispred_units))
+                    recruit_ind = recruit_ind.to(device)
+
                     # since topk takes top even if all 0s, remove the 0 acts
                     if torch.any(act[recruit_ind] == 0):
                         recruit_ind = recruit_ind[act[recruit_ind] != 0]
@@ -572,10 +586,9 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
 
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
-            dist = _compute_dist(dim_dist, model.attn, model.params['r'],
-                                 device=model.device)
-            act = _compute_act(dist, model.params['c'], model.params['p'],
-                               device=model.device)
+            dist = model._compute_dist(dim_dist, model.attn, model.params['r'])
+            act = model._compute_act(
+                dist, model.params['c'], model.params['p'])
             act[~model.active_units] = 0  # not connected, no act
 
             # get top k winners
@@ -614,22 +627,18 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
 
                     act_1 = (
                         torch.sum(
-                            _compute_act(
-                                _compute_dist(
+                            model._compute_act(
+                                model._compute_dist(
                                     abs(x - model.units_pos[win_ind]),
-                                    model.attn, model.params['r'],
-                                    device=model.device),
-                                model.params['c'], model.params['p'],
-                                device=model.device))
+                                    model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
 
                         - torch.sum(
-                            _compute_act(
-                                _compute_dist(
+                            model._compute_act(
+                                model._compute_dist(
                                     abs(x - model.units_pos[lose_ind]),
-                                    model.attn, model.params['r'],
-                                    device=model.device),
-                                model.params['c'], model.params['p'],
-                                device=model.device))
+                                    model.attn, model.params['r']),
+                                model.params['c'], model.params['p']))
                         )
 
                     # compute gradient
@@ -652,13 +661,15 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
 
                     else:  # batch - save the update
                         # - save the update then mean then normalise?
-                        # - or get the update, normalize attn by when it would be,
+                        # - or get the upd, normalize attn by when it would be,
                         # and subtract that - save that as the update
                         # ... not sure if it's the same - try both
 
                         # save gradient
-                        upd_attn[:, itrl_b] = (model.params['lr_attn'] # [itrl]  # when annealing
-                                               * (model.attn.grad / model.n_units))
+                        upd_attn[:, itrl_b] = (
+                            model.params['lr_attn']  # [itrl]  # when annealing
+                            * (model.attn.grad / model.n_units)
+                            )
 
                         # # OR add grad, norm then subtract to get the norm'd upd
                         # attn_tmp = model.attn.data + (model.params['lr_attn'] # [itrl]  # when annealing
@@ -696,7 +707,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                     (winner_mean - model.units_pos[win_ind])
                     * model.params['lr_clusters_group'][itrl]
                     )
-                
+
                 # add noise to 2nd update?
                 if noise:
                     update += (
@@ -717,11 +728,11 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
 
             # Recruit cluster, and update model
             # - batch - can recruit, and show activations above, just no pos
-            # or attn updates. 
+            # or attn updates.
             if (recruit and torch.sum(model.active_units == 0) > 0):
 
                 # select closest k inactive units
-                act = _compute_act(
+                act = model._compute_act(
                     dist, model.params['c'], model.params['p'])
                 act[model.active_units] = 0  # REMOVE all active units
                 # find closest units excluding the active units to recruit
@@ -737,7 +748,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                 model.winning_units[recruit_ind] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
                 model.recruit_units_trl.append(itrl)
-                
+
                 # add noise to recruited positions
                 if noise:
                     model.units_pos[recruit_ind] += (
@@ -757,7 +768,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                 #     (x - model.units_pos[recruit_ind])
                 #     * model.params['lr_clusters'][itrl]
                 #     )
-                
+
                 # if batch_upd is None:
                 #     model.units_pos[recruit_ind] += update
                 # else:  # save update
@@ -776,7 +787,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                 #         model.units_pos.detach().clone())
                 # else:  # add to the update
                 #     upd_pos[recruit_ind, itrl_b] += update
-                    
+
                 # recruit and update WITHIN batch
                 update = (
                     (x - model.units_pos[recruit_ind])
@@ -791,18 +802,18 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                     (winner_mean - model.units_pos[recruit_ind])
                     * model.params['lr_clusters_group'][itrl])
                 model.units_pos[recruit_ind] += update
-                
+
                 # save updated unit positions - if update within batch
                 # model.units_pos_trace.append(
                 #     model.units_pos.detach().clone())
-                
+
                 # # update and clear saved updates up till recruit
                 # upd_pos_mean = np.nanmean(upd_pos, axis=1)
                 # upd_pos_mean[np.isnan(upd_pos_mean)] = 0  # turns nans to 0
                 # model.units_pos += upd_pos_mean
                 # # save updated unit positions
                 # # model.units_pos_trace.append(model.units_pos.detach().clone())
-                
+
                 # # clear
                 # upd_pos[:] = float('nan')
 
@@ -858,13 +869,14 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
 
     for epoch in range(n_epochs):
         for x in inputs:
-            
+
             # x = inputs[itrl_b]
-            
+
             # find winners with largest activation - all connected
             dim_dist = abs(x - model.units_pos)
-            dist = _compute_dist(dim_dist, model.attn, model.params['r'])
-            act = _compute_act(dist, model.params['c'], model.params['p'])
+            dist = model._compute_dist(dim_dist, model.attn, model.params['r'])
+            act = model._compute_act(
+                dist, model.params['c'], model.params['p'])
 
             # get top k winners
             _, win_ind = torch.topk(act,
@@ -893,15 +905,14 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
             update = (
                 (winner_mean - model.units_pos[win_ind])
                 * model.params['lr_clusters_group'])
-            
+
             # maybe rather than batch update the group - which will be just the mean of the unit
             # positions at the start of the batch - just batch update first one
-            
+
             # for second update - could save which units won
             # n times, then move them toward each other AFTER the batch update
             # of 1st update..
             # - but all update.. can't update toward mean - that's just centre.
-
 
             if batch_upd is None:
                 model.units_pos[win_ind] += update
@@ -928,32 +939,27 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
         model.units_pos_trace.append(model.units_pos.detach().clone())
 
 
-def _compute_dist(dim_dist, attn_w, r, device=torch.device('cpu')):
-    # since sqrt of 0 returns nan for gradient, need this bit
-    # e.g. euclid, can't **(1/2)
-    dim_dist, attn_w, r = (
-            dim_dist.to(device), attn_w.to(device), r.to(device)
-            )
-
-    print(dim_dist, attn_w, r)
-
-    if r > 1:
-        d = torch.zeros(len(dim_dist)).to(device)
-        ind = (torch.sum(dim_dist, axis=1) > 0).to(device)
-        dim_dist_tmp = dim_dist[ind].to(device)
-        d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
-    else:
-        d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-    return d.to(device)
+# def _compute_dist(dim_dist, attn_w, r, device=torch.device('cpu')):
+#     # since sqrt of 0 returns nan for gradient, need this bit
+#     # e.g. euclid, can't **(1/2)
+#     # dim_dist, attn_w, r = (
+#     #         dim_dist.to(device), attn_w.to(device), r.to(device)
+#     #         )
+#     if r > 1:
+#         d = torch.zeros(len(dim_dist)).to(device)
+#         ind = (torch.sum(dim_dist, axis=1) > 0).to(device)
+#         dim_dist_tmp = dim_dist[ind].to(device)
+#         d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
+#     else:
+#         d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
+#     return d.to(device)
 
 
-def _compute_act(dist, c, p, device=torch.device('cpu')):
-    """ c = 1  # ALCOVE - specificity of the node - free param
-        p = 2  # p=1 exp, p=2 gauss
-    """
-    dist, c, p = dist.to(device), c.to(device), p.to(device)
+# def _compute_act(dist, c, p, device=torch.device('cpu')):
+#     """ c = 1  # ALCOVE - specificity of the node - free param
+#         p = 2  # p=1 exp, p=2 gauss
+#     """
+#     # dist, c, p = dist.to(device), c.to(device), p.to(device)
 
-    # return torch.exp(-c * (dist**p))
-    return c * torch.exp(-c * dist)  # sustain-like
-
-
+#     # return torch.exp(-c * (dist**p))
+#     return c * torch.exp(-c * dist)  # sustain-like
