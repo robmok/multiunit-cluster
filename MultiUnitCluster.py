@@ -942,7 +942,7 @@ def _compute_dist(dim_dist, attn_w, r, device=torch.device('cpu')):
         d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
     else:
         d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r).to(device)
-    return d
+    return d.to(device)
 
 
 def _compute_act(dist, c, p, device=torch.device('cpu')):
