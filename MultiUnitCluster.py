@@ -931,8 +931,7 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
 def _compute_dist(dim_dist, attn_w, r, device=torch.device('cpu')):
     # since sqrt of 0 returns nan for gradient, need this bit
     # e.g. euclid, can't **(1/2)
-    print('x: {}, {}'.format(dim_dist, len(dim_dist)))
-    if dim_dist:  # trials where no dists (e.g. 1st trial)
+    if len(dim_dist):  # trials where no dists (e.g. 1st trial)
         dim_dist, attn_w, r = (
             dim_dist.to(device), attn_w.to(device), r.to(device)
             )
@@ -951,7 +950,7 @@ def _compute_act(dist, c, p, device=torch.device('cpu')):
     """ c = 1  # ALCOVE - specificity of the node - free param
         p = 2  # p=1 exp, p=2 gauss
     """
-    if dist:
+    if len(dist):
         dist, c, p = dist.to(device), c.to(device), p.to(device)
 
     # return torch.exp(-c * (dist**p))
