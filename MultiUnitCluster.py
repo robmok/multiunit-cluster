@@ -931,8 +931,8 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
 def _compute_dist(dim_dist, attn_w, r, device=torch.device('cpu')):
     # since sqrt of 0 returns nan for gradient, need this bit
     # e.g. euclid, can't **(1/2)
+    print(dim_dist)
     if dim_dist:  # trials where no dists (e.g. 1st trial)
-        print(dim_dist)
         dim_dist, attn_w, r = (
             dim_dist.to(device), attn_w.to(device), r.to(device)
             )
