@@ -284,9 +284,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             # define winner mask
             model.winning_units[:] = 0  # clear
             model.winning_units[win_ind] = True  # goes to forward function
-            win_mask = (
-                model.winning_units.repeat((len(model.fc1.weight), 1))
-                ).to(device)
+            win_mask = model.winning_units.repeat((len(model.fc1.weight), 1)).to(device)
 
             # learn
             optimizer.zero_grad()
