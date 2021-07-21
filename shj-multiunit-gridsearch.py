@@ -29,9 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
 # gpu if available
-# device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
-device = torch.device('cuda:2')
-print(device)
+device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))

@@ -252,7 +252,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
             # to gpu if available
             x, target = x.to(device), target.to(device)
-            print(device)
 
             # lesion trials
             if lesions:
@@ -266,6 +265,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         model.fc1.weight[:, les] = 0
 
             # find winners:largest acts that are connected (model.active_units)
+            print(x.is_cuda, model.units_pos.is_cuda)
             dim_dist = abs(x - model.units_pos).to(device)
             dist = model._compute_dist(dim_dist, model.attn, model.params['r']
                                        ).to(device)
