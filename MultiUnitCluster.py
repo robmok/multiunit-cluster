@@ -91,7 +91,8 @@ class MultiUnitCluster(nn.Module):
         # self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
 
         # randomly scatter
-        self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
+        self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float).to(
+            device)
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
         if self.attn_type[0:4] == 'dime':
@@ -125,7 +126,7 @@ class MultiUnitCluster(nn.Module):
         # - winning_units is like active_units before, but winning on that
         # trial, since active is define by connection weight ~=0
         # mask for winning clusters
-        self.winning_units = torch.zeros(n_units, dtype=torch.bool)
+        self.winning_units = torch.zeros(n_units, dtype=torch.bool).to(device)
 
     def forward(self, x):
 
@@ -171,9 +172,9 @@ class MultiUnitCluster(nn.Module):
             )
 
         if r > 1:
-            d = torch.zeros(len(dim_dist))
-            ind = (torch.sum(dim_dist, axis=1) > 0)
-            dim_dist_tmp = dim_dist[ind]
+            d = torch.zeros(len(dim_dist)).to(self.device)
+            ind = (torch.sum(dim_dist, axis=1) > 0).to(self.device)
+            dim_dist_tmp = dim_dist[ind].to(self.device)
             d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
         else:
             d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
