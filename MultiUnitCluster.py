@@ -28,7 +28,7 @@ class MultiUnitCluster(nn.Module):
         self.n_dims = n_dims
         self.softmax = nn.Softmax(dim=0)
         self.logsoftmax = nn.LogSoftmax(dim=0)
-        self.active_units = torch.zeros(n_units, dtype=torch.bool)
+        self.active_units = torch.zeros(n_units, dtype=torch.bool).to(device)
         self.device = device
         # history
         self.attn_trace = []
