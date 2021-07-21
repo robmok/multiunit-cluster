@@ -69,7 +69,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device):
                                  start_params=start_params,
                                  device=device).to(device)
 
-        print(model.winnnig_units.is_cuda)
+        print(model.winning_units.is_cuda)
         print(model.attn.is_cuda)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
