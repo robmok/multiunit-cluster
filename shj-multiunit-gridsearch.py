@@ -69,6 +69,9 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device):
                                  start_params=start_params,
                                  device=device).to(device)
 
+        print(model.units_pos.is_cuda)
+        print(model.model.fc1.weight.is_cuda)
+
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i],
             shj_order=True, device=device)
