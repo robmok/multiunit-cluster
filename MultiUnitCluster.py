@@ -290,7 +290,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             # learn
             optimizer.zero_grad()
             out, pr = model.forward(x)
-            loss = criterion(out.unsqueeze(0).to(device), target.unsqueeze(0))
+            loss = criterion(out.unsqueeze(0), target.unsqueeze(0))
             loss.backward()
             # zero out gradient for masked connections
             with torch.no_grad():
