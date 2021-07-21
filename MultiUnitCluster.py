@@ -252,6 +252,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
             # to gpu if available
             x, target = x.to(device), target.to(device)
+            print(device)
+
 
             # lesion trials
             if lesions:
@@ -285,7 +287,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             model.winning_units[:] = 0  # clear
             model.winning_units[win_ind] = True  # goes to forward function
             win_mask = model.winning_units.repeat((len(model.fc1.weight), 1)).to(device)
-            print(device)
 
             # learn
             optimizer.zero_grad()
