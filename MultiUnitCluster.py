@@ -265,7 +265,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         model.fc1.weight[:, les] = 0
 
             # find winners:largest acts that are connected (model.active_units)
-            print(itrl, model.unit_pos.is_cuda)
+            print(itrl, model.units_pos.is_cuda)
             dim_dist = abs(x - model.units_pos).to(device)
             dist = model._compute_dist(dim_dist, model.attn, model.params['r']
                                        ).to(device)
@@ -556,7 +556,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
             # tmp
             # model.winners_trace.append(model.units_pos[model.winning_units])
-            print(itrl, model.unit_pos.is_cuda)
+            print(itrl, model.units_pos.is_cuda)
 
             itrl += 1
 
