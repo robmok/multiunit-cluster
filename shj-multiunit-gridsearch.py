@@ -127,7 +127,7 @@ beh_seq = shj.T
 iset = 0  # 18
 
 # for cbu-cluster
-# iset = int(sys.argv[-1])
+iset = int(sys.argv[-1])
 
 n_units = 500
 k = .05
@@ -169,14 +169,23 @@ lr_scale = (n_units * k) / 1
 #           torch.tensor([.05, .1])]
 #           )
 
-# new - coarser
-ranges = ([torch.arange(.8, 2.1, .3),
-          torch.arange(1., 19., 2.5),
-          torch.arange(.005, .5, .1),
-          torch.arange(.005, .5, .1) / lr_scale,
-          torch.arange(.005, .5, .1),
-          torch.arange(.1, .9, .2)]
+# without k - 252000
+ranges = ([torch.arange(.8, 2.1, .2),
+          torch.arange(1., 19., 2),
+          torch.arange(.005, .5, .05),
+          torch.arange(.005, .5, .05) / lr_scale,
+          torch.arange(.005, .5, .05),
+          torch.arange(.1, .9, .2)]  # fewer: 4 vals
           )
+
+# # new - coarser
+# ranges = ([torch.arange(.8, 2.1, .3),
+#           torch.arange(1., 19., 2.5),
+#           torch.arange(.005, .5, .1),
+#           torch.arange(.005, .5, .1) / lr_scale,
+#           torch.arange(.005, .5, .1),
+#           torch.arange(.1, .9, .2)]
+#           )
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -205,7 +214,33 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # - 40000/250 sets=160 param sets. 160/24=6.66 days. 160*128=20480, more than
 # half, can do it in 2 weeks.
 # - with 1 k value, can do it in 1 week. let's do this
-sets = torch.arange(0, len(param_sets)+1, 160)  # 250 sets
+
+# sets = torch.arange(0, len(param_sets)+1, 160)  # 250 sets
+
+
+# update - cluster is faster than expected
+# - 160 sets in 8.5 or 11.5 hours
+# - 160/8.5=18.8235 or 160/10.5=15.2381 sets per hour. Let's say 15 per hour.
+# - 	8.5/160=0.0531 or 10.5/160=0.0656 hours per set
+
+
+# w 378000
+# - divide by 500 sets = 756 per set
+# - divide by 250 sets = 1512 per set
+# - divide by 125 sets = 3024 per set
+# .0656*756=49.59/24=2.066, .0656*1512=99.1872/24=4.13 days (x2 since 250)
+# .0656*3024=198.3744/24=8.26 days
+
+
+# w 252000
+# 252000/250=1008*.0656=66.1248/24 = 2.7552 days (x2 = 5.51 days)
+
+# let's try 252000, 250 sets; x2 = 5.51 days
+# - run k=0.05, run sbatch w 250 jobs (should run 128 then queue)
+# - then run another sbatch with k=0.01 - check later if this times out since
+# it'll be 7+ days. but maybe ok since it's in a queue, not wall time?
+
+sets = torch.arange(0, len(param_sets)+1, 1008)
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
