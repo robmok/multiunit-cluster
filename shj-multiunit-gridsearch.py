@@ -23,7 +23,9 @@ sys.path.append('/home/rm05/Documents/multiunit-cluster')
 from MultiUnitCluster import (MultiUnitCluster, train)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-maindir = '/home/rm05/Documents/'
+# unix
+# maindir = '/home/rm05/Documents/'
+maindir = '/imaging/duncan/users/rm05/'
 
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
