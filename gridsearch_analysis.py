@@ -113,6 +113,14 @@ plt.show()
 ind_nll = nlls == nlls[ptn_criteria_1].min()
 ind_sse = sse == sse[ptn_criteria_1].min()
 
+# more criteria
+# - maybe faster type I / slower type VI
+# - types III-V need to be more similar (e.g. within some range)
+# - type I, II and the III-V's need to be larger differences
+
+
+
+
 
 # %% plot
 
