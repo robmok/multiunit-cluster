@@ -77,9 +77,6 @@ shj = (
 iparam = 0
 
 
-# sse
-sse = torch.sum(torch.square(pts[iparam].T.flatten() - shj.flatten()))
-
 
 # match threshold
 # - 1 if match fully. can allow some error to be safe, eg ~.9
@@ -87,10 +84,14 @@ sse = torch.sum(torch.square(pts[iparam].T.flatten() - shj.flatten()))
 match_thresh = .95
 
 # pattern, meet criteria?
+sse = torch.zeros(len(pts))
 ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
 for iparam in range(len(pts)):
-    pt = pts[iparam]
 
+    # compute sse
+    sse[iparam] = torch.sum(torch.square(pts[iparam].T.flatten() - shj.flatten()))
+
+    # pattern
     ptn = pts[iparam][0] < pts[iparam][1:]  # type I fastest
     ptn_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
     ptn = pts[iparam][1] < pts[iparam][2:]  # type II 2nd
@@ -101,5 +102,32 @@ for iparam in range(len(pts)):
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
 
+# criteria 1 already reduces to <12% of the params
+
+# sse and nll very similar, though LOWEST value differ. interesting
+plt.plot(nlls[ptn_criteria_1])
+plt.show()
+plt.plot(sse[ptn_criteria_1])
+plt.show()
+
+ind_nll = nlls == nlls[ptn_criteria_1].min()
+ind_sse = sse == sse[ptn_criteria_1].min()
 
 
+# %% plot
+
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(shj.T)
+ax[0].set_ylim([0., .55])
+ax[0].set_aspect(17)
+ax[1].plot(pts[ind_nll].T.squeeze())
+ax[1].set_ylim([0., .55])
+ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+ax[1].set_aspect(17)
+plt.show()
+
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj.T, 'k')
+ax.plot(pts[ind_nll].T.squeeze(), 'o-')
+ax.set_ylim([0., .55])
+ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
