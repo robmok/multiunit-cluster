@@ -11,6 +11,7 @@ import os
 import torch
 import matplotlib.pyplot as plt
 import pickle
+import itertools as it
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 
@@ -20,11 +21,21 @@ n_units = 500
 resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
     k, n_units))
 
+# get params - 252000
+ranges = ([torch.arange(.8, 2.1, .2),
+          torch.arange(1., 19., 2),
+          torch.arange(.005, .5, .05),
+          torch.arange(.005, .5, .05), #  / lr_scale,  # ignoring this here
+          torch.arange(.005, .5, .05),
+          torch.arange(.1, .9, .2)]
+          )
+param_sets = torch.tensor(list(it.product(*ranges)))
+
+# load in
 pts = []
 nlls = []
 recs = []
 seeds = []
-
 for iset in range(250):
     fn = os.path.join(
         resdir,
@@ -112,6 +123,11 @@ plt.show()
 
 ind_nll = nlls == nlls[ptn_criteria_1].min()
 ind_sse = sse == sse[ptn_criteria_1].min()
+
+
+# c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
+print(param_sets[ind_nll])
+print(param_sets[sse])
 
 # more criteria
 # - maybe faster type I / slower type VI
