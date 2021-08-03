@@ -40,7 +40,6 @@ for iset in range(250):
     # recs.extend(loaded_list[2])
     # seeds.extend(loaded_list[3])
 
-
 pts = torch.stack(pts).T
 nlls = torch.stack(nlls)
 # recs = torch.stack(recs)
@@ -75,16 +74,31 @@ shj = (
 # points have to be faster (for now - maybe do 80% points if problem?)
 # -
 
-
 iparam = 0
 
+
+# sse
 sse = torch.sum(torch.square(pts[iparam].T.flatten() - shj.flatten()))
 
 
+# match threshold
+# - 1 if match fully. can allow some error to be safe, eg ~.9
+# - note depending on the comparison, num total is diff (so prop is diff)
+match_thresh = .95
 
-# for iparam in range(10):
-#     plt.plot(pts[iparam].T)
-#     plt.show()
+# pattern, meet criteria?
+ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
+for iparam in range(len(pts)):
+    pt = pts[iparam]
+
+    ptn = pts[iparam][0] < pts[iparam][1:]  # type I fastest
+    ptn_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    ptn = pts[iparam][1] < pts[iparam][2:]  # type II 2nd
+    ptn_c2 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    ptn = pts[iparam][5] > pts[iparam][:5]  # type VI slowest
+    ptn_c3 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+
+    ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
 
 
