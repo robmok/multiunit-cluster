@@ -16,22 +16,23 @@ import time
 from scipy import stats
 import pickle
 
-sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
-# unix
-sys.path.append('/home/rm05/Documents/multiunit-cluster')
+location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
+
+if location == 'mbp':
+    maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+    sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
+elif location == 'cluster':
+    maindir = '/imaging/duncan/users/rm05/'
+    sys.path.append('/home/rm05/Documents/multiunit-cluster')
 
 from MultiUnitCluster import (MultiUnitCluster, train)
-
-maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-# unix
-# maindir = '/home/rm05/Documents/'
-maindir = '/imaging/duncan/users/rm05/'
 
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-# gpu if available
+# gpu if available - cpu much faster for this
 device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -131,7 +132,7 @@ iset = 0  # 18
 # for cbu-cluster
 iset = int(sys.argv[-1])
 
-n_units = 500
+n_units = 2000
 k = .05
 sim_info = {
     'n_units': n_units,
@@ -195,36 +196,10 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # set up which subset of param_sets to run on a given run
 # param_sets_curr = param_sets  # all
 
-# for current sets, len(params_sets)=378000
-# - divide by 500 sets = 756 per set
-# - (756*1.875)/60=23.625 hours
-# - divide by 250 sets = 1512 per set
-# - (1512*1.875)/60=47.25 hours; 2 days
-# note: I can run 7-8 at once with 8 cores
-
-# test - should be 45-47 hours per set.
-# - run 8 sets - result: takes 3.29 days - 79 hours
-# - tested w 11 param sets, 58kb. 58 * 1512=87.696 mb per set. sounds right
-
-# for set 1, set_n=1. do sims for: sets[set_n]:sets[set_n+1]
-# sets = torch.arange(0, len(param_sets)+1, 1512)
-# sets = torch.arange(0, len(param_sets)+1, 1023)  # assuming 493 cores
-
-# run coarser - 40000 sets. 20k for 1 k value
-# - if assume 8-10 hours for 100 sets, .8 to 1 hr per set, 270hrs/24=11.25
-# - max wall time is 7 days
-# - 40000/250 sets=160 param sets. 160/24=6.66 days. 160*128=20480, more than
-# half, can do it in 2 weeks.
-# - with 1 k value, can do it in 1 week. let's do this
-
-# sets = torch.arange(0, len(param_sets)+1, 160)  # 250 sets
-
-
 # update - cluster is faster than expected
 # - 160 sets in 8.5 or 11.5 hours
 # - 160/8.5=18.8235 or 160/10.5=15.2381 sets per hour. Let's say 15 per hour.
 # - 	8.5/160=0.0531 or 10.5/160=0.0656 hours per set
-
 
 # w 378000
 # - divide by 500 sets = 756 per set
@@ -233,7 +208,6 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # .0656*756=49.59/24=2.066, .0656*1512=99.1872/24=4.13 days (x2 since 250)
 # .0656*3024=198.3744/24=8.26 days
 
-
 # w 252000
 # 252000/250=1008*.0656=66.1248/24 = 2.7552 days (x2 = 5.51 days)
 
@@ -241,6 +215,13 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # - run k=0.05, run sbatch w 250 jobs (should run 128 then queue)
 # - then run another sbatch with k=0.01 - check later if this times out since
 # it'll be 7+ days. but maybe ok since it's in a queue, not wall time?
+
+
+# now got lowpri - more cores:
+# - 1008 sets
+# - Run 128 cores on normal priority. *2=256 sets. Run 128 jobs at a time x 2
+# - Run 128-511 (384 cores) on lopri. 1008-256=752. 752/2=376. Run 376 cores
+# at a time, x2
 
 sets = torch.arange(0, len(param_sets)+1, 1008)
 
@@ -282,79 +263,3 @@ for i, fit_params in enumerate(param_sets_curr):
 
 # t1 = time.time()
 # print(t1-t0)
-
-# # to load pickled list
-# open_file = open(fn, "rb")
-# loaded_list = pickle.load(open_file)
-# open_file.close()
-
-"""
-2.16-2.25s for 1 param value, 1 iter (6) - i.e. 1 run of 1 set of param vals
-142.9s / 2.38 mins - 2 param values each, 1 iter (64)
-(on love06, v similar
-2.28-2.36s for 1 param value param (6), 1 iter (6)
-144.95s / 2.41s for 2 values per param (6), 1 iter (64))
-
-- this is 1 values per param and 1 sim. prob run 50 iters: 2.25*50=112.5s
-112.5/60 = 1.875 mins for 1 set of param values
-- just ran 1 set of params: 108.35s or 1.8 mins
-
-average 20 steps per param
-- for 6 params, there are 64,000,000 sims to run
-- 1.875*64000000 = 120000000 mins = 2000000 hours = 83333.33 days = 228.3 yrs
-average 10 steps, 6 params, 1,000,000 to run
-- 1.875*1000000 = 1875000 mins = 31250 hours = 1302 days = 3.567 years
-
-ok, assume above is 1 CPU, and I have n CPUs
-- n = 8, 1302/8=162.75 days
-- n = 16, 81.375 days
-- n = 60, 21.7 days
---> maybe this is OK, on a super computer it'll be faster. 2-3 weeks
-
---
-on unix cluster
-
-- on login node, 0.4% of memory, 256*0.004=1.024GB. 1 sets of 50 takes 200.5s. actually slow. 
-
-
---
-# intuition
-c - 0.5-2 in 0.1 steps; 16 values
-phi - 1-20 in 0.5 steps; 40
-lr_attn - 0.005-0.5 in .015 steps; 34
-lr_nn - 0.005-0.5 in .05 steps; 11
-lr_clusters - .005-.5 in .05 steps; 11
-lr_clusters_group - .1 to .9 in .1 steps; 9
-
-
-# try to make it 10 values per param or less
-c - 0.8-2 in 0.2 steps; 7
-phi - 1-19 in 2 steps; 10
-lr_attn - 0.005-0.5 in .05 steps; 11
-lr_nn - 0.005-0.5 in .05 steps; 11
-lr_clusters - .005-.5 in .05 steps; 11
-lr_clusters_group - .1 to .9 in .15 steps; 6
-
---> this is about half of 10 values; 440980 param combinations
-- 1.875*440980=826837.5/60=13780.625/24=574.19 days=2.166 years
-- 574.19/25 cores = 22.9 days
-- 574.19/50 cores = 11 days
-- 574.19/16 = 35 days
-- 574.19/8 = 71 days
-
-with 10 values for the lr's, 378000 param combis
-- 1.875*378000 = 492.1875 days = 1.348 years
-- 492.1875/50 = 9.84 days
-- 492.1875/16 = 30 days
-- 492.1875/8 = 61.5 days
-
-
-TODO:
-- figure out what parameters ranges and stepsizes for each param are sensible
-- split into manageable chunks - maybe split so can run some on love06/mac
-then run large chunks on super computers
-
-- remember to save periodically (outside of func, in loop)
-
-
-"""
