@@ -258,8 +258,8 @@ for i, fit_params in enumerate(param_sets_curr):
         open_file.close()
 
         # print time elapsed till now
-    t1 = time.time()
-    print(t1-t0)
+    # t1 = time.time()
+    # print(t1-t0)
 
-# t1 = time.time()
-# print(t1-t0)
+t1 = time.time()
+print(t1-t0)
