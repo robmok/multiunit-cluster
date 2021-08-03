@@ -185,10 +185,10 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
 # - 
 noise = None
-# noise = {'update1': [0, .1],  # unit position updates 1 & 2
-#           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-#           'recruit': [0., .1],  # recruitment position placement
-#           'act': [.5, .1]}  # unit activations (non-negative)
+noise = {'update1': [0, .0],  # . 1unit position updates 1 & 2
+          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+          'recruit': [0., .0],  # .1 recruitment position placement
+          'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -300,11 +300,11 @@ savegif = False
 plot_seq = 'epoch'  # epoch/trls
 
 # set params
-problem = 4  # 0, 1, 4, 5 right now
+problem = 5
 lr_clusters = .1
 lr_clusters_group = .0
-upd1noise = .1  # .1/.2
-recnoise = .1  # atm, 0 for dupd, .01 for catlearn
+upd1noise = .0  # .1/.2
+recnoise = .0  # atm, 0 for dupd, .01 for catlearn
 
 # load from dir
 dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'

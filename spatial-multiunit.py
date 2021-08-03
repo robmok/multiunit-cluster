@@ -723,7 +723,7 @@ if anneal_lr_group:
     # clus positions, activation map
     fname4 = (
         os.path.join(wd, 'spatial_actmapclus_batch{}_ann_cvals_{}units_k{}_'
-                     'startlr{}startgrouplr{}_attnlr{}_thresh.7_{}ktrls_'
+                     'startlr{}_startgrouplr{}_attnlr{}_thresh.7_{}ktrls_'
                      '{}sims'.format(
                          batch_size, n_units, params['k'], orig_lr,
                          lr_group[0], params['lr_attn'], n_trials, n_sims))
@@ -765,32 +765,68 @@ else:
 df_gscore = pd.read_pickle(fname1)
 df_recruit = pd.read_pickle(fname2)
 
+# sns.set(font_scale = 1.5)
+# plt.style.use('seaborn-white')
+fntsiz = 18
+
 # gscore
 g = sns.catplot(data=df_gscore, kind="violin")
 sns.stripplot(color="k", alpha=0.2, size=3,
               data=df_gscore, ax=g.ax)
 g.ax.set_ylim(-.85, 2.)
-# if saveplots:
-#     figname = os.path.join(figdir,
-#                            'align_box_acc_learn')
-#     plt.savefig(figname, dpi=100)
+g.ax.set_xticklabels(g.ax.get_xmajorticklabels(), fontsize=fntsiz-3)
+g.ax.set_yticklabels(g.ax.get_ymajorticklabels(), fontsize=fntsiz-3)
+g.ax.set_xlabel('c (tuning width)', fontsize=fntsiz)
+g.ax.set_ylabel('Grid Score', fontsize=fntsiz)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'gscores_violin')
+    if anneal_lr_group:
+        figname = figname + "_ann_lr_group"
+    # plt.savefig(figname, dpi=100)
+    plt.savefig(figname + '.pdf')
 plt.show()
 
-sns.swarmplot(size=3, data=df_gscore)
-g.ax.set_ylim(-.3, 1.5)
-plt.show()
+
+# swarm / univariate scatter
+# g = sns.swarmplot(size=3, data=df_gscore)
+# g.set_ylim(-.5, 1.65)
+# if saveplots:
+#     figname = os.path.join(figdir,
+#                            'gscores_swarm.pdf')
+#     # plt.savefig(figname, dpi=100)
+#     plt.savefig(figname)
+# plt.show()
 
 # recruit
 g = sns.catplot(data=df_recruit, kind="violin")
 sns.swarmplot(alpha=0.2, size=3,
               data=df_recruit, ax=g.ax)
 g.ax.set_ylim(0., 18.)
+g.ax.set_xticklabels(g.ax.get_xmajorticklabels(), fontsize=fntsiz-4)
+g.ax.set_yticklabels(g.ax.get_ymajorticklabels(), fontsize=fntsiz-4)
+g.ax.set_xlabel('c (tuning width)', fontsize=fntsiz)
+g.ax.set_ylabel('No. of recruitments ("place fields")', fontsize=fntsiz)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'grecruit_violin')
+    if anneal_lr_group:
+        figname = figname + "_ann_lr_group"
+    # plt.savefig(figname, dpi=100)
+    plt.savefig(figname + '.pdf')
 plt.show()
 
-g = sns.swarmplot(size=.4,  # smaller size to plot all dots.. but color light
-                  data=df_recruit)
-g.set_ylim(0., 18.)
-plt.show()
+# g = sns.swarmplot(size=.4,  # smaller size to plot all dots.. but color light
+#                   data=df_recruit)
+# g.set_ylim(0., 18.)
+# if saveplots:
+#     figname = os.path.join(figdir,
+#                            'grecruit_swarm.pdf')
+#     # plt.savefig(figname, dpi=100)
+#     plt.savefig(figname)
+# plt.show()
 
 
 # fig, ax = plt.subplots()
@@ -816,44 +852,60 @@ f = torch.load(fname_pt)
 act_maps = f['act_map']
 
 
-df_gscore.hist(bins=20)
-if saveplots:
-    figname = (
-        os.path.join(figdir, 'spatial_gscore_hist_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls.pdf'.format(
-            n_units, k, orig_lr, params['lr_clusters_group'], n_trials))
-    )
-    plt.savefig(figname)
-plt.show()
+# df_gscore.hist(bins=20)
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'spatial_gscore_hist_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls.pdf'.format(
+#             n_units, k, orig_lr, params['lr_clusters_group'], n_trials))
+#     )
+#     plt.savefig(figname)
+# plt.show()
 
-df_recruit.hist()
-if saveplots:
-    figname = (
-        os.path.join(figdir, 'spatial_recruit_hist_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls.pdf'.format(
-            n_units, k, orig_lr, params['lr_clusters_group'], n_trials))
-    )
-    plt.savefig(figname)
-plt.show()
+# df_recruit.hist()
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'spatial_recruit_hist_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls.pdf'.format(
+#             n_units, k, orig_lr, params['lr_clusters_group'], n_trials))
+#     )
+#     plt.savefig(figname)
+# plt.show()
 
 
 # act_map and autocorrelogram
 isim = 0
 
-_, _, _, _, sac = _compute_grid_scores(act_map_all[isim])
+# check which have gd gscores
+# np.nonzero(df_gscore[c].values>.5)
+
+_, _, _, _, sac = _compute_grid_scores(act_maps[isim])
 
 
 fig, ax = plt.subplots(1, 2)
-ax[0].imshow(act_map_all[isim])
+ax[0].imshow(act_maps[isim])
 ax[0].set_title('c = {}'.format(c))
 ax[1].imshow(sac)
 ax[1].set_title('g = {}'.format(np.around(df_gscore[c][isim], decimals=3)))
 if saveplots:
-    figname = (
-        os.path.join(figdir, 'spatial_actmap_xcorr_c{}_{}units_k{}_startlr{}_grouplr{}_thresh.7_{}trls_sim{}.pdf'.format(
-            c, n_units, k, orig_lr, params['lr_clusters_group'], n_trials, isim))
-    )
+
+    if anneal_lr_group:
+        figname = (
+            os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
+                         '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
+                         '_sim{}.pdf'.format(
+                             c, n_units, k, orig_lr,
+                             params['lr_clusters_group'][0], n_trials, isim))
+        )
+    else:
+        figname = (
+            os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_c{}_{}units_k{}'
+                         '_startlr{}_grouplr{}_thresh.7_{}trls_sim{}.pdf'
+                         .format(
+                             c, n_units, k, orig_lr,
+                             params['lr_clusters_group'][0], n_trials, isim))
+        )
     plt.savefig(figname)
 plt.show()
-    
+
 # %%
 
 # run for different learning rates for lr_clusters and lr_group
