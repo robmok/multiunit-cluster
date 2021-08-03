@@ -838,7 +838,7 @@ plt.show()
 
 # %% plot actmaps and xcorrs
 
-saveplots = False
+saveplots = True
 
 # load dfs
 df_gscore = pd.read_pickle(fname1)
@@ -846,7 +846,7 @@ df_recruit = pd.read_pickle(fname2)
 df_seeds = pd.read_pickle(fname3)
 
 # load actmap for specific c values
-c = 1.2
+c = 0.8
 fname_pt = fname4 + '_c{}.pt'.format(c)
 f = torch.load(fname_pt)
 act_maps = f['act_map']
@@ -872,10 +872,14 @@ act_maps = f['act_map']
 
 
 # act_map and autocorrelogram
-isim = 0
+isim = 43  # 12, 30, 39 ,42/3,
+
+# 19, 21, 22, 23, 25, 27, 30, 35, 38, 39,
+#         40, 42, 43, 46, 53, 54, 55, 56, 57, 58, 60, 61, 62, 64, 68, 70, 72,
+#         73, 74, 75, 77, 79, 81, 84, 89, 90, 91, 92, 96, 98]),)
 
 # check which have gd gscores
-# np.nonzero(df_gscore[c].values>.5)
+# np.nonzero(df_gscore[c].values>.7)
 
 _, _, _, _, sac = _compute_grid_scores(act_maps[isim])
 
@@ -883,8 +887,12 @@ _, _, _, _, sac = _compute_grid_scores(act_maps[isim])
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(act_maps[isim])
 ax[0].set_title('c = {}'.format(c))
+ax[0].set_xticks([])
+ax[0].set_yticks([])
 ax[1].imshow(sac)
 ax[1].set_title('g = {}'.format(np.around(df_gscore[c][isim], decimals=3)))
+ax[1].set_xticks([])
+ax[1].set_yticks([])
 if saveplots:
 
     if anneal_lr_group:
