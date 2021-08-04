@@ -27,12 +27,17 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-saveplots = False
+saveplots = True
 
 # one 2D gaussian - k units update
 
-# sample from a 2D gaussian
-mu1 = np.array([.25, .75])
+# # sample from a 2D gaussian
+# mu1 = np.array([.25, .75])
+# var1 = np.array([.005, .005])
+# cov1 = 0
+
+# larger
+mu1 = np.array([0.5, 0.5])
 var1 = np.array([.005, .005])
 cov1 = 0
 
@@ -73,7 +78,7 @@ n_epochs = 1
 
 # model
 attn_type = 'dimensional_local'
-n_units = 500
+n_units = 100
 n_dims = inputs.shape[1]
 loss_type = 'cross_entropy'
 k = .05
@@ -89,8 +94,8 @@ params = {
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .1,
-    'lr_clusters_group': .0,
+    'lr_clusters': .12,
+    'lr_clusters_group': .35,
     'k': k
     }
 
@@ -137,7 +142,7 @@ results = torch.stack(
 # plot_trials = torch.tensor(torch.linspace(0, len(inputs) * n_epochs, 10),
 #                             dtype=torch.long)
 
-plot_trials = torch.arange(50)
+plot_trials = torch.arange(20)
 
 # make dir for trial-by-trial images
 dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
@@ -153,20 +158,20 @@ for i in plot_trials:
     ax = fig.add_subplot(111)
 
     # plot distribution stimuli come from (2d gaussian)
-    ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.75)
+    ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.1)
 
     # stimulus pos on trial i
     ax.scatter(inputs_d[i, 0],
                inputs_d[i, 1],
-               c='black', marker='x', s=25, linewidth=1.2, zorder=3)
+               c='black', marker='x', s=100, linewidth=1.2, zorder=3)
 
     # unit pos on trial i - showing double update
     ax.scatter(results[i, :, 0], results[i, :, 1],
-               s=8, edgecolors='black', linewidth=.2, zorder=2)
+               s=130, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
 
     # ax.set_facecolor((.8, .8, .8))
-    ax.set_xlim([0, 1])
-    ax.set_ylim([0, 1])
+    ax.set_xlim([.333, .666])
+    ax.set_ylim([.333, .666])
     # labels = [0, '', '', '', '', 1]
     ax.set_xticks([])
     ax.set_yticks([])
@@ -348,21 +353,21 @@ for i in plot_trials:
 
 savegif = False
 
-lr_clusters = .1
-lr_clusters_group = .0  # 0, .2, .4, .5, skipping .4 sometimes for dupd
-upd1noise = .2  # .1/.2
-recnoise = 0.01  # atm, 0 for dupd, .01 for catlearn
+lr_clusters = .12
+lr_clusters_group = .5  # 0, .2, .4, .5, skipping .4 sometimes for dupd
+upd1noise = .1  # .1/.2
+recnoise = 0.0  # atm, 0 for dupd, .01 for catlearn
 
-# # double update
-# dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
-#       n_units, k, lr_clusters, lr_clusters_group, upd1noise, recnoise)
-
-# catlearn
-dn = 'demos_catlearn_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
+# double update
+dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
       n_units, k, lr_clusters, lr_clusters_group, upd1noise, recnoise)
 
+# # catlearn
+# dn = 'demos_catlearn_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
+#       n_units, k, lr_clusters, lr_clusters_group, upd1noise, recnoise)
+
 images = []
-for i in range(50):
+for i in range(20):
     fname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
     images.append(imageio.imread(fname))
 

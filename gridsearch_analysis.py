@@ -14,9 +14,12 @@ import pickle
 import itertools as it
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 k = 0.01
 n_units = 500
+
+n_sets = 250  # gsearch split into how many sets to load in
 
 resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
     k, n_units))
@@ -36,7 +39,11 @@ pts = []
 nlls = []
 recs = []
 seeds = []
-for iset in range(250):
+
+sets = torch.arange(n_sets)
+# sets = sets[sets != 142]  # k=0.05, n_units=500, set 142 has some results but most empty - didn't finish?
+
+for iset in sets:  # range(n_sets):
     fn = os.path.join(
         resdir,
         'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
@@ -46,12 +53,15 @@ for iset in range(250):
     loaded_list = pickle.load(open_file)
     open_file.close()
 
+    if not loaded_list[1]:
+        print(iset)
+
     nlls.extend(loaded_list[0])
     pts.extend(loaded_list[1])
     # recs.extend(loaded_list[2])
     # seeds.extend(loaded_list[3])
 
-pts = torch.stack(pts).T
+pts = torch.stack(pts)
 nlls = torch.stack(nlls)
 # recs = torch.stack(recs)
 # seeds = torch.stack(seeds)
@@ -85,9 +95,7 @@ shj = (
 # points have to be faster (for now - maybe do 80% points if problem?)
 # -
 
-iparam = 0
-
-
+# iparam = 0
 
 # match threshold
 # - 1 if match fully. can allow some error to be safe, eg ~.9
@@ -100,7 +108,8 @@ ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
 for iparam in range(len(pts)):
 
     # compute sse
-    sse[iparam] = torch.sum(torch.square(pts[iparam].T.flatten() - shj.flatten()))
+    sse[iparam] = torch.sum(torch.square(
+        pts[iparam].T.flatten() - shj.flatten()))
 
     # pattern
     ptn = pts[iparam][0] < pts[iparam][1:]  # type I fastest
@@ -136,22 +145,69 @@ print(param_sets[sse])
 
 
 
-
-
 # %% plot
 
+saveplots = True
+
+fntsiz = 15
+ylims = (0., .55)
+
 fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj.T)
-ax[0].set_ylim([0., .55])
+ax[0].plot(shj)
+ax[0].set_ylim(ylims)
 ax[0].set_aspect(17)
-ax[1].plot(pts[ind_nll].T.squeeze())
-ax[1].set_ylim([0., .55])
-ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+ax[0].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
+ax[1].plot(pts[ind_sse].T.squeeze())
+ax[1].set_ylim(ylims)
 ax[1].set_aspect(17)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'shj_gsearch_n94_subplots_{}units_k{}_1.png'.format(
+                               n_units, k))
+    plt.savefig(figname)
 plt.show()
 
+# best params by itself
 fig, ax = plt.subplots(1, 1)
-ax.plot(shj.T, 'k')
-ax.plot(pts[ind_nll].T.squeeze(), 'o-')
-ax.set_ylim([0., .55])
-ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
+ax.plot(pts[ind_sse].T.squeeze())
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+ax.legend(('1', '2', '3', '4', '5', '6'), fontsize=fntsiz-2)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'shj_gsearch_{}units_k{}_1.png'.format(
+                               n_units, k))
+    plt.savefig(figname)
+plt.show()
+
+# nosofsky '94 by itself
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj)
+ax.set_ylim(ylims)
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.legend(('1', '2', '3', '4', '5', '6'), fontsize=fntsiz-2)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir, 'nosofsky94_shj.png')
+    plt.savefig(figname)
+plt.show()
+
+# plot on top of each other
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj, 'k')
+ax.plot(pts[ind_sse].T.squeeze(), 'o-')
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+plt.show()
+

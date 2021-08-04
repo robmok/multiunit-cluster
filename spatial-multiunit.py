@@ -838,7 +838,7 @@ plt.show()
 
 # %% plot actmaps and xcorrs
 
-saveplots = True
+saveplots = False
 
 # load dfs
 df_gscore = pd.read_pickle(fname1)
@@ -846,7 +846,7 @@ df_recruit = pd.read_pickle(fname2)
 df_seeds = pd.read_pickle(fname3)
 
 # load actmap for specific c values
-c = 0.8
+c = 2.
 fname_pt = fname4 + '_c{}.pt'.format(c)
 f = torch.load(fname_pt)
 act_maps = f['act_map']
@@ -872,14 +872,14 @@ act_maps = f['act_map']
 
 
 # act_map and autocorrelogram
-isim = 12  # 12, 30, 39 ,42/3,
+isim = 0
 
 # 19, 21, 22, 23, 25, 27, 30, 35, 38, 39,
 #         40, 42, 43, 46, 53, 54, 55, 56, 57, 58, 60, 61, 62, 64, 68, 70, 72,
 #         73, 74, 75, 77, 79, 81, 84, 89, 90, 91, 92, 96, 98]),)
 
 # check which have gd gscores
-# np.nonzero(df_gscore[c].values>.7)
+# np.nonzero(df_gscore[c].values>.5)
 
 _, _, _, _, sac = _compute_grid_scores(act_maps[isim])
 
