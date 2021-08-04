@@ -211,19 +211,23 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # w 252000
 # 252000/250=1008*.0656=66.1248/24 = 2.7552 days (x2 = 5.51 days)
 
-# let's try 252000, 250 sets; x2 = 5.51 days
+# let's try 252000, 250 sets (1008 per set); x2 = 5.51 days
 # - run k=0.05, run sbatch w 250 jobs (should run 128 then queue)
 # - then run another sbatch with k=0.01 - check later if this times out since
 # it'll be 7+ days. but maybe ok since it's in a queue, not wall time?
 
+# NEW - now got lowpri - more cores:
+# - orig would've taken 2.755 days
+# 252000/350sets=720*.0656=47.232/24=1.96 days
+# 252000/400=630*.0656=41.328/24=1.72
+# 252000/450=560*.0656=36.736/24=1.53
+# 252000/500=504*.0656=33.0624=1.3776
 
-# now got lowpri - more cores:
-# - 1008 sets
-# - Run 128 cores on normal priority. *2=256 sets. Run 128 jobs at a time x 2
-# - Run 128-511 (384 cores) on lopri. 1008-256=752. 752/2=376. Run 376 cores
-# at a time, x2
+# 500 sets
+# - Run 0-127 jobs (128 cores) on normal priority
+# - Run 128-499 (372 cores) on lopri.
 
-sets = torch.arange(0, len(param_sets)+1, 1008)
+sets = torch.arange(0, len(param_sets)+1, 504)
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
