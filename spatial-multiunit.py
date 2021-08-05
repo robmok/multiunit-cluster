@@ -914,7 +914,169 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# %%
+# %% plot for figure - error
+
+# 1. no match - MAX error
+# 2. recruited, low inv eror
+# 2 subplots
+# 3a. low match - high inv error; 3b. high match, zero/low inv error
+# 4a. reasonable match, med inv error, 4b - updated, lower inv error
+# 5a/b. same as 3a/b, make the values a bit diff
+# 6a. same as 4a/b, make it slightly diff
+
+saveplots = False
+fntsiz = 14
+
+# 1. no match - MAX error
+val = 1.
+
+fig, ax = plt.subplots()
+ax.bar(.5, val, width=0.3, color=[1., 0., 0.])
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.set_xticks([])
+ax.set_ylabel('Error (degree of non-match)', fontsize=fntsiz+2)
+ax.tick_params(axis='y', labelsize=fntsiz)
+ax.set_aspect('equal', adjustable='box')
+ax.set_xlim([0, 1.])
+ax.set_ylim([0, 1.1])
+if saveplots:
+    figname = os.path.join(
+        figdir, 'spatial_schematic_clusmatch_bar_err{}.pdf'.format(val))
+plt.show()
+
+# 2. recruited, low inv eror
+val = 0.025
+fig, ax = plt.subplots()
+ax.bar(.5, val, width=0.3, color=[.5, .5, .5])
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.set_xticks([])
+ax.tick_params(axis='y', labelsize=fntsiz)
+ax.set_aspect('equal', adjustable='box')
+ax.set_xlim([0, 1.1])
+ax.set_ylim([0, 1.1])
+if saveplots:
+    figname = os.path.join(
+        figdir, 'spatial_schematic_clusmatch_bar_err{}.pdf'.format(val))
+plt.show()
+
+
+# 3a. low match - high inv error; 3b. high match, zero/low inv error
+vals = [.9, .025]
+fig, ax = plt.subplots(1, 2)
+ax[0].bar(.5, vals[0], width=0.3, color=[.9, .1, .1])
+ax[0].spines['top'].set_visible(False)
+ax[0].spines['right'].set_visible(False)
+ax[0].set_xticks([])
+ax[0].set_title('Before recruit', fontsize=fntsiz)
+ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_aspect('equal', adjustable='box')
+ax[0].set_xlim([0, 1.1])
+ax[0].set_ylim([0, 1.1])
+ax[1].bar(.5, vals[1], width=0.3, color=[.5, .5, .5])
+ax[1].spines['top'].set_visible(False)
+ax[1].spines['right'].set_visible(False)
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+ax[1].set_title('After recruit', fontsize=fntsiz)
+ax[1].tick_params(axis='y', labelsize=fntsiz)
+ax[1].set_aspect('equal', adjustable='box')
+ax[1].set_xlim([0, 1.1])
+ax[1].set_ylim([0, 1.1])
+if saveplots:
+    figname = os.path.join(
+        figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
+        .format(vals[0], vals[1]))
+plt.show()
+
+# 4a. reasonable match, med inv error, 4b - updated, lower inv error
+vals = [.5, .25]
+fig, ax = plt.subplots(1, 2)
+ax[0].bar(.5, vals[0], width=0.3, color=[.9, .9, .0])
+ax[0].spines['top'].set_visible(False)
+ax[0].spines['right'].set_visible(False)
+ax[0].set_xticks([])
+ax[0].set_title('Before update', fontsize=fntsiz)
+ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_aspect('equal', adjustable='box')
+ax[0].set_xlim([0, 1.1])
+ax[0].set_ylim([0, 1.1])
+
+ax[1].bar(.5, vals[1], width=0.3, color=[.75, .75, .6])
+ax[1].spines['top'].set_visible(False)
+ax[1].spines['right'].set_visible(False)
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+ax[1].set_title('After update', fontsize=fntsiz)
+ax[1].tick_params(axis='y', labelsize=fntsiz)
+ax[1].set_aspect('equal', adjustable='box')
+ax[1].set_xlim([0, 1.1])
+ax[1].set_ylim([0, 1.1])
+if saveplots:
+    figname = os.path.join(
+        figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
+        .format(vals[0], vals[1]))
+plt.show()
+
+# 5a/b. same as 3a/b, make the values a bit diff
+vals = [.825, .025]
+fig, ax = plt.subplots(1, 2)
+ax[0].bar(.5, vals[0], width=0.3, color=[.825, .1, .1])
+ax[0].spines['top'].set_visible(False)
+ax[0].spines['right'].set_visible(False)
+ax[0].set_xticks([])
+ax[0].set_title('Before recruit', fontsize=fntsiz)
+ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_aspect('equal', adjustable='box')
+ax[0].set_xlim([0, 1.1])
+ax[0].set_ylim([0, 1.1])
+ax[1].bar(.5, vals[1], width=0.3, color=[.5, .5, .5])
+ax[1].spines['top'].set_visible(False)
+ax[1].spines['right'].set_visible(False)
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+ax[1].set_title('After recruit', fontsize=fntsiz)
+ax[1].tick_params(axis='y', labelsize=fntsiz)
+ax[1].set_aspect('equal', adjustable='box')
+ax[1].set_xlim([0, 1.1])
+ax[1].set_ylim([0, 1.1])
+if saveplots:
+    figname = os.path.join(
+        figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
+        .format(vals[0], vals[1]))
+plt.show()
+
+# 6a. same as 4a/b, make it slightly diff
+vals = [.4, .2]
+fig, ax = plt.subplots(1, 2)
+ax[0].bar(.5, vals[0], width=0.3, color=[.8, .8, .0])
+ax[0].spines['top'].set_visible(False)
+ax[0].spines['right'].set_visible(False)
+ax[0].set_xticks([])
+ax[0].set_title('Before update', fontsize=fntsiz)
+ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_aspect('equal', adjustable='box')
+ax[0].set_xlim([0, 1.1])
+ax[0].set_ylim([0, 1.1])
+
+ax[1].bar(.5, vals[1], width=0.3, color=[.75, .75, .65])
+ax[1].spines['top'].set_visible(False)
+ax[1].spines['right'].set_visible(False)
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+ax[1].set_title('After update', fontsize=fntsiz)
+ax[1].tick_params(axis='y', labelsize=fntsiz)
+ax[1].set_aspect('equal', adjustable='box')
+ax[1].set_xlim([0, 1.1])
+ax[1].set_ylim([0, 1.1])
+if saveplots:
+    figname = os.path.join(
+        figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
+        .format(vals[0], vals[1]))
+plt.show()
+
+# %% old
 
 # run for different learning rates for lr_clusters and lr_group
 # lr_clusters = torch.linspace(.001, .5, 10)
