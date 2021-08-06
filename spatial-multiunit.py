@@ -34,8 +34,8 @@ def generate_path(n_trials, n_dims, seed=None):
     if seed:
         torch.manual_seed(seed)
 
-    step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
-    # step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
+    # step_set = [-.1, -.075, -.05, -.025, 0, .025, .05, .075, .1]
+    step_set = [-.075, -.05, -.025, 0, .025, .05, .075]
     path = np.zeros([n_trials, n_dims])
     path[0] = np.around(np.random.rand(2), decimals=3)  # origin
     for itrial in range(1, n_trials):
@@ -306,7 +306,7 @@ plt.show()
 
 n_dims = 2
 n_epochs = 1
-n_trials = 500000
+n_trials = 50000
 attn_type = 'dimensional_local'
 
 # generate path
@@ -329,15 +329,45 @@ path = torch.tensor(np.around(np.random.rand(n_trials, n_dims), decimals=3))
 
 # - ok now 50k trials doens't work for k=.15. too much learning at the start now?
 
+
+#########
+# restarting this again
+# - want fewer clusteres, larger k
+# - k=.1, 1000 units 50k trials, orig_lr=.2 fine. lr_group=.85/.95, 10 clus
+
+# - k=.075, 1000 units, orig_lr=.15. lr_group=.85, 12 clus
+
+# lr_group=1 makes exactly the virtual cluster. that might be the best
+# illustration..
+# - but looks like if lr is much lower than lr_group then this is fine too
+
+# k = .125, orig_lr=.1, lr_group .95/1 - 8 clus.
+# k=0.135/4, 7 clus
+
+# why once it's .15, they move around like crazy? looks like .14 still ok, .145
+# where it's 6 clus it can't stop moving
+# - slower lr seems to help - orig lr = 0.025/0.015/
+# - but needs more trials then
+
+# params to test
+# k:  .08 (12 clus), .1 (9), .13 (7), .26 (5), .28 (3)
+# orig_lr: .0025, 005
+# lr_group: .5, .85, 1
+
 n_units = 1000
-k = .15
+k = .08
 
 # annealed lr
-orig_lr = .005
+orig_lr = .005  # .005
 ann_c = (1/n_trials)/n_trials
 ann_decay = ann_c * (n_trials * 100)  # 100
 lr = [orig_lr / (1 + (ann_decay * itrial)) for itrial in range(n_trials)]
 plt.plot(lr)
+
+# no anneal
+# lr = [orig_lr for itrial in range(n_trials)]
+
+lr_group = .85
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -347,7 +377,7 @@ params = {
     'lr_attn': .0,
     'lr_nn': .25,
     'lr_clusters': lr,  # np.array(lr) * 0 + .001,
-    'lr_clusters_group': .95,
+    'lr_clusters_group': lr_group,
     'k': k
     }
 
@@ -371,7 +401,7 @@ plt.show()
 plot_trials = torch.tensor(torch.linspace(0, n_trials, 10),
                             dtype=torch.long)
 
-for i in plot_trials[0:-1]:
+for i in plot_trials[0:-1]:  # range(20):  #
 
     plt.scatter(results[i, :, 0],
                 results[i, :, 1])
@@ -380,10 +410,10 @@ for i in plot_trials[0:-1]:
     plt.pause(.5)
 
 
-# n_trials_test = int(n_trials * .5)
-# # path_test = generate_path(n_trials_test, n_dims, seed=None)
-# path_test = torch.tensor(
-#     np.around(np.random.rand(n_trials_test, n_dims), decimals=3))
+n_trials_test = int(n_trials * .5)
+# path_test = generate_path(n_trials_test, n_dims, seed=None)
+path_test = torch.tensor(
+    np.around(np.random.rand(n_trials_test, n_dims), decimals=3))
 
 # get act
 nbins = 40
@@ -420,9 +450,9 @@ print(score_60, score_90)
 plt.imshow(sac)
 plt.show()
 
-# %% run sims
+# %% run sims - with recruitment
 
-save_sims = True
+save_sims = False
 
 n_sims = 100
 
@@ -924,25 +954,26 @@ plt.show()
 # 5a/b. same as 3a/b, make the values a bit diff
 # 6a. same as 4a/b, make it slightly diff
 
-saveplots = False
+saveplots = True
 fntsiz = 14
 
 # 1. no match - MAX error
 val = 1.
-
 fig, ax = plt.subplots()
 ax.bar(.5, val, width=0.3, color=[1., 0., 0.])
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.set_xticks([])
-ax.set_ylabel('Error (degree of non-match)', fontsize=fntsiz+2)
-ax.tick_params(axis='y', labelsize=fntsiz)
+ax.set_ylabel('Error (degree of non-match)', fontsize=fntsiz+3)
+ax.tick_params(axis='y', labelsize=fntsiz+1)
+ax.set_title('Before recruit', fontsize=fntsiz+4)
 ax.set_aspect('equal', adjustable='box')
 ax.set_xlim([0, 1.])
 ax.set_ylim([0, 1.1])
 if saveplots:
     figname = os.path.join(
         figdir, 'spatial_schematic_clusmatch_bar_err{}.pdf'.format(val))
+    plt.savefig(figname)
 plt.show()
 
 # 2. recruited, low inv eror
@@ -952,15 +983,16 @@ ax.bar(.5, val, width=0.3, color=[.5, .5, .5])
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.set_xticks([])
-ax.tick_params(axis='y', labelsize=fntsiz)
+ax.set_yticks([])
+ax.set_title('After recruit', fontsize=fntsiz+4)
 ax.set_aspect('equal', adjustable='box')
 ax.set_xlim([0, 1.1])
 ax.set_ylim([0, 1.1])
 if saveplots:
     figname = os.path.join(
         figdir, 'spatial_schematic_clusmatch_bar_err{}.pdf'.format(val))
+    plt.savefig(figname)
 plt.show()
-
 
 # 3a. low match - high inv error; 3b. high match, zero/low inv error
 vals = [.9, .025]
@@ -970,7 +1002,7 @@ ax[0].spines['top'].set_visible(False)
 ax[0].spines['right'].set_visible(False)
 ax[0].set_xticks([])
 ax[0].set_title('Before recruit', fontsize=fntsiz)
-ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_yticks([])
 ax[0].set_aspect('equal', adjustable='box')
 ax[0].set_xlim([0, 1.1])
 ax[0].set_ylim([0, 1.1])
@@ -988,6 +1020,7 @@ if saveplots:
     figname = os.path.join(
         figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
         .format(vals[0], vals[1]))
+    plt.savefig(figname)
 plt.show()
 
 # 4a. reasonable match, med inv error, 4b - updated, lower inv error
@@ -998,11 +1031,10 @@ ax[0].spines['top'].set_visible(False)
 ax[0].spines['right'].set_visible(False)
 ax[0].set_xticks([])
 ax[0].set_title('Before update', fontsize=fntsiz)
-ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_yticks([])
 ax[0].set_aspect('equal', adjustable='box')
 ax[0].set_xlim([0, 1.1])
 ax[0].set_ylim([0, 1.1])
-
 ax[1].bar(.5, vals[1], width=0.3, color=[.75, .75, .6])
 ax[1].spines['top'].set_visible(False)
 ax[1].spines['right'].set_visible(False)
@@ -1017,6 +1049,7 @@ if saveplots:
     figname = os.path.join(
         figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
         .format(vals[0], vals[1]))
+    plt.savefig(figname)
 plt.show()
 
 # 5a/b. same as 3a/b, make the values a bit diff
@@ -1027,7 +1060,7 @@ ax[0].spines['top'].set_visible(False)
 ax[0].spines['right'].set_visible(False)
 ax[0].set_xticks([])
 ax[0].set_title('Before recruit', fontsize=fntsiz)
-ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_yticks([])
 ax[0].set_aspect('equal', adjustable='box')
 ax[0].set_xlim([0, 1.1])
 ax[0].set_ylim([0, 1.1])
@@ -1045,6 +1078,7 @@ if saveplots:
     figname = os.path.join(
         figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
         .format(vals[0], vals[1]))
+    plt.savefig(figname)
 plt.show()
 
 # 6a. same as 4a/b, make it slightly diff
@@ -1055,11 +1089,10 @@ ax[0].spines['top'].set_visible(False)
 ax[0].spines['right'].set_visible(False)
 ax[0].set_xticks([])
 ax[0].set_title('Before update', fontsize=fntsiz)
-ax[0].tick_params(axis='y', labelsize=fntsiz)
+ax[0].set_yticks([])
 ax[0].set_aspect('equal', adjustable='box')
 ax[0].set_xlim([0, 1.1])
 ax[0].set_ylim([0, 1.1])
-
 ax[1].bar(.5, vals[1], width=0.3, color=[.75, .75, .65])
 ax[1].spines['top'].set_visible(False)
 ax[1].spines['right'].set_visible(False)
@@ -1074,6 +1107,7 @@ if saveplots:
     figname = os.path.join(
         figdir, 'spatial_schematic_clusmatch_bar_subplots_errs{}_{}.pdf'
         .format(vals[0], vals[1]))
+    plt.savefig(figname)
 plt.show()
 
 # %% old
