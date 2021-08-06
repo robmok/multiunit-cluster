@@ -24,6 +24,7 @@ from MultiUnitCluster import (MultiUnitCluster, train_unsupervised_simple)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
+wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
 
 
 # functions for spatial simulations, grid scores
@@ -210,7 +211,6 @@ for p in param_sets:
 
     if save_sims:
 
-        wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
         fn = (
             os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
                          'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
