@@ -15,6 +15,7 @@ import itertools as it
 # from scipy.stats import norm
 from scipy.stats import binned_statistic_dd
 # import seaborn as sns
+import time
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
@@ -133,12 +134,15 @@ n_units = 1000
 
 n_sims = 100
 
-for p in param_sets:
+for iset, p in enumerate(param_sets):
 
     # shuffle_seeds = torch.randperm(n_sims*100)[:n_sims]
     score_60 = []
     pos_trace = []
     act_map_all = []
+
+    print('Running param set {} / {}'.format(iset, len(param_sets)))
+    t0 = time.time()
 
     for isim in range(n_sims):
 
@@ -149,7 +153,7 @@ for p in param_sets:
 
         k = p[0]
         # annealed lr
-        orig_lr = p[1]  # .005
+        orig_lr = p[1]
         ann_c = (1/n_trials)/n_trials
         ann_decay = ann_c * (n_trials * 100)  # 100
         lr = [orig_lr / (1 + (ann_decay * itrial))
@@ -226,6 +230,8 @@ for p in param_sets:
                     "pos": pos_trace,
                     "act_map": act_map_all},
                    fn)
+    t1 = time.time()
+    print(t1-t0)
 
 # %%
 
