@@ -138,7 +138,7 @@ sets = torch.cat(
 sets = torch.tensor(sets, dtype=torch.long)
 
 # set
-iset = 0  # 0-7 sets
+iset = 7  # 0-7 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
@@ -149,14 +149,14 @@ n_units = 1000
 
 n_sims = 100
 
-for iset, p in enumerate(param_sets):
+for pset, p in enumerate(param_sets_curr):
 
     # shuffle_seeds = torch.randperm(n_sims*100)[:n_sims]
     score_60 = []
     pos_trace = []
     act_map_all = []
 
-    print('Running param set {} / {}'.format(iset, len(param_sets)))
+    print('Running param set {} : {} / {}'.format(iset, pset, len(param_sets_curr)))
     t0 = time.time()
 
     for isim in range(n_sims):
