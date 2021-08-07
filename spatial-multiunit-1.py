@@ -126,9 +126,24 @@ attn_type = 'dimensional_local'
 
 params = [[.08, .1, .13, .26, .28],
           [.001, .0025, .005],
-          [.5, .85, 1]]
+          [.85, 1]]
 
 param_sets = torch.tensor(list(it.product(*params)))
+
+# split sets
+sets = torch.arange(0, len(param_sets), 4)
+# not a great way to add final set on
+sets = torch.cat(
+    [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
+sets = torch.tensor(sets, dtype=torch.long)
+
+# set
+iset = 0  # 0-7 sets
+
+param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
+
+if iset == 0:
+    param_sets_curr = param_sets_curr[1:]  # already did first 1
 
 n_units = 1000
 
