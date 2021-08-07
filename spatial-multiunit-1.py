@@ -10,7 +10,7 @@ import sys
 import numpy as np
 # import pandas as pd
 import torch
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import itertools as it
 # from scipy.stats import norm
 from scipy.stats import binned_statistic_dd
@@ -264,6 +264,31 @@ for pset, p in enumerate(param_sets_curr):
     print(t1-t0)
 
 # %%
+
+iset = 0
+
+p = param_sets[iset]
+
+# load
+fn = (
+    os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
+                 'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
+                 '{:d}sims.pkl'.format(
+                     n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
+    )
+
+f = torch.load(fn)
+
+gscore = f['gscore']
+pos_trace = f['pos']
+act_maps = f['act_map']
+
+plt.hist(np.array(gscore))
+plt.show()
+
+
+
+
 
 
 # # group
