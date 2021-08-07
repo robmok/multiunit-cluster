@@ -138,12 +138,18 @@ sets = torch.cat(
 sets = torch.tensor(sets, dtype=torch.long)
 
 # set
-iset = 7  # 0-7 sets
+# - when i ran 1, it took ~ 6 hours for 1 param set
+# - testing running 8 in one go, but high RAM usage (4-6GB), so 8*5=40, over
+# the 32GB on love06. Started at 16:30 (Sat 7th Aug). most have 4 sets, iset=1
+# has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
+# - maybe do 6 in one go next time if slower?
+iset = 6  # 0-7 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
-if iset == 0:
-    param_sets_curr = param_sets_curr[1:]  # already did first 1
+# temp
+# if iset == 0:
+#     param_sets_curr = param_sets_curr[1:]  # already did first 1
 
 n_units = 1000
 
