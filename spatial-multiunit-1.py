@@ -213,8 +213,17 @@ for iset, p in enumerate(param_sets):
         pos_trace.append(pos_trace_tmp)
         act_map_all.append(act_map_norm)
 
-    if save_sims:
+        # # may save pos_trace per sim. too much RAM used?
+        # # - actually maight be OK. ~4GB on love06 and not growing
+        # if save_sims:
+        #     fn = (
+        #         os.path.join(wd, 'spatial_simple_ann_postrace_{:d}units_k{:.2f}_'
+        #                      'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
+        #                      '{:d}sims_sim{:d}.pkl'.format(
+        #                          n_units, p[0], p[1], p[2], n_trials//1000, n_sims, isim))
+        #         )
 
+    if save_sims:
         fn = (
             os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
                          'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
