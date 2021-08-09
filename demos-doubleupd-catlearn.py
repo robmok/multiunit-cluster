@@ -27,7 +27,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 # %% double update demo
 
-saveplots = True
+saveplots = False
 
 # one 2D gaussian - k units update
 
@@ -60,13 +60,6 @@ ax1.scatter(x1[:, 0], x1[:, 1],
             c=np.expand_dims(np.array([.4, .4, .4]), axis=0),
             marker='x', s=7, linewidth=.75)
 ax1.set_aspect('equal', adjustable='box')
-
-# # 3d plot
-# fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-# ax.plot_surface(x, y, rv1.pdf(pos), cmap='Greys', linewidth=0)
-# ax.grid(False)
-# ax.set_zticks([])
-# plt.show()
 
 # assign label - just one 'category'
 inputs = torch.tensor(x1, dtype=torch.float32)
@@ -158,12 +151,21 @@ for i in plot_trials:
     ax = fig.add_subplot(111)
 
     # plot distribution stimuli come from (2d gaussian)
-    ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.1)
+    # ax.contour(x, y, rv1.pdf(pos), cmap='Greys', alpha=.1)
 
     # stimulus pos on trial i
-    ax.scatter(inputs_d[i, 0],
-               inputs_d[i, 1],
-               c='black', marker='x', s=100, linewidth=1.2, zorder=3)
+    if np.mod(i, 2) == 0:
+        m = '$S$'  # stim
+        c = 'black'
+        ax.scatter(inputs_d[i, 0], inputs_d[i, 1],
+                   c=c, marker=m, s=100, linewidth=.05, zorder=3)
+
+    else:
+        m = '$c$'  # second update
+        c = 'black'
+        ax.scatter(results[i, :, 0].mean(), results[i, :, 1].mean(),c=c,
+                   marker=m, s=100, linewidth=.05, zorder=3)
+
 
     # unit pos on trial i - showing double update
     ax.scatter(results[i, :, 0], results[i, :, 1],
