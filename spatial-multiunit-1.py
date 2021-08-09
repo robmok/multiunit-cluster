@@ -166,7 +166,7 @@ for pset, p in enumerate(param_sets_curr):
     act_map_all = []
 
     print('Running param set {} : {} / {}'.format(
-        iset+1, pset+1, len(param_sets_curr)))
+        iset, pset+1, len(param_sets_curr)))
     t0 = time.time()
 
     for isim in range(n_sims):
