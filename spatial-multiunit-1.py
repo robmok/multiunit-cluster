@@ -8,14 +8,15 @@ Created on Sat Aug  7 00:06:10 2021
 import os
 import sys
 import numpy as np
-# import pandas as pd
 import torch
-import matplotlib.pyplot as plt
 import itertools as it
 # from scipy.stats import norm
 from scipy.stats import binned_statistic_dd
-# import seaborn as sns
 import time
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
@@ -247,7 +248,7 @@ for pset, p in enumerate(param_sets_curr):
     if save_sims:
         fn = (
             os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
-                         'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
+                         'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
                          '{:d}sims.pkl'.format(
                              n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
             )
@@ -263,33 +264,131 @@ for pset, p in enumerate(param_sets_curr):
     t1 = time.time()
     print(t1-t0)
 
+# %% plot
+
+# n_sims = 100
+# n_units = 1000
+# n_trials = 500000
+
+# # params to test
+# # k:  .08 (12 clus), .1 (9), .13 (7), .26 (5), .28 (3)
+# # orig_lr: .001, .0025, .005
+# # lr_group: .5, .85, 1
+
+# params = [[.08, .1, .13, .26, .28],
+#           [.001, .002, .005],  # .0025 was round down to 0.002 by accident
+#           [.85, 1]]
+
+# param_sets = torch.tensor(list(it.product(*params)))
+
+
+
+# # plot over k first
+# # - set lr's for now
+# lr = params[1][1]
+# lr_group = params[2][1]
+
+# df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
+# for k in params[0]:
+
+#     p = [k, lr, lr_group]
+
+#     # load
+#     fn = (
+#         os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
+#                      'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
+#                      '{:d}sims.pkl'.format(
+#                          n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
+#         )
+#     f = torch.load(fn)
+
+#     df_gscore[k] = np.array(f['gscore'])
+
+# # gscore = f['gscore']
+# # pos_trace = f['pos']
+# # act_maps = f['act_map']
+
+
+# # sns.set(font_scale = 1.5)
+# # plt.style.use('seaborn-white')
+# fntsiz = 18
+
+# # gscore
+# g = sns.catplot(data=df_gscore, kind="violin")
+# sns.stripplot(color="k", alpha=0.2, size=3,
+#               data=df_gscore, ax=g.ax)
+
+# g.ax.set_ylim(-.75, 1.5)
+# # g.ax.set_xticklabels(g.ax.get_xmajorticklabels(), fontsize=fntsiz-3)
+# # g.ax.set_yticklabels(g.ax.get_ymajorticklabels(), fontsize=fntsiz-3)
+# g.ax.set_xlabel('k', fontsize=fntsiz)
+# g.ax.set_ylabel('Grid Score', fontsize=fntsiz)
+# g.ax.set_title('lr={}, lr_group={}'.format(lr, lr_group), fontsize=fntsiz)
+
+# plt.tight_layout()
+# # if saveplots:
+# #     figname = os.path.join(figdir,
+# #                             'gscores_violin')
+# #     if anneal_lr_group:
+# #         figname = figname + "_ann_lr_group"
+# #     # plt.savefig(figname, dpi=100)
+# #     plt.savefig(figname + '.pdf')
+# plt.show()
+
+
+# # swarm / univariate scatter
+# # g = sns.swarmplot(size=3, data=df_gscore)
+# # g.set_ylim(-.5, 1.65)
+# # if saveplots:
+# #     figname = os.path.join(figdir,
+# #                            'gscores_swarm.pdf')
+# #     # plt.savefig(figname, dpi=100)
+# #     plt.savefig(figname)
+# # plt.show()
+
+
+# %% plot actmaps and xcorrs
+
+# saveplots = False
+
+# # load actmap for specific c values
+# c = 2.
+# fname_pt = fname4 + '_c{}.pt'.format(c)
+# f = torch.load(fname_pt)
+# act_maps = f['act_map']
+
+# # act_map and autocorrelogram
+# isim = 0
+
+# # check which have gd gscores
+# # np.nonzero(df_gscore[c].values>.5)
+
+# _, _, _, _, sac = _compute_grid_scores(act_maps[isim])
+
+
+# fig, ax = plt.subplots(1, 2)
+# ax[0].imshow(act_maps[isim])
+# ax[0].set_title('c = {}'.format(c))
+# ax[0].set_xticks([])
+# ax[0].set_yticks([])
+# ax[1].imshow(sac)
+# ax[1].set_title('g = {}'.format(np.around(df_gscore[c][isim], decimals=3)))
+# ax[1].set_xticks([])
+# ax[1].set_yticks([])
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
+#                      '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
+#                      '_sim{}.pdf'.format(
+#                          c, n_units, k, orig_lr,
+#                          params['lr_clusters_group'][0], n_trials, isim))
+#     )
+
+#     plt.savefig(figname)
+# plt.show()
+
+
 # %%
-
-iset = 0
-
-p = param_sets[iset]
-
-# load
-fn = (
-    os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
-                 'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
-                 '{:d}sims.pkl'.format(
-                     n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
-    )
-
-f = torch.load(fn)
-
-gscore = f['gscore']
-pos_trace = f['pos']
-act_maps = f['act_map']
-
-plt.hist(np.array(gscore))
-plt.show()
-
-
-
-
-
 
 # # group
 # fig = plt.figure(figsize=(8, 8))
