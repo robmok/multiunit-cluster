@@ -125,14 +125,20 @@ attn_type = 'dimensional_local'
 # orig_lr: .001, .0025, .005
 # lr_group: .5, .85, 1
 
+# params = [[.08, .1, .13, .26, .28],
+#           [.001, .0025, .005],
+#           [.85, 1]]
+
+# 20 to run, 7 (0-6) sets. 3 in each set, except last has 2.
 params = [[.08, .1, .13, .26, .28],
-          [.001, .0025, .005],
+          [.0075, .001],
           [.85, 1]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
-sets = torch.arange(0, len(param_sets), 4)
+sets = torch.arange(0, len(param_sets), 3)
+
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -144,13 +150,9 @@ sets = torch.tensor(sets, dtype=torch.long)
 # the 32GB on love06. Started at 16:30 (Sat 7th Aug). most have 4 sets, iset=1
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
-iset = 6  # 0-7 sets
+iset = 0  # 0-6 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
-
-# temp
-# if iset == 0:
-#     param_sets_curr = param_sets_curr[1:]  # already did first 1
 
 n_units = 1000
 
@@ -265,6 +267,7 @@ for pset, p in enumerate(param_sets_curr):
     print(t1-t0)
 
 # %% plot
+
 
 # n_sims = 100
 # n_units = 1000
