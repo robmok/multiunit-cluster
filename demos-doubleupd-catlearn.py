@@ -38,7 +38,7 @@ saveplots = False
 
 # larger
 mu1 = np.array([0.5, 0.5])
-var1 = np.array([.005, .005])
+var1 = np.array([.0025, .0025])
 cov1 = 0
 
 x, y = np.mgrid[0:1:.01, 0:1:.01]
@@ -87,8 +87,8 @@ params = {
     'beta': 1.,
     'lr_attn': .0,
     'lr_nn': .1/lr_scale,
-    'lr_clusters': .12,
-    'lr_clusters_group': .35,
+    'lr_clusters': .1,
+    'lr_clusters_group': .5,
     'k': k
     }
 
@@ -96,9 +96,9 @@ lesions = None
 
 # noise - mean and sd of noise to be added
 noise = None
-noise = {'update1': [0, .1],  # unit position updates 1 & 2
+noise = {'update1': [0, .09],  # unit position updates 1 & 2
          'update2': [0, .0],  # no noise here also makes sense
-         'recruit': [0., .0],  # recruitment position placement
+         'recruit': [0., .035],  # recruitment position placement
          'act': [.0, .0]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
@@ -158,22 +158,22 @@ for i in plot_trials:
         m = '$S$'  # stim
         c = 'black'
         ax.scatter(inputs_d[i, 0], inputs_d[i, 1],
-                   c=c, marker=m, s=100, linewidth=.05, zorder=3)
+                   c=c, marker=m, s=1000, linewidth=.05, zorder=3)
 
     else:
         m = '$c$'  # second update
-        c = 'black'
+        c = 'black' # np.array([[.5, .5, .5],])
         ax.scatter(results[i, :, 0].mean(), results[i, :, 1].mean(),c=c,
-                   marker=m, s=100, linewidth=.05, zorder=3)
+                   marker=m, edgecolor='black', s=1000, linewidth=.05, zorder=3)
 
 
     # unit pos on trial i - showing double update
     ax.scatter(results[i, :, 0], results[i, :, 1],
-               s=130, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+               s=1000, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
 
     # ax.set_facecolor((.8, .8, .8))
-    ax.set_xlim([.333, .666])
-    ax.set_ylim([.333, .666])
+    ax.set_xlim([.35, .65])
+    ax.set_ylim([.35, .65])
     # labels = [0, '', '', '', '', 1]
     ax.set_xticks([])
     ax.set_yticks([])
@@ -353,12 +353,12 @@ for i in plot_trials:
 # %% make gifs
 # https://stackoverflow.com/questions/753190/programmatically-generate-video-or-animated-gif-in-python
 
-savegif = False
+savegif = True
 
-lr_clusters = .12
-lr_clusters_group = .5  # 0, .2, .4, .5, skipping .4 sometimes for dupd
-upd1noise = .1  # .1/.2
-recnoise = 0.0  # atm, 0 for dupd, .01 for catlearn
+lr_clusters = .1
+lr_clusters_group = .5
+upd1noise = .09  # .1/.2
+recnoise = 0.035  # atm, 0 for dupd, .01 for catlearn
 
 # double update
 dn = 'demos_dupd_{}units_k{}_lr{}_grouplr{}_upd1noise{}_recnoise{}'.format(
@@ -376,3 +376,60 @@ for i in range(20):
 if savegif:
     imageio.mimsave(
         os.path.join(figdir, dn, 'trials.gif'), images, duration=.4)
+
+
+# %% plot laplacians (attention weights) for model schematic
+
+saveplots = False
+
+ylims = (0, .35)
+
+# higher variance
+col = 'cornflowerblue'
+col = 'mediumslateblue'  # purple
+col = 'mediumpurple'
+col = 'violet'  # pink
+col = 'pink'  # pink
+beta = 4.
+x = np.arange(-5, 5.1, .1)
+fig = plt.figure(dpi=200)
+ax = fig.add_subplot(111)
+ax.plot(x, 1/(2 * beta) * (np.exp(-np.abs(x) / beta)),
+        linewidth=2.5, color=col)
+ax.set_ylim(ylims)
+ax.set_xticks([])
+ax.set_yticks([])
+ax.spines['top'].set_visible(False)
+ax.spines['left'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'attn_laplace_beta{}_{}.pdf'.format(beta, col))
+    plt.savefig(figname)
+plt.show()
+
+# lower variance
+col = 'limegreen'
+col = 'mediumseagreen'
+col = 'orange'
+col = 'sandybrown'
+beta = 1.5
+fig = plt.figure(dpi=200)
+ax = fig.add_subplot(111)
+ax.plot(x, 1/(2 * beta) * (np.exp(-np.abs(x) / beta)),
+        linewidth=2.5, color=col)
+ax.set_ylim(ylims)
+ax.set_xticks([])
+ax.set_yticks([])
+ax.spines['top'].set_visible(False)
+ax.spines['left'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+if saveplots:
+    figname = os.path.join(figdir,
+                           'attn_laplace_beta{}_{}.pdf'.format(beta, col))
+    plt.savefig(figname)
+plt.show()
+
+
