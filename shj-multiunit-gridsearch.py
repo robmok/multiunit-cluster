@@ -131,8 +131,15 @@ iset = 0  # 18
 
 # for cbu-cluster
 iset = int(sys.argv[-1])
+# iset = 500+364 # from 500 to 864
 
-n_units = 2000
+# rest of lr's
+rest_of_lrs = True
+
+if rest_of_lrs:
+    iset = iset-500  # reset when save
+
+n_units = 500
 k = .05
 sim_info = {
     'n_units': n_units,
@@ -180,6 +187,18 @@ ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(.005, .5, .05),
           torch.arange(.1, .9, .2)]  # fewer: 4 vals
           )
+# add more lr's
+# - if double (same nsetss - 25k), 10 more: .5 to .95. arange(.5, 1., .05)
+# - could go up to .9, then 183708 sets - prob this
+# - if .85, 129024
+ranges = ([torch.arange(.8, 2.1, .2),
+          torch.arange(1., 19., 2),
+          torch.arange(.5, .95, .05),
+          torch.arange(.5, .95, .05) / lr_scale,
+          torch.arange(.5, .95, .05),
+          torch.arange(.1, .9, .2)]  # fewer: 4 vals
+          )
+
 
 # # new - coarser
 # ranges = ([torch.arange(.8, 2.1, .3),
@@ -227,9 +246,24 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # - Run 0-127 jobs (128 cores) on normal priority
 # - Run 128-499 (372 cores) on lopri.
 
+# rest of lr's - 365 param sets (arange(.5, .95, .05) - up to .9)
+# 183708/365 = 503.3095*.0656=33.0171/24=1.37  days
+# - just do 504, final one have about half
+
 sets = torch.arange(0, len(param_sets)+1, 504)
 
+# TMP
+# add final set if doesn't mod - for 2nd part of lr's
+if rest_of_lrs:
+    sets = torch.cat(
+        [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
+    sets = torch.tensor(sets, dtype=torch.long)
+
+
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
+
+if rest_of_lrs:
+    iset = iset+500  # for saving
 
 # testing speed
 # param_sets_curr = param_sets_curr[0:1]

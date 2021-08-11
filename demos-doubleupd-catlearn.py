@@ -379,23 +379,28 @@ if savegif:
 
 
 # %% plot laplacians (attention weights) for model schematic
+# - to get hex:
+# import matplotlib.colors as mcols
+# mcols.to_hex(col)
 
-saveplots = False
+saveplots = True
 
+linewidth = 20  # has to be thicker coz small in figure
 ylims = (0, .35)
 
 # higher variance
-col = 'cornflowerblue'
-col = 'mediumslateblue'  # purple
-col = 'mediumpurple'
-col = 'violet'  # pink
-col = 'pink'  # pink
+col = 'cornflowerblue'  # '#6495ed'
+
+col = 'mediumslateblue'  # purple - '#7b68ee'
+col = 'mediumpurple'  # '#9370db'
+col = 'violet'  # pink - '#ee82ee'
+col = 'pink'  # '#ffc0cb'
 beta = 4.
 x = np.arange(-5, 5.1, .1)
 fig = plt.figure(dpi=200)
 ax = fig.add_subplot(111)
 ax.plot(x, 1/(2 * beta) * (np.exp(-np.abs(x) / beta)),
-        linewidth=2.5, color=col)
+        linewidth=linewidth, color=col)
 ax.set_ylim(ylims)
 ax.set_xticks([])
 ax.set_yticks([])
@@ -410,15 +415,15 @@ if saveplots:
 plt.show()
 
 # lower variance
-col = 'limegreen'
-col = 'mediumseagreen'
-col = 'orange'
-col = 'sandybrown'
+col = 'limegreen'  # '#32cd32'
+col = 'mediumseagreen'  # '#3cb371'
+col = 'orange'  # '#ffa500'
+col = 'sandybrown'  # '#f4a460'
 beta = 1.5
 fig = plt.figure(dpi=200)
 ax = fig.add_subplot(111)
 ax.plot(x, 1/(2 * beta) * (np.exp(-np.abs(x) / beta)),
-        linewidth=2.5, color=col)
+        linewidth=linewidth, color=col)
 ax.set_ylim(ylims)
 ax.set_xticks([])
 ax.set_yticks([])
