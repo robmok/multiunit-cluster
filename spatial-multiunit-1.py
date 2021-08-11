@@ -121,24 +121,31 @@ n_trials = 500000
 attn_type = 'dimensional_local'
 
 # params to test
-# k:  .08 (12 clus), .1 (9), .13 (7), .26 (5), .28 (3)
+# k:  .08 (12 clus), .1 (9), .13 (7), .28 (3)
+# - remove .25, v bad - straight line. 3/5
+# - .2 is 4 clus,
+# - NEW TO ADD: .18 (5 clus).
+
 # orig_lr: .001, .0025, .005
 # lr_group: .5, .85, 1
 
 # params = [[.08, .1, .13, .26, .28],
 #           [.001, .0025, .005],
 #           [.85, 1]]
-
 # 20 to run, 7 (0-6) sets. 3 in each set, except last has 2.
-params = [[.08, .1, .13, .26, .28],
-          [.0075, .001],
-          [.85, 1]]
+# params = [[.08, .1, .13, .26, .28],
+#           [.0075, .001],  # mistake - should'e been .01...
+#           [.85, 1]]
+
+# new
+params = [[.08, .1, .13, .18, .28],
+          [.0075, .01],
+          [.6, .8, 1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
-sets = torch.arange(0, len(param_sets), 3)
-
+sets = torch.arange(0, len(param_sets), 5)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -150,9 +157,15 @@ sets = torch.tensor(sets, dtype=torch.long)
 # the 32GB on love06. Started at 16:30 (Sat 7th Aug). most have 4 sets, iset=1
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
-iset = 0  # 0-6 sets
+
+# new - 6 sets, 5 in each. if 6 hrs, 6*5=30, 1.5 days Friday morning.
+iset = 0  # 0-5 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
+
+# test
+# n_trials = 10000
+# param_sets_curr = [[0.18, 0.0075, 1.]]
 
 n_units = 1000
 
@@ -203,18 +216,27 @@ for pset, p in enumerate(param_sets_curr):
         train_unsupervised_simple(model, path, n_epochs)
 
         # grid score
-        n_trials_test = int(n_trials * .25)
+        n_trials_test = int(n_trials * .5)  # .25+
         path_test = torch.tensor(
-            np.around(np.random.rand(n_trials_test, n_dims), decimals=3))
+            np.around(np.random.rand(n_trials_test, n_dims), decimals=3),
+            dtype=torch.float32)
 
         # get act
+        # - gauss act - define here since the units_pos don't change anymore
+        cov = torch.cholesky(torch.eye(2) * .01)  # cov=1
+        mvn1 = torch.distributions.MultivariateNormal(model.units_pos.detach(),
+                                                      scale_tril=cov)
         nbins = 40
         act_test = []
         for itrial in range(n_trials_test):
-            dim_dist = abs(path_test[itrial] - model.units_pos)
-            dist = _compute_dist(dim_dist, model.attn, model.params['r'])
-            act = _compute_act(dist, model.params['c'], model.params['p'])
-            # act[~model.active_units] = 0  # not connected, no act
+
+            # dim_dist = abs(path_test[itrial] - model.units_pos)
+            # dist = _compute_dist(dim_dist, model.attn, model.params['r'])
+            # act = _compute_act(dist, model.params['c'], model.params['p'])
+
+            # gauss act
+            act = torch.exp(mvn1.log_prob(path_test[itrial].detach()))
+
             _, win_ind = torch.topk(act,
                                     int(model.n_units * model.params['k']))
             act_test.append(act[win_ind].sum().detach())
@@ -235,6 +257,7 @@ for pset, p in enumerate(param_sets_curr):
         # get just 100 trials for now. can increase later
         pos_trace_tmp = [model.units_pos_trace[i]
                          for i in np.arange(0, n_trials, 5000)]
+        pos_trace_tmp.append(model.units_pos_trace[-1])  # add final trial
         pos_trace.append(pos_trace_tmp)
         act_map_all.append(act_map_norm)
 
@@ -269,7 +292,6 @@ for pset, p in enumerate(param_sets_curr):
 
 # %% plot
 
-
 # n_sims = 100
 # n_units = 1000
 # n_trials = 500000
@@ -280,7 +302,7 @@ for pset, p in enumerate(param_sets_curr):
 # # lr_group: .5, .85, 1
 
 # params = [[.08, .1, .13, .26, .28],
-#           [.001, .002, .005],  # .0025 was round down to 0.002 by accident
+#           [.001, .0025, .005, .0075],
 #           [.85, 1]]
 
 # param_sets = torch.tensor(list(it.product(*params)))
@@ -289,7 +311,7 @@ for pset, p in enumerate(param_sets_curr):
 
 # # plot over k first
 # # - set lr's for now
-# lr = params[1][1]
+# lr = params[1][0]
 # lr_group = params[2][1]
 
 # df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
@@ -300,13 +322,20 @@ for pset, p in enumerate(param_sets_curr):
 #     # load
 #     fn = (
 #         os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
-#                      'startlr{:.3f}_grouplr{:.3f}_{:d}ktrls_'
-#                      '{:d}sims.pkl'.format(
-#                          n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
+#                       'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
+#                       '{:d}sims.pkl'.format(
+#                           n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
 #         )
 #     f = torch.load(fn)
 
 #     df_gscore[k] = np.array(f['gscore'])
+
+# # n gscores > threshold
+# # - turns out lr doesn't change this that much - mainly the magnitude changes
+# # if anything, slower has more...! faster has more high gscores maybe?
+# thr = .2
+# print('lr={}, lr_group={}: {} > {}'.format(
+#     lr, lr_group, (df_gscore > thr).sum().sum(), thr))
 
 # # gscore = f['gscore']
 # # pos_trace = f['pos']
@@ -353,43 +382,67 @@ for pset, p in enumerate(param_sets_curr):
 
 # %% plot actmaps and xcorrs
 
-# saveplots = False
 
-# # load actmap for specific c values
-# c = 2.
-# fname_pt = fname4 + '_c{}.pt'.format(c)
-# f = torch.load(fname_pt)
+# # saveplots = False
+
+# # k
+# # [0.08, 0.1, 0.13, 0.26, 0.28]
+# # - 0.26 is 3, making a line, can remove
+# k = 0.1
+
+# # - set lr's for now
+# # [.001, .0025, .005, .0075],
+# # [.85, 1]]
+
+# # ok here it makes a different- slow lr's look worse
+# # - 0.001 worst. .0025 might be ok, but .005/.075 look good.
+
+# lr = params[1][3]
+# lr_group = params[2][1]
+
+# # load
+# fn = (
+#     os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
+#                   'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
+#                   '{:d}sims.pkl'.format(
+#                       n_units, k, lr, lr_group, n_trials//1000, n_sims))
+#     )
+# f = torch.load(fn)
+
+# # load actmap
 # act_maps = f['act_map']
+
 
 # # act_map and autocorrelogram
 # isim = 0
 
-# # check which have gd gscores
-# # np.nonzero(df_gscore[c].values>.5)
+# # # check which have gd gscores
+# # # np.nonzero(df_gscore[c].values>.5)
 
 # _, _, _, _, sac = _compute_grid_scores(act_maps[isim])
 
 
 # fig, ax = plt.subplots(1, 2)
 # ax[0].imshow(act_maps[isim])
-# ax[0].set_title('c = {}'.format(c))
+# ax[0].set_title('k = {}'.format(k))
 # ax[0].set_xticks([])
 # ax[0].set_yticks([])
 # ax[1].imshow(sac)
-# ax[1].set_title('g = {}'.format(np.around(df_gscore[c][isim], decimals=3)))
+# ax[1].set_title('g = {}'.format(np.around(df_gscore[k][isim], decimals=3)))
 # ax[1].set_xticks([])
 # ax[1].set_yticks([])
-# if saveplots:
-#     figname = (
-#         os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
-#                      '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
-#                      '_sim{}.pdf'.format(
-#                          c, n_units, k, orig_lr,
-#                          params['lr_clusters_group'][0], n_trials, isim))
-#     )
+# # if saveplots:
+# #     figname = (
+# #         os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
+# #                       '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
+# #                       '_sim{}.pdf'.format(
+# #                           c, n_units, k, orig_lr,
+# #                           params['lr_clusters_group'][0], n_trials, isim))
+# #     )
 
-#     plt.savefig(figname)
-# plt.show()
+# #     plt.savefig(figname)
+# # plt.show()
+
 
 
 # %%

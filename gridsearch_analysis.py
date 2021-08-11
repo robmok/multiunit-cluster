@@ -66,7 +66,12 @@ nlls = torch.stack(nlls)
 # recs = torch.stack(recs)
 # seeds = torch.stack(seeds)
 
-# %%
+# %% fit
+
+# TODO: i probably should have a set of sequences to run on each of the param
+# sets so they'd be the same across k conditions...
+# - when i run the "big" one, set and save the seeds
+
 
 # the human data from nosofsky, et al. replication
 shj = (
@@ -126,17 +131,23 @@ for iparam in range(len(pts)):
 
 # sse and nll very similar, though LOWEST value differ. interesting
 plt.plot(nlls[ptn_criteria_1])
+plt.ylim([88, 97])
+# plt.ylim([88, 89])
 plt.show()
 plt.plot(sse[ptn_criteria_1])
+plt.ylim([0, 16.5])
+# plt.ylim([0, 1])
 plt.show()
 
 ind_nll = nlls == nlls[ptn_criteria_1].min()
 ind_sse = sse == sse[ptn_criteria_1].min()
 
+# ind_nll = nlls == nlls.min()
+# ind_sse = sse == sse.min()
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 print(param_sets[ind_nll])
-print(param_sets[sse])
+print(param_sets[ind_sse])
 
 # more criteria
 # - maybe faster type I / slower type VI
@@ -147,7 +158,7 @@ print(param_sets[sse])
 
 # %% plot
 
-saveplots = True
+saveplots = False
 
 fntsiz = 15
 ylims = (0., .55)
