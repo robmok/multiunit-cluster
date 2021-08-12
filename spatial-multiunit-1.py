@@ -444,42 +444,162 @@ for pset, p in enumerate(param_sets_curr):
 # # plt.show()
 
 
+# %% demo
+
+n_dims = 2
+n_epochs = 1
+n_trials = 100000
+attn_type = 'dimensional_local'
+
+# 1 / k gives slightly less than n clusters
+# - e.g. if k=.28, that's > 1/4 of the units. if update k each time, there will
+# be less than 4 clusters at the end - 4 will always be unstable (pulled apart)
+
+
+# params = [[.08, .1, .13, .18, .28],
+#           [.0075, .01],
+#           [.6, .8, 1.]]
+
+p = [0.11, 0.0075, 1.]
+
+n_units = 1000
+
+# generate path
+path = generate_path(n_trials, n_dims)
+
+k = p[0]
+
+# annealed lr
+n_trials_tmp = 500000  # to mimic main session
+orig_lr = p[1]
+ann_c = (1/n_trials)/n_trials_tmp
+ann_decay = ann_c * (n_trials_tmp * 100)  # 100
+lr = [orig_lr / (1 + (ann_decay * itrial))
+      for itrial in range(n_trials_tmp)]
+
+lr_group = p[2]
+
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 1.2,
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1,  # response parameter, non-negative
+    'lr_attn': .0,
+    'lr_nn': .25,
+    'lr_clusters': lr,  # np.array(lr) * 0 + .001,
+    'lr_clusters_group': lr_group,
+    'k': k
+    }
+
+model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
+
+train_unsupervised_simple(model, path, n_epochs)
+
+# grid score
+n_trials_test = int(n_trials * .5)  # .25+
+path_test = torch.tensor(
+    np.around(np.random.rand(n_trials_test, n_dims), decimals=3),
+    dtype=torch.float32)
+
+# get act
+# - gauss act - define here since the units_pos don't change anymore
+cov = torch.cholesky(torch.eye(2) * .01)  # cov=1
+mvn1 = torch.distributions.MultivariateNormal(model.units_pos.detach(),
+                                              scale_tril=cov)
+nbins = 40
+act_test = []
+for itrial in range(n_trials_test):
+
+    # gauss act
+    act = torch.exp(mvn1.log_prob(path_test[itrial].detach()))
+
+    _, win_ind = torch.topk(act,
+                            int(model.n_units * model.params['k']))
+    act_test.append(act[win_ind].sum().detach())
+act_map = _compute_activation_map(
+    path_test, torch.tensor(act_test), nbins, statistic='sum')
+norm_mat = normalise_act_map(nbins, act_map.binnumber)
+
+# get normalized act_map
+ind = np.nonzero(norm_mat)
+act_map_norm = act_map.statistic.copy()
+act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
+
+# compute grid scores
+score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
+
 
 # %%
+# plot - MUCH TO EDIT
 
-# # group
-# fig = plt.figure(figsize=(8, 8))
-# ax = fig.add_subplot(111)
-# ax.scatter(results[-1, :, 0], results[-1, :, 1])
-# # ax.scatter(results[-1, model.active_units, 0],
-# #             results[-1, model.active_units, 1])
-# ax.set_xlim([0, 1])
-# ax.set_ylim([0, 1])
-# plt.show()
+results = torch.stack(model.units_pos_trace, dim=0)
+
+# group
+fig = plt.figure(figsize=(8, 8))
+ax = fig.add_subplot(111)
+ax.scatter(results[-1, :, 0], results[-1, :, 1])
+ax.set_xlim([0, 1])
+ax.set_ylim([0, 1])
+plt.show()
+
+# over time
+plot_trials = torch.tensor(torch.linspace(0, n_trials, 50), dtype=torch.long)
+# plot_trials = torch.arange(0, 10000, 20, dtype=torch.long)
+
+for i in plot_trials[0:-1]:  # range(20):  #
+
+    fig = plt.figure(dpi=200)
+    ax = fig.add_subplot(111)
+
+    # stimulus pos on trial i
+    # if np.mod(i, 2) == 0:
+    # m = '$S$'  # stim
+    # c = 'black'
+    # ax.scatter(path[i, 0], path[i, 1],
+    #            c=c, marker=m, s=1000, linewidth=.05, zorder=3)
+    # else:
+    #     m = '$c$'  # second update
+    #     c = 'black' # np.array([[.5, .5, .5],])
+    #     ax.scatter(results[i, :, 0].mean(), results[i, :, 1].mean(),c=c,
+    #                marker=m, edgecolor='black', s=1000, linewidth=.05, zorder=3)
+
+    # unit pos on trial i
+    ax.scatter(results[i, :, 0], results[i, :, 1],
+               s=500, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+
+    ax.set_xlim([-.05, 1.05])
+    ax.set_ylim([-.05, 1.05])
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    # ax.axis('off')
+    ax.set_aspect('equal', adjustable='box')
+
+    plt.pause(.5)
 
 
 
 
-# # over time
-# plot_trials = torch.tensor(torch.linspace(0, n_trials, 10),
-#                            dtype=torch.long)
 
-# for i in plot_trials[0:-1]:  # range(20):  #
+# actmap and xcorr
+fig, ax = plt.subplots(1, 2)
+ax[0].imshow(act_map_norm)
+ax[0].set_title('k = {}'.format(k))
+ax[0].set_xticks([])
+ax[0].set_yticks([])
+ax[1].imshow(sac)
+ax[1].set_title('g = {}'.format(np.around(score_60_, decimals=3)))
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
+#                       '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
+#                       '_sim{}.pdf'.format(
+#                           c, n_units, k, orig_lr,
+#                           params['lr_clusters_group'][0], n_trials, isim))
+#     )
 
-#     plt.scatter(results[i, :, 0],
-#                 results[i, :, 1])
-#     plt.xlim([-.05, 1.05])
-#     plt.ylim([-.05, 1.05])
-#     plt.pause(.5)
+#     plt.savefig(figname)
+plt.show()
 
-# # autocorrelogram
-# plt.imshow(sac)
-# plt.show()
-
-
-
-
-# plt.imshow(act_map_norm,
-#             vmin=np.percentile(act_map_norm, 1),
-#             vmax=np.percentile(act_map_norm, 99))
-# plt.show()
