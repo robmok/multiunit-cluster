@@ -280,7 +280,7 @@ attn_type = 'dimensional_local'
 #           [.0075, .01],
 #           [.6, .8, 1.]]
 
-p = [0.28, 0.005, 1.]
+p = [0.28, 0.01, 1.]
 
 n_units = 1000
 
@@ -349,8 +349,7 @@ act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
 score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
 
 
-# %%
-# plot
+# %%  plot
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -364,7 +363,7 @@ plt.show()
 
 # over time
 plot_trials = torch.tensor(torch.linspace(0, n_trials, 50), dtype=torch.long)
-# plot_trials = torch.arange(0, 10000, 20, dtype=torch.long)
+plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
 
 for i in plot_trials[0:-1]:  # range(20):  #
 
@@ -385,7 +384,7 @@ for i in plot_trials[0:-1]:  # range(20):  #
 
     # unit pos on trial i
     ax.scatter(results[i, :, 0], results[i, :, 1],
-               s=500, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+               s=350, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
 
     ax.set_xlim([-.05, 1.05])
     ax.set_ylim([-.05, 1.05])
@@ -397,8 +396,16 @@ for i in plot_trials[0:-1]:  # range(20):  #
 
     plt.pause(.5)
 
-
-
+# plot final trial
+fig = plt.figure(dpi=200)
+ax = fig.add_subplot(111)
+ax.scatter(results[-2, :, 0], results[-2, :, 1],
+           s=350, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+ax.set_xlim([-.05, 1.05])
+ax.set_ylim([-.05, 1.05])
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_aspect('equal', adjustable='box')
 
 
 # actmap and xcorr
@@ -422,3 +429,36 @@ ax[1].set_yticks([])
 
 #     plt.savefig(figname)
 plt.show()
+
+
+# %% make gifs
+
+savegif = False
+
+# # set params
+# problem = 5
+# lr_clusters = .1
+# lr_clusters_group = .0
+# upd1noise = .0  # .1/.2
+# recnoise = .0  # atm, 0 for dupd, .01 for catlearn
+
+# # load from dir
+# dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
+#       'upd1noise{}_recnoise{}'.format(
+#           plot_seq, problem+1, n_units, k, lr_clusters,
+#           lr_clusters_group, params['c'], params['phi'],
+#           params['lr_attn'], params['lr_nn'], upd1noise,
+#           recnoise)
+#       )
+
+# plot_trials = torch.arange(plot_n_trials)
+
+
+# images = []
+# for i in plot_trials[0:-1]:
+#     fname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
+#     images.append(imageio.imread(fname))
+
+# if savegif:
+#     imageio.mimsave(
+#         os.path.join(figdir, dn, 'trials.gif'), images, duration=.4)
