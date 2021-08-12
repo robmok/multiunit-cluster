@@ -3,6 +3,11 @@
 """
 Created on Fri Jun 11 14:36:24 2021
 
+Development script - tested out original batch update with recruitement
+(train_unsupervised), and no batch update, just the double-update
+(train_unsupervised_k). Both work, but latter demonstrates the double-update's
+capability
+
 @author: robert.mok
 """
 
@@ -22,7 +27,7 @@ import scores   # grid cell scorer from Banino
 from scipy.ndimage.filters import gaussian_filter
 
 from MultiUnitCluster import (MultiUnitCluster, train_unsupervised,
-                              train_unsupervised_simple)
+                              train_unsupervised_k)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
@@ -383,7 +388,7 @@ params = {
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params)
 
-train_unsupervised_simple(model, path, n_epochs)
+train_unsupervised_k(model, path, n_epochs)
 
 results = torch.stack(model.units_pos_trace, dim=0)
 

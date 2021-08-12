@@ -864,7 +864,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
     # return upd_pos, upd_attn  # if batch. actually don't need it, just upd.
 
 
-def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
+def train_unsupervised_k(model, inputs, n_epochs, batch_upd=None):
     """ No recruitment, just upd closest units. Demonstrates double upd better
 
     batch_upd : if not None, this is the batch number. input trials and batch
@@ -884,8 +884,6 @@ def train_unsupervised_simple(model, inputs, n_epochs, batch_upd=None):
 
     for epoch in range(n_epochs):
         for x in inputs:
-
-            # x = inputs[itrl_b]
 
             # find winners with largest activation - all connected
             dim_dist = abs(x - model.units_pos)
