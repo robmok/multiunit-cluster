@@ -16,6 +16,7 @@ from scipy.stats import binned_statistic_dd
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import imageio
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
@@ -351,6 +352,8 @@ score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
 
 # %%  plot
 
+saveplots = False
+
 results = torch.stack(model.units_pos_trace, dim=0)
 
 # group
@@ -393,20 +396,34 @@ for i in plot_trials[0:-1]:  # range(20):  #
     ax.set_yticks([])
     # ax.axis('off')
     ax.set_aspect('equal', adjustable='box')
+    if saveplots:
+        figname = (
+            os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units'
+                         '_k{}_startlr{}_grouplr{}_{}ktrls_trl{}.pdf'.format(
+                             n_units, k, orig_lr, lr_group, n_trials//1000, i))
+        )
+        plt.savefig(figname)
 
-    plt.pause(.5)
+    plt.pause(.25)
 
 # plot final trial
 fig = plt.figure(dpi=200)
 ax = fig.add_subplot(111)
-ax.scatter(results[-2, :, 0], results[-2, :, 1],
+ax.scatter(results[-1, :, 0], results[-1, :, 1],
            s=350, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
 ax.set_xlim([-.05, 1.05])
 ax.set_ylim([-.05, 1.05])
 ax.set_xticks([])
 ax.set_yticks([])
 ax.set_aspect('equal', adjustable='box')
-
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units_k{}_'
+                     'startlr{}_grouplr{}_{}ktrls_trl{}.pdf'.format(
+                         n_units, k, orig_lr, lr_group, n_trials//1000,
+                         n_trials))
+    )
+    plt.savefig(figname)
 
 # actmap and xcorr
 fig, ax = plt.subplots(1, 2)
@@ -418,47 +435,72 @@ ax[1].imshow(sac)
 ax[1].set_title('g = {}'.format(np.around(score_60_, decimals=3)))
 ax[1].set_xticks([])
 ax[1].set_yticks([])
-# if saveplots:
-#     figname = (
-#         os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
-#                       '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
-#                       '_sim{}.pdf'.format(
-#                           c, n_units, k, orig_lr,
-#                           params['lr_clusters_group'][0], n_trials, isim))
-#     )
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_demos/spatial_actmap_xcorr_ann_{}units_k{}_'
+                     'startlr{}_grouplr{}_{}ktrls.pdf'.format(
+                          n_units, k, orig_lr, lr_group, n_trials//1000))
+    )
 
-#     plt.savefig(figname)
+    plt.savefig(figname)
 plt.show()
 
+# # plot random scatter for positions before training
+# mrksiz = 350
+# fig = plt.figure(dpi=200)
+# ax = fig.add_subplot(111)
+# ax.scatter(model.units_pos[:, 0], model.units_pos[:, 1],
+#            s=mrksiz, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+# ax.set_xlim([-.05, 1.05])
+# ax.set_ylim([-.05, 1.05])
+# ax.set_xticks([])
+# ax.set_yticks([])
+# ax.set_aspect('equal', adjustable='box')
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
+#                      'mrksiz{}.pdf'.format(n_units, mrksiz))
+#     )
+#     plt.savefig(figname)
 
 # %% make gifs
 
-savegif = False
+savegif = True
 
-# # set params
-# problem = 5
-# lr_clusters = .1
-# lr_clusters_group = .0
-# upd1noise = .0  # .1/.2
-# recnoise = .0  # atm, 0 for dupd, .01 for catlearn
+# set params
+orig_lr = .01
+lr_group = 1.
 
-# # load from dir
-# dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
-#       'upd1noise{}_recnoise{}'.format(
-#           plot_seq, problem+1, n_units, k, lr_clusters,
-#           lr_clusters_group, params['c'], params['phi'],
-#           params['lr_attn'], params['lr_nn'], upd1noise,
-#           recnoise)
-#       )
+n_units = 1000
+n_trials = 50000
 
-# plot_trials = torch.arange(plot_n_trials)
+images = []
 
+# pretraining
+mrksiz = 350
+fn = os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
+                  'mrksiz{}.png'.format(n_units, mrksiz))
 
-# images = []
-# for i in plot_trials[0:-1]:
-#     fname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
-#     images.append(imageio.imread(fname))
+images.append(imageio.imread(fn))
 
-# if savegif:
-#     imageio.mimsave(
-#         os.path.join(figdir, dn, 'trials.gif'), images, duration=.4)
+# trials from plot_trials
+for i in plot_trials[0:-1]:
+    fn = os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units_k{}_'
+                      'startlr{}_grouplr{}_{}ktrls_trl{}.png'.format(
+                            n_units, k, orig_lr, lr_group, n_trials//1000,
+                            i))
+    images.append(imageio.imread(fn))
+
+# final trial
+fn = os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units_k{}_'
+                  'startlr{}_grouplr{}_{}ktrls_trl{}.png'.format(
+                        n_units, k, orig_lr, lr_group, n_trials//1000,
+                        n_trials))
+images.append(imageio.imread(fn))
+
+if savegif:
+    imageio.mimsave(
+        os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units_k{}_'
+                     'startlr{}_grouplr{}_{}ktrls.gif'.format(
+                         n_units, k, orig_lr, lr_group, n_trials//1000)),
+        images, duration=.4)
