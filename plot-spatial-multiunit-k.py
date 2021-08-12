@@ -276,12 +276,14 @@ attn_type = 'dimensional_local'
 # - e.g. if k=.28, that's > 1/4 of the units. if update k each time, there will
 # be less than 4 clusters at the end - 4 will always be unstable (pulled apart)
 
+# - did .08, .18, .28 with lr_group=0
+# TODO -  get good examples for .08, .18 with lr_group > 0.
 
 # params = [[.08, .1, .13, .18, .28],
 #           [.0075, .01],
 #           [.6, .8, 1.]]
 
-p = [0.28, 0.01, 1.]
+p = [0.08, 0.01, 1.]
 
 n_units = 1000
 
@@ -352,7 +354,7 @@ score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
 
 # %%  plot
 
-saveplots = False
+saveplots = True
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
