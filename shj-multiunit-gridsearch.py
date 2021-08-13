@@ -134,13 +134,13 @@ iset = int(sys.argv[-1])
 # iset = 500+364 # from 500 to 864
 
 # rest of lr's
-rest_of_lrs = True
+rest_of_lrs = False
 
 if rest_of_lrs:
     iset = iset-500  # reset when save
 
-n_units = 500
-k = .05
+n_units = 2000
+k = .1
 sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
@@ -191,14 +191,14 @@ ranges = ([torch.arange(.8, 2.1, .2),
 # - if double (same nsetss - 25k), 10 more: .5 to .95. arange(.5, 1., .05)
 # - could go up to .9, then 183708 sets - prob this
 # - if .85, 129024
-ranges = ([torch.arange(.8, 2.1, .2),
-          torch.arange(1., 19., 2),
-          torch.arange(.5, .95, .05),
-          torch.arange(.5, .95, .05) / lr_scale,
-          torch.arange(.5, .95, .05),
-          torch.arange(.1, .9, .2)]  # fewer: 4 vals
-          )
-
+if rest_of_lrs:
+    ranges = ([torch.arange(.8, 2.1, .2),
+              torch.arange(1., 19., 2),
+              torch.arange(.5, .95, .05),
+              torch.arange(.5, .95, .05) / lr_scale,
+              torch.arange(.5, .95, .05),
+              torch.arange(.1, .9, .2)]  # fewer: 4 vals
+              )
 
 # # new - coarser
 # ranges = ([torch.arange(.8, 2.1, .3),

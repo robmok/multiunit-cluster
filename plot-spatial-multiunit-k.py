@@ -122,18 +122,21 @@ n_trials = 500000
 # orig_lr: .001, .0025, .005
 # lr_group: .5, .85, 1
 
-params = [[.08, .1, .13, .26, .28],
-          [.001, .0025, .005, .0075],
-          [.85, 1]]
+# params = [[.08, .1, .13, .26, .28],
+#           [.001, .0025, .005, .0075],
+#           [.85, 1]]
+
+params = [[.08, .1, .13, .18, .28],
+          [.0075, .01],
+          [.6, .8, 1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
-
 
 
 # plot over k first
 # - set lr's for now
 lr = params[1][0]
-lr_group = params[2][1]
+lr_group = params[2][2]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
@@ -283,7 +286,7 @@ attn_type = 'dimensional_local'
 #           [.0075, .01],
 #           [.6, .8, 1.]]
 
-p = [0.08, 0.01, 1.]
+p = [0.18, 0.01, 1.]
 
 n_units = 1000
 
@@ -354,7 +357,7 @@ score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
 
 # %%  plot
 
-saveplots = True
+saveplots = False
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
