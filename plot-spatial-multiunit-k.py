@@ -135,7 +135,7 @@ param_sets = torch.tensor(list(it.product(*params)))
 
 # plot over k first
 # - set lr's for now
-lr = params[1][0]
+lr = params[1][1]
 lr_group = params[2][2]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
@@ -272,7 +272,7 @@ ax[1].set_yticks([])
 
 n_dims = 2
 n_epochs = 1
-n_trials = 50000
+n_trials = 500000
 attn_type = 'dimensional_local'
 
 # 1 / k gives slightly less than n clusters
@@ -286,7 +286,10 @@ attn_type = 'dimensional_local'
 #           [.0075, .01],
 #           [.6, .8, 1.]]
 
-p = [0.18, 0.01, 1.]
+p = [0.13, 0.01, 1.]
+
+# got good .13 and .28's.
+p = [0.08, 0.01, .8]
 
 n_units = 1000
 
@@ -357,6 +360,15 @@ score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
 
 # %%  plot
 
+# saved an example
+# [0.28, 0.01, 1.]  # 50k trials
+# [0.13, 0.01, 1.]  # low-ish, max ~.2, 500k trials
+
+# .8 - also gd, might be better even
+# [0.28, 0.0075, .8]  250k trials
+# [0.13, 0.01, 0.8]  # 7 clus - 500k trials. plotted arange(0, 8000, 100) trials
+
+
 saveplots = False
 
 results = torch.stack(model.units_pos_trace, dim=0)
@@ -364,14 +376,22 @@ results = torch.stack(model.units_pos_trace, dim=0)
 # group
 fig = plt.figure(figsize=(8, 8))
 ax = fig.add_subplot(111)
-ax.scatter(results[-1, :, 0], results[-1, :, 1])
+ax.scatter(results[-1, :, 0], results[-1, :, 1], s=350, edgecolors='black',
+           linewidth=.5, zorder=2, alpha=.75)
+
 ax.set_xlim([0, 1])
 ax.set_ylim([0, 1])
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_aspect('equal', adjustable='box')
 plt.show()
 
 # over time
 plot_trials = torch.tensor(torch.linspace(0, n_trials, 50), dtype=torch.long)
 plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
+
+# plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
+
 
 for i in plot_trials[0:-1]:  # range(20):  #
 
@@ -450,34 +470,44 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# # plot random scatter for positions before training
-# mrksiz = 350
-# fig = plt.figure(dpi=200)
-# ax = fig.add_subplot(111)
-# ax.scatter(model.units_pos[:, 0], model.units_pos[:, 1],
-#            s=mrksiz, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
-# ax.set_xlim([-.05, 1.05])
-# ax.set_ylim([-.05, 1.05])
-# ax.set_xticks([])
-# ax.set_yticks([])
-# ax.set_aspect('equal', adjustable='box')
-# if saveplots:
-#     figname = (
-#         os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
-#                      'mrksiz{}.pdf'.format(n_units, mrksiz))
-#     )
-#     plt.savefig(figname)
+# plot random scatter for positions before training
+mrksiz = 250
+fig = plt.figure(dpi=200)
+ax = fig.add_subplot(111)
+ax.scatter(model.units_pos[:, 0], model.units_pos[:, 1],
+            s=mrksiz, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+ax.set_xlim([-.05, 1.05])
+ax.set_ylim([-.05, 1.05])
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_aspect('equal', adjustable='box')
+if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
+                      'mrksiz{}.png'.format(n_units, mrksiz))
+    )
+    plt.savefig(figname)
 
 # %% make gifs
 
-savegif = True
+# note
+# [.28, .01, 1.] -didn't save pngs so ims are converted to from pdf. diff size
+
+# [0.13, 0.01, 1.], 500k trials  # low-ish - no .png? convert and make gif?
+# - remember to use spatial_randomscatter_{}units_mrksiz{}_converted' to start
+
+savegif = False
 
 # set params
+k = .28
 orig_lr = .01
 lr_group = 1.
 
 n_units = 1000
 n_trials = 50000
+
+plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
+# plot_trials = torch.arange(0, 8000, 100, dtype=torch.long)
 
 images = []
 
@@ -485,6 +515,9 @@ images = []
 mrksiz = 350
 fn = os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
                   'mrksiz{}.png'.format(n_units, mrksiz))
+
+# fn = os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
+#                   'mrksiz{}_converted.png'.format(n_units, mrksiz))
 
 images.append(imageio.imread(fn))
 

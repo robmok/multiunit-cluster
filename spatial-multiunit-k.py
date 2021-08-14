@@ -136,10 +136,15 @@ params = [[.08, .1, .13, .18, .28],
           [.0075, .01],
           [.6, .8, 1.]]
 
+# test in between values  - better/worse?
+params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
+          [.0075],  # for now
+          [.8, 1.]]  # for now
+
 param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
-sets = torch.arange(0, len(param_sets), 5)
+sets = torch.arange(0, len(param_sets), 4)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -152,8 +157,8 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-# new - 6 sets, 5 in each. if 6 hrs, 6*5=30, 1.5 days Friday morning.
-iset = 0  # 0-5 sets
+#
+iset = 0  # 0-3 sets, 4 each except last which has 2
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
