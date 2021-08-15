@@ -130,12 +130,28 @@ params = [[.08, .1, .13, .18, .28],
           [.0075, .01],
           [.6, .8, 1.]]
 
+# new k's
+# params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
+#           [.0075],  # for now
+#           [.8, 1.]]  # for now
+
+# combined
+# - .26 bad - probably 4; exclude
+# - .3 > . 28; now getting 3 properly
+# - .22 just ok, much around 0 or neg, but there are bunch of gd ones. prob 4 for bad, 5 for gd? check. could keep this.
+# - .16 (6) gd, prob a bit better than .~18 (5), but just a bit from a bi-modal distr. check.
+# - .14 same/better than .13 - check. both prob 7 - can swap?
+# - .09 v similar to .08
+params = [[.08, .09, .1, .13, .14, .16, .18, .22, .28, .3],
+          [.0075, .01],  # just .0075 for now
+          [.6, .8, 1.]]  # just .8, 1. for now
+
 param_sets = torch.tensor(list(it.product(*params)))
 
 
 # plot over k first
 # - set lr's for now
-lr = params[1][1]
+lr = params[1][0]
 lr_group = params[2][2]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))

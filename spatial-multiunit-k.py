@@ -141,10 +141,14 @@ params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
           [.0075],  # for now
           [.8, 1.]]  # for now
 
+params = [[.12, .2, .24, .26],
+          [.0075],  # for now
+          [.8, 1.]]  # for now
+
 param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
-sets = torch.arange(0, len(param_sets), 4)
+sets = torch.arange(0, len(param_sets), 2)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -158,7 +162,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # - maybe do 6 in one go next time if slower?
 
 #
-iset = 0  # 0-3 sets, 4 each except last which has 2
+iset = 0  # 0-3 sets, 2 each
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
