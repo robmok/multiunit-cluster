@@ -146,13 +146,27 @@ params = [[.08, .09, .1, .13, .14, .16, .18, .22, .28, .3],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
 
+#new again
+# params = [[.12, .2, .24, .26],
+#           [.0075],  # for now
+#           [.8, 1.]]  # for now
+
+params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
+          [.0075, .01],  # just .0075 for now
+          [.6, .8, 1.]]  # just .8, 1. for now
+# even only
+params = [[.08, .1, .12, .14, .16, .18, .2, .22, .24, .26, .28, .3],
+          [.0075, .01],  # just .0075 for now
+          [.6, .8, 1.]]  # just .8, 1. for now
+
+
 param_sets = torch.tensor(list(it.product(*params)))
 
 
 # plot over k first
 # - set lr's for now
 lr = params[1][0]
-lr_group = params[2][2]
+lr_group = params[2][1]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
