@@ -113,6 +113,8 @@ def _compute_act(dist, c, p):
 
 # %% plot
 
+saveplots = True
+
 n_sims = 100
 n_units = 1000
 n_trials = 500000
@@ -154,14 +156,18 @@ params = [[.08, .09, .1, .13, .14, .16, .18, .22, .28, .3],
 params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
-# even only
-params = [[.08, .1, .12, .14, .16, .18, .2, .22, .24, .26, .28, .3],
+# # even only
+# params = [[.08, .1, .12, .14, .16, .18, .2, .22, .26, .28, .3],
+#           [.0075, .01],  # just .0075 for now
+#           [.6, .8, 1.]]  # just .8, 1. for now
+
+# low k values w more clus, since <10 clus pattern weirder.. (like '19 paper)
+params = [[.08, .09, .1, .12, .13, .14, .16, .18],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
 
 
 param_sets = torch.tensor(list(it.product(*params)))
-
 
 # plot over k first
 # - set lr's for now
@@ -201,7 +207,9 @@ print('lr={}, lr_group={}: {} > {}'.format(
 fntsiz = 18
 
 # gscore
-g = sns.catplot(data=df_gscore, kind="violin")
+# - "scale": area too narrow if many. by width/count is the same, but count
+# prob better since it same width coz same npts. width just sets all as same.
+g = sns.catplot(data=df_gscore, kind="violin", ci=None, scale='count')
 sns.stripplot(color="k", alpha=0.2, size=3,
               data=df_gscore, ax=g.ax)
 
@@ -211,70 +219,67 @@ g.ax.set_ylim(-.75, 1.5)
 g.ax.set_xlabel('k', fontsize=fntsiz)
 g.ax.set_ylabel('Grid Score', fontsize=fntsiz)
 g.ax.set_title('lr={}, lr_group={}'.format(lr, lr_group), fontsize=fntsiz)
-
 plt.tight_layout()
-# if saveplots:
-#     figname = os.path.join(figdir,
-#                             'gscores_violin')
-#     if anneal_lr_group:
-#         figname = figname + "_ann_lr_group"
-#     # plt.savefig(figname, dpi=100)
-#     plt.savefig(figname + '.pdf')
+if saveplots:
+    figname = os.path.join(
+        figdir, 'gscores_violin_{}units_lr{}_grouplr{}_{}trials_{}sims'.format(
+            n_units, p[1], p[2], n_trials//1000, n_sims))
+    # plt.savefig(figname, dpi=100)
+    plt.savefig(figname + '.pdf')
 plt.show()
-
 
 # swarm / univariate scatter
 # g = sns.swarmplot(size=3, data=df_gscore)
-# g.set_ylim(-.5, 1.65)
+g = sns.stripplot(size=3, data=df_gscore)
+g.set_ylim(-.5, 1.65)
 # if saveplots:
 #     figname = os.path.join(figdir,
-#                            'gscores_swarm.pdf')
+#                             'gscores_swarm.pdf')
 #     # plt.savefig(figname, dpi=100)
 #     plt.savefig(figname)
-# plt.show()
+plt.show()
 
 
 # %% plot actmaps and xcorrs
 
+saveplots = True
 
-# saveplots = False
-
-# k
-# [0.08, 0.1, 0.13, 0.26, 0.28]
+# old notes
 # - 0.26 is 3, making a line, can remove
-k = 0.1
+# - .18 with lr_group=1. surpsingly bad
 
-# - set lr's for now
-# [.001, .0025, .005, .0075],
-# [.85, 1]]
+# for lrgroup=.8/1.0, did .08, .09, then range(.1, .2, step=.2) so even ones.
+# - update: did .22 for lrgroup=.8 - either 4 clus, or gd ones mostly 3 with
+# 1 sticking to one clus.
+# NEXT: do odd ones, and finish .2-.3
 
-# ok here it makes a different- slow lr's look worse
-# - 0.001 worst. .0025 might be ok, but .005/.075 look good.
+params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
+          [.0075, .01],  # just .0075 for now
+          [.6, .8, 1.]]  # just .8, 1. for now
 
-lr = params[1][3]
+k = .22
+lr = params[1][0]
 lr_group = params[2][1]
 
 # load
 fn = (
     os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
-                  'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
-                  '{:d}sims.pkl'.format(
-                      n_units, k, lr, lr_group, n_trials//1000, n_sims))
+                 'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
+                 '{:d}sims.pkl'.format(
+                     n_units, k, lr, lr_group, n_trials//1000, n_sims))
     )
 f = torch.load(fn)
 
 # load actmap
 act_maps = f['act_map']
 
-
 # act_map and autocorrelogram
-isim = 0
+isim = 13
 
-# # check which have gd gscores
-# # np.nonzero(df_gscore[c].values>.5)
+# check which have gd gscores
+np.nonzero(df_gscore[k].values>.4)
 
 _, _, _, _, sac = _compute_grid_scores(act_maps[isim])
-
 
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(act_maps[isim])
@@ -285,17 +290,15 @@ ax[1].imshow(sac)
 ax[1].set_title('g = {}'.format(np.around(df_gscore[k][isim], decimals=3)))
 ax[1].set_xticks([])
 ax[1].set_yticks([])
-# if saveplots:
-#     figname = (
-#         os.path.join(figdir, 'actmaps/spatial_actmap_xcorr_annlrgroup_c{}_'
-#                       '{}units_k{}_startlr{}_startgrouplr{}_thresh.7_{}trls'
-#                       '_sim{}.pdf'.format(
-#                           c, n_units, k, orig_lr,
-#                           params['lr_clusters_group'][0], n_trials, isim))
-#     )
+if saveplots:
+    figname = os.path.join(
+        figdir, 'actmaps/'
+        'gscores_actmap_{}units_k{}_lr{}_grouplr{}_{}trials_{}sims_sim{}'.format(
+            n_units, k, p[1], p[2], n_trials//1000, n_sims, isim))
+    # plt.savefig(figname, dpi=100)
+    plt.savefig(figname + '.pdf')
+plt.show()
 
-#     plt.savefig(figname)
-# plt.show()
 
 
 # %% demo for figure
@@ -316,10 +319,18 @@ attn_type = 'dimensional_local'
 #           [.0075, .01],
 #           [.6, .8, 1.]]
 
-p = [0.13, 0.01, 1.]
+# p = [0.13, 0.01, 1.]
 
 # got good .13 and .28's.
-p = [0.08, 0.01, .8]
+# p = [0.08, 0.01, .8]
+
+ # .12, .13, .14, .16
+# p = [0.14, 0.0075, 1.]  # DONE. given up on lr_group=.8
+# p = [0.16, 0.0075, .8]  # - got an OK one, given up on lr_group=1.
+# p = [0.2, 0.0075, .8]  # ~.25
+# p = [0.2, 0.0075, 1.] # ~.25
+
+# doing below - 2 consoles at a time:
 
 n_units = 1000
 
@@ -387,6 +398,7 @@ act_map_norm[ind] = act_map_norm[ind] / norm_mat[ind]
 # compute grid scores
 score_60_, _, _, _, sac = _compute_grid_scores(act_map_norm)
 
+print(score_60_)
 
 # %%  plot
 
@@ -420,7 +432,7 @@ plt.show()
 plot_trials = torch.tensor(torch.linspace(0, n_trials, 50), dtype=torch.long)
 plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
 
-# plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
+plot_trials = torch.arange(0, 4000, 100, dtype=torch.long)
 
 
 for i in plot_trials[0:-1]:  # range(20):  #
@@ -454,6 +466,12 @@ for i in plot_trials[0:-1]:  # range(20):  #
     if saveplots:
         figname = (
             os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units'
+                         '_k{}_startlr{}_grouplr{}_{}ktrls_trl{}.png'.format(
+                             n_units, k, orig_lr, lr_group, n_trials//1000, i))
+        )
+        plt.savefig(figname)
+        figname = (
+            os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units'
                          '_k{}_startlr{}_grouplr{}_{}ktrls_trl{}.pdf'.format(
                              n_units, k, orig_lr, lr_group, n_trials//1000, i))
         )
@@ -472,6 +490,13 @@ ax.set_xticks([])
 ax.set_yticks([])
 ax.set_aspect('equal', adjustable='box')
 if saveplots:
+    figname = (
+        os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units_k{}_'
+                     'startlr{}_grouplr{}_{}ktrls_trl{}.png'.format(
+                         n_units, k, orig_lr, lr_group, n_trials//1000,
+                         n_trials))
+    )
+    plt.savefig(figname)
     figname = (
         os.path.join(figdir, 'spatial_demos/spatial_unitspos_ann_{}units_k{}_'
                      'startlr{}_grouplr{}_{}ktrls_trl{}.pdf'.format(
@@ -500,23 +525,23 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# plot random scatter for positions before training
-mrksiz = 250
-fig = plt.figure(dpi=200)
-ax = fig.add_subplot(111)
-ax.scatter(model.units_pos[:, 0], model.units_pos[:, 1],
-            s=mrksiz, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
-ax.set_xlim([-.05, 1.05])
-ax.set_ylim([-.05, 1.05])
-ax.set_xticks([])
-ax.set_yticks([])
-ax.set_aspect('equal', adjustable='box')
-if saveplots:
-    figname = (
-        os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
-                      'mrksiz{}.png'.format(n_units, mrksiz))
-    )
-    plt.savefig(figname)
+# # plot random scatter for positions before training
+# mrksiz = 250
+# fig = plt.figure(dpi=200)
+# ax = fig.add_subplot(111)
+# ax.scatter(model.units_pos[:, 0], model.units_pos[:, 1],
+#             s=mrksiz, edgecolors='black', linewidth=.5, zorder=2, alpha=.75)
+# ax.set_xlim([-.05, 1.05])
+# ax.set_ylim([-.05, 1.05])
+# ax.set_xticks([])
+# ax.set_yticks([])
+# ax.set_aspect('equal', adjustable='box')
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'spatial_demos/spatial_randomscatter_{}units_'
+#                       'mrksiz{}.png'.format(n_units, mrksiz))
+#     )
+#     plt.savefig(figname)
 
 # %% make gifs
 
