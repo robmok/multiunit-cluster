@@ -153,26 +153,34 @@ params = [[.08, .09, .1, .13, .14, .16, .18, .22, .28, .3],
 #           [.0075],  # for now
 #           [.8, 1.]]  # for now
 
-params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
+           .22, .24, .26, .28, .3],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
+
 # # even only
 # params = [[.08, .1, .12, .14, .16, .18, .2, .22, .26, .28, .3],
 #           [.0075, .01],  # just .0075 for now
 #           [.6, .8, 1.]]  # just .8, 1. for now
 
+
 # low k values w more clus, since <10 clus pattern weirder.. (like '19 paper)
-params = [[.08, .09, .1, .12, .13, .14, .16, .18],
+# even
+params = [[.08, .1, .12, .14, .16, .18],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
 
+# fewer with odd
+# params = [[.08, .09, .1,, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+#           [.0075, .01],  # just .0075 for now
+#           [.6, .8, 1.]]  # just .8, 1. for now
 
 param_sets = torch.tensor(list(it.product(*params)))
 
 # plot over k first
 # - set lr's for now
 lr = params[1][0]
-lr_group = params[2][1]
+lr_group = params[2][2]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
@@ -182,8 +190,8 @@ for k in params[0]:
     # load
     fn = (
         os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
-                      'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
-                      '{:d}sims.pkl'.format(
+                     'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
+                     '{:d}sims.pkl'.format(
                           n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
         )
     f = torch.load(fn)
@@ -209,11 +217,11 @@ fntsiz = 18
 # gscore
 # - "scale": area too narrow if many. by width/count is the same, but count
 # prob better since it same width coz same npts. width just sets all as same.
-g = sns.catplot(data=df_gscore, kind="violin", ci=None, scale='count')
+g = sns.catplot(data=df_gscore, kind="violin", inner=None, scale='count')
 sns.stripplot(color="k", alpha=0.2, size=3,
               data=df_gscore, ax=g.ax)
 
-g.ax.set_ylim(-.75, 1.5)
+g.ax.set_ylim(-.5, 1.5)
 # g.ax.set_xticklabels(g.ax.get_xmajorticklabels(), fontsize=fntsiz-3)
 # g.ax.set_yticklabels(g.ax.get_ymajorticklabels(), fontsize=fntsiz-3)
 g.ax.set_xlabel('k', fontsize=fntsiz)
