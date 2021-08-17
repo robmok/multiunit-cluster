@@ -177,7 +177,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-6 sets, 3 each
+iset = 0  # 0-5 sets, 3 each
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
