@@ -203,7 +203,7 @@ ax[1].set_aspect(17)
 plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,
-                           'shj_gsearch_n94_subplots_{}units_k{}_1.png'.format(
+                           'shj_gsearch_n94_subplots_{}units_k{}_1.pdf'.format(
                                n_units, k))
     plt.savefig(figname)
 plt.show()
@@ -220,7 +220,7 @@ ax.legend(('1', '2', '3', '4', '5', '6'), fontsize=fntsiz-2)
 plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,
-                           'shj_gsearch_{}units_k{}_1.png'.format(
+                           'shj_gsearch_{}units_k{}_1.pdf'.format(
                                n_units, k))
     plt.savefig(figname)
 plt.show()
@@ -235,9 +235,9 @@ ax.legend(('1', '2', '3', '4', '5', '6'), fontsize=fntsiz-2)
 ax.set_xlabel('Learning Block', fontsize=fntsiz)
 ax.set_ylabel('Probability of Error', fontsize=fntsiz)
 plt.tight_layout()
-if saveplots:
-    figname = os.path.join(figdir, 'nosofsky94_shj.png')
-    plt.savefig(figname)
+# if saveplots:
+#     figname = os.path.join(figdir, 'nosofsky94_shj.pdf')
+#     plt.savefig(figname)
 plt.show()
 
 # plot on top of each other
