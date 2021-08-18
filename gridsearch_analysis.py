@@ -16,15 +16,15 @@ import itertools as it
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-k = 0.01
+k = 0.05
 n_units = 500
 
-n_sets = 250  # gsearch split into how many sets to load in
+n_sets = 865  # 250  # gsearch split into how many sets to load in
 
 resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
     k, n_units))
 
-# get params - 252000
+# get params - 252000, 250 sets
 ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(1., 19., 2),
           torch.arange(.005, .5, .05),
@@ -32,7 +32,27 @@ ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(.005, .5, .05),
           torch.arange(.1, .9, .2)]
           )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
+
+# best params k=0.05
+# tensor([[1.6000, 1.0000, 0.4550, 0.2050, 0.3050, 0.7000]])
+
+
+# with rest of lr's - 865 sets
+# - this is actually not all.. need combination of 3 lrs...
+ranges = ([torch.arange(.8, 2.1, .2),
+          torch.arange(1., 19., 2),
+          torch.arange(.5, .95, .05),
+          torch.arange(.5, .95, .05),
+          torch.arange(.5, .95, .05),
+          torch.arange(.1, .9, .2)]  # fewer: 4 vals
+          )
+param_sets2 = torch.tensor(list(it.product(*ranges)))
+param_sets = torch.cat([param_sets, param_sets2])
+
+# best params
+# tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better than above
 
 # load in
 pts = []
@@ -42,6 +62,15 @@ seeds = []
 
 sets = torch.arange(n_sets)
 # sets = sets[sets != 142]  # k=0.05, n_units=500, set 142 has some results but most empty - didn't finish?
+
+# for k0.05/0.01, n_units=500, ran 250 with more sets,
+# so rest of it is from 500+ (whereas others have all 865 sets)
+# - need to double check, but i think this right...
+# - but why does k0.1 have 250-500 sets? might be a stupid thing like i coded
+# in rest_of_lr's for those scripts. i don't remember editing those..!
+
+sets = torch.cat([torch.arange(250), torch.arange(500, 865)])
+
 
 for iset in sets:  # range(n_sets):
     fn = os.path.join(

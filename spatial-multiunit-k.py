@@ -159,9 +159,9 @@ params = [[.09, .11, .12, .14, .15, .16, .17, .19],
 param_sets = torch.tensor(list(it.product(*params)))
 
 # next - lr_group=.6. 22 sets
-# params = [[.09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-#           [.0075, .01],
-#           [.6]]
+params = [[.09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.0075, .01],
+          [.6]]
 
 # split sets
 sets = torch.arange(0, len(param_sets), 3)
@@ -177,7 +177,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-5 sets, 3 each
+iset = 0  # 0-5 sets, 3 each, last has 1 set
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
