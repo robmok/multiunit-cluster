@@ -133,14 +133,14 @@ iset = 0  # 18
 iset = int(sys.argv[-1])
 # iset = 500+364 # from 500 to 864
 
-# rest of lr's
-rest_of_lrs = False
+# # rest of lr's
+# rest_of_lrs = False
 
-if rest_of_lrs:
-    iset = iset-500  # reset when save
+# if rest_of_lrs:
+#     iset = iset-500  # reset when save
 
-n_units = 2000
-k = .1
+n_units = 500
+k = .05
 sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
@@ -179,35 +179,36 @@ lr_scale = (n_units * k) / 1
 #           torch.tensor([.05, .1])]
 #           )
 
-# without k - 252000
+# # without k - 252000
+# ranges = ([torch.arange(.8, 2.1, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.005, .5, .05) / lr_scale,
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.1, .9, .2)]  # fewer: 4 vals
+#           )
+# # add more lr's
+# # - if double (same nsetss - 25k), 10 more: .5 to .95. arange(.5, 1., .05)
+# # - could go up to .9, then 183708 sets - prob this
+# # - if .85, 129024
+# if rest_of_lrs:
+#     ranges = ([torch.arange(.8, 2.1, .2),
+#               torch.arange(1., 19., 2),
+#               torch.arange(.5, .95, .05),
+#               torch.arange(.5, .95, .05) / lr_scale,
+#               torch.arange(.5, .95, .05),
+#               torch.arange(.1, .9, .2)]  # fewer: 4 vals
+#               )
+
+# new - whole range of lrs, added group lr too
 ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(1., 19., 2),
-          torch.arange(.005, .5, .05),
-          torch.arange(.005, .5, .05) / lr_scale,
-          torch.arange(.005, .5, .05),
-          torch.arange(.1, .9, .2)]  # fewer: 4 vals
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1) / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
           )
-# add more lr's
-# - if double (same nsetss - 25k), 10 more: .5 to .95. arange(.5, 1., .05)
-# - could go up to .9, then 183708 sets - prob this
-# - if .85, 129024
-if rest_of_lrs:
-    ranges = ([torch.arange(.8, 2.1, .2),
-              torch.arange(1., 19., 2),
-              torch.arange(.5, .95, .05),
-              torch.arange(.5, .95, .05) / lr_scale,
-              torch.arange(.5, .95, .05),
-              torch.arange(.1, .9, .2)]  # fewer: 4 vals
-              )
 
-# # new - coarser
-# ranges = ([torch.arange(.8, 2.1, .3),
-#           torch.arange(1., 19., 2.5),
-#           torch.arange(.005, .5, .1),
-#           torch.arange(.005, .5, .1) / lr_scale,
-#           torch.arange(.005, .5, .1),
-#           torch.arange(.1, .9, .2)]
-#           )
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -250,20 +251,25 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # 183708/365 = 503.3095*.0656=33.0171/24=1.37  days
 # - just do 504, final one have about half
 
-sets = torch.arange(0, len(param_sets)+1, 504)
+# NEW - decided to test full range of lr's coarser - 315000 sets
+# - 315000/500=630*.0656=41.328/24=1.72 days
+# ah, but i want lopri to be ~300, so has to be less
+# - 315000/450=700*.0656=45.92=1.91 days. 322 lopri sets
+# - 315000/400=787.5*.0656=51.66/24=2.1525 days. 272 lopri sets, def OK.
+# --> try 450 first
 
-# TMP
+sets = torch.arange(0, len(param_sets)+1, 700)
+
 # add final set if doesn't mod - for 2nd part of lr's
-if rest_of_lrs:
-    sets = torch.cat(
-        [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
-    sets = torch.tensor(sets, dtype=torch.long)
-
+# if rest_of_lrs:
+#     sets = torch.cat(
+#         [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
+#     sets = torch.tensor(sets, dtype=torch.long)
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
-if rest_of_lrs:
-    iset = iset+500  # for saving
+# if rest_of_lrs:
+#     iset = iset+500  # for saving
 
 # testing speed
 # param_sets_curr = param_sets_curr[0:1]

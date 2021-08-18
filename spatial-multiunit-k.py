@@ -132,36 +132,42 @@ attn_type = 'dimensional_local'
 #           [.85, 1]]
 
 # new
-params = [[.08, .1, .13, .18, .28],
-          [.0075, .01],
-          [.6, .8, 1.]]
+# params = [[.08, .1, .13, .18, .28],
+#           [.0075, .01],
+#           [.6, .8, 1.]]
 
-# test in between values  - better/worse?
-params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
-          [.0075],  # for now
-          [.8, 1.]]  # for now
+# # test in between values  - better/worse?
+# params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
+#           [.0075],  # for now
+#           [.8, 1.]]  # for now
 
-params = [[.12, .2, .24, .26],
-          [.0075],  # for now
-          [.8, 1.]]  # for now
+# params = [[.12, .2, .24, .26],
+#           [.0075],  # for now
+#           [.8, 1.]]  # for now
 
-# run rest of odds (mostly)
-# .11, .15, .17, .19, .21, .23
-params = [[.11, .15, .17, .19, .21, .23],
-          [.0075],  # for now
-          [.8, 1.]]  # for now
+# # run rest of odds (mostly)
+# # .11, .15, .17, .19, .21, .23
+# params = [[.11, .15, .17, .19, .21, .23],
+#           [.0075],  # for now
+#           [.8, 1.]]  # for now
 
-# run more lrs
-params = [[.09, .11, .12, .14, .15, .16, .17, .19],
-          [.01],
-          [.8, 1.]]
+# # run more lrs
+# params = [[.09, .11, .12, .14, .15, .16, .17, .19],
+#           [.01],
+#           [.8, 1.]]
 
-param_sets = torch.tensor(list(it.product(*params)))
+# param_sets = torch.tensor(list(it.product(*params)))
 
-# next - lr_group=.6. 22 sets
-params = [[.09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.0075, .01],
-          [.6]]
+# # lr_group=.6. 22 sets
+# params = [[.09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+#           [.0075, .01],
+#           [.6]]
+
+# ABOVE missed .08..?
+# next
+params = [[.08, .1, .12, .14, .16, .18],  # test for now if faster starting lr's better
+          [.015, .02],  # faster
+          [1.]]  # probably 1 is best, but check 0.6 results above first
 
 # split sets
 sets = torch.arange(0, len(param_sets), 3)
