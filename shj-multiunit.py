@@ -50,25 +50,6 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]],
 
-                # type 1 continuous - 2D
-                [[.75,   0,   .75,   0.,  0],
-                 [.5,   .25,  .5,   .25,  0],
-                 [.25,  .5,   .25,  .5,   1],
-                 [0.,   .75,   0.,  .75,  1],
-                 [.75,   0.,   0.,  .75,  0],
-                 [.5,   .25,  .25,  .5,   0],
-                 [.25,  .5,   .5,   .25,  1],
-                 [0.,   .75,  .75,  .0,   1]],
-
-                # type 1 continuous - 3D
-                [[.75,   0,   .75,   0., .75,  0,  0],
-                 [.5,   .25,  .5,   .25, .25, .5,  0],
-                 [.25,  .5,   .25,  .5,  .5,  .25, 1],
-                 [0.,   .75,   0.,  .75,  0., .75, 1],
-                 [.75,   0.,   0.,  .75,  0., .75, 0],
-                 [.5,   .25,  .25,  .5,  .5,  .25, 0],
-                 [.25,  .5,   .5,   .25, .25, .5,  1],
-                 [0.,   .75,  .75,  .0,  .75,  0., 1]],
                 ]
 
 # set problem
@@ -93,41 +74,15 @@ loss_type = 'cross_entropy'
 # top k%. so .05 = top 5%
 k = .05
 
-# SHJ
-# - do I  want to save trace for both clus_pos upadtes? now just saving at the end of both updates
+# TODO
+# - do I  want to save trace for both clus_pos upadtes? now just saving at the
+# end of both updates
 
 # trials, etc.
 n_epochs = 16
 
 # new local attn - scaling lr
 lr_scale = (n_units * k) / 1
-
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .9, # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 18.5,
-#     'beta': 1.,
-#     'lr_attn': .15, # this scales at grad computation now
-#     'lr_nn': .01/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .01,
-#     'lr_clusters_group': .1,
-#     'k': k
-#     }
-
-# # shj params
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 1.,  # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 12.5,
-#     'beta': 1.,
-#     'lr_attn': .15,  # this scales at grad computation now
-#     'lr_nn': .015/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .05,
-#     'lr_clusters_group': .1,
-#     'k': k
-#     }
 
 # new shj pattern - with phi in the model now
 # - editing to show double update effect - mainly lr_group
@@ -182,8 +137,8 @@ lesions = None  # if no lesions
 #     }
 
 # noise - mean and sd of noise to be added
-# - with update noise, higher lr_group helps save a lot even with few k units. actually didn't add update2 noise though, test again
-# - 
+# - with update noise, higher lr_group helps save a lot even with few k units.
+# actually didn't add update2 noise though, test again
 noise = None
 noise = {'update1': [0, .0],  # . 1unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
@@ -204,9 +159,6 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 print(model.recruit_units_trl)
 # print(len(model.recruit_units_trl))
 
-# wd='/Users/robert.mok/Documents/Postdoc_cambridge_2020/multiunit-cluster_figs'
-# plot for several k values (.01, .05, .1, .2?)
-# several n_units (1, 1000, 10000, 1000000) - for n=1, k doesn't matter
 
 # pr target
 plt.plot(1 - epoch_ptarget.detach())
@@ -215,7 +167,7 @@ plt.show()
 
 # # attention weights
 plt.plot(torch.stack(model.attn_trace, dim=0))
-# figname = os.path.join(wd,
+# figname = os.path.join(figdir,
 #                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
 #                            problem, k, n_units, params['lr_attn'], n_epochs))
 # plt.savefig(figname)
@@ -242,7 +194,7 @@ elif plot_seq == 'trls':  # plot first n trials
     plot_n_trials = 50
     plot_trials = torch.arange(plot_n_trials)
 
-
+# 3d
 # make dir for trial-by-trial images
 if noise and saveplots:
     dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_'
@@ -256,9 +208,6 @@ if noise and saveplots:
     if not os.path.exists(os.path.join(figdir, dn)):
         os.makedirs(os.path.join(figdir, dn))
 
-
-# 3d
-# https://matplotlib.org/stable/gallery/color/named_colors.html
 if plot3d:
     lims = (0, 1)
     # lims = (-.05, 1.05)
@@ -270,24 +219,24 @@ if plot3d:
         ax.set_xlim(lims)
         ax.set_ylim(lims)
         ax.set_zlim(lims)
-    
+
         # keep grid lines, remove labels
         # # labels = ['', '', '', '', '', '']
         labels = [0, '', '', '', '', 1]
         ax.set_xticklabels(labels)
         ax.set_yticklabels(labels)
         ax.set_zticklabels(labels)
-        
+
         # remove grey color - white
         ax.w_xaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
         ax.w_yaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
         ax.w_zaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-    
+
         # save
         if saveplots:
             figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
             plt.savefig(figname)
-    
+
         plt.pause(.25)
 
 # explore lesion units ++ 
@@ -403,44 +352,13 @@ for i in range(niter):
             'lr_clusters_group': .12,
             'k': k
             }
-    
-        # # trying with higher c - flipping 1 & 6
-        # # - works well - needs lr_attn to be v slow, then type 6>1 (flipped)
-        # # now type II also can be slow, types 3-5 faster - as brad p redicted
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3.5,  # low = 1; med = 2.2; high = 3.5+
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.5,
-        #     'beta': 1.,
-        #     'lr_attn': .002,  # if too slow, type 1 recruits 4 clus..
-        #     'lr_nn': .025/lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .01,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # # c param testing new - try to use same phi. adjust lr_nn
-        # # low c
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .8,  # w/ attn grad normalized, c can be large now
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.5,
-        #     'beta': 1.,
-        #     'lr_attn': .15,
-        #     'lr_nn': .15/lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .01,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
 
         # # high c
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
         #     'c': 3.,
         #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.5, 
+        #     'phi': 1.5,
         #     'beta': 1.,
         #     'lr_attn': .002,
         #     'lr_nn': .025/lr_scale,  # scale by n_units*k
@@ -476,8 +394,8 @@ for i in range(niter):
         #     'lr_clusters': .05,
         #     'lr_clusters_group': .1,
         #     'k': k
-        #     }        
-                
+        #     }
+
         # # v2
         # # low c
         # params = {
@@ -527,7 +445,6 @@ plt.show()
 # for i in range(6):
 #     plt.plot(torch.stack(attn_trace[i])[0])
 #     plt.show()
-
 
 # the human data from nosofsky, et al. replication
 shj = (
