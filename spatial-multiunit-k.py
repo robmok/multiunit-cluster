@@ -156,21 +156,22 @@ attn_type = 'dimensional_local'
 #           [.01],
 #           [.8, 1.]]
 
-# param_sets = torch.tensor(list(it.product(*params)))
-
-# # lr_group=.6. 22 sets
-# params = [[.09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-#           [.0075, .01],
-#           [.6]]
+# lr_group=.6. 22 sets
+params = [[.09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.0075, .01],
+          [.6]]
 
 # ABOVE missed .08..?
 # next
-params = [[.08, .1, .12, .14, .16, .18],  # test for now if faster starting lr's better
-          [.015, .02],  # faster
-          [1.]]  # probably 1 is best, but check 0.6 results above first
+# params = [[.08, .1, .12, .14, .16, .18],  # test for now if faster starting lr's better
+#           [.015, .02],  # faster
+#           [1.]]  # probably 1 is best, but check 0.6 results above first
+
+param_sets = torch.tensor(list(it.product(*params)))
+
 
 # split sets
-sets = torch.arange(0, len(param_sets), 3)
+sets = torch.arange(0, len(param_sets), 4)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -183,7 +184,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-5 sets, 3 each, last has 1 set
+iset = 0  # 0-5 sets, 4 each, last has 2 set
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
