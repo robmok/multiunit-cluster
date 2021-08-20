@@ -13,10 +13,10 @@ import torch
 import matplotlib.pyplot as plt
 import itertools as it
 import imageio
-import time
-from scipy import stats
-from scipy import optimize as opt
-import pickle
+# import time
+# from scipy import stats
+# from scipy import optimize as opt
+# import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
@@ -29,8 +29,11 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
-plot3d = False
+plot3d = True
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
+
+# matplotlib first 6 default colours
+col = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
 
 six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                  [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
@@ -53,7 +56,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 3
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -65,7 +68,7 @@ output = output.repeat(2).T
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 500
+n_units = 2000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -88,14 +91,14 @@ lr_scale = (n_units * k) / 1
 # - editing to show double update effect - mainly lr_group
 params = {
     'r': 1,  # 1=city-block, 2=euclid
-    'c': .75, 
+    'c': .75,
     'p': 1,  # p=1 exp, p=2 gauss
     'phi': 9.,
     'beta': 1.,
     'lr_attn': .35,  # this scales at grad computation now
     'lr_nn': .0075/lr_scale,  # scale by n_units*k
     'lr_clusters': .1,
-    'lr_clusters_group': .12,
+    'lr_clusters_group': .4,
     'k': k
     }
 
@@ -129,20 +132,20 @@ params = {
 
 # new after trying out gridsearch
 # tensor([[1.6000, 1.0000, 0.4550, 0.2050, 0.3050, 0.7000]])
-# tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better than above
+# tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better
 
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 1.6,  # w/ attn grad normalized, c can be large now
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1.,
-    'beta': 1.,
-    'lr_attn': .455,  # this scales at grad computation now
-    'lr_nn': .205/lr_scale,  # scale by n_units*k
-    'lr_clusters': .305,  # .075/.1
-    'lr_clusters_group': .7,
-    'k': k
-    }
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 1.6,  # w/ attn grad normalized, c can be large now
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 1.,
+#     'beta': 1.,
+#     'lr_attn': .455,  # this scales at grad computation now
+#     'lr_nn': .205/lr_scale,  # scale by n_units*k
+#     'lr_clusters': .305,  # .075/.1
+#     'lr_clusters_group': .7,
+#     'k': k
+#     }
 
 # params = {
 #     'r': 1,  # 1=city-block, 2=euclid
@@ -170,9 +173,9 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .0],  # . 1unit position updates 1 & 2
+noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-          'recruit': [0., .0],  # .1 recruitment position placement
+          'recruit': [0., .1],  # .1 recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
@@ -217,11 +220,18 @@ results = torch.stack(
     model.units_pos_bothupd_trace, dim=0)[:, model.active_units]
 
 if plot_seq == 'epoch':  # plot from start to end in n sections
-    n_ims = 20
+    n_ims = 9 # 9 = 1 im per 2 blocks (16 trials * 2 (2nd update))
     plot_trials = torch.tensor(
         torch.linspace(0, len(inputs) * n_epochs, n_ims), dtype=torch.long)
+
+    # problem=2/3, 6 clus needed this
+    # n_ims = 18 # full
+    # plot_trials = torch.tensor(
+    #     torch.linspace(0, len(inputs) * n_epochs * 2, n_ims), dtype=torch.long)
+    # plot_trials[-1] = plot_trials[-1]-1  # last trial
+
 elif plot_seq == 'trls':  # plot first n trials
-    plot_n_trials = 50
+    plot_n_trials = 80
     plot_trials = torch.arange(plot_n_trials)
 
 # 3d
@@ -241,11 +251,11 @@ if noise and saveplots:
 if plot3d:
     lims = (0, 1)
     # lims = (-.05, 1.05)
-    for i in plot_trials[0:-1]:
+    for i in plot_trials:
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"}, dpi=150)
         ax.scatter(results[i, :, 0],
                    results[i, :, 1],
-                   results[i, :, 2], c='mediumturquoise')  # cornflowerblue / mediumturquoise
+                   results[i, :, 2], c=col[problem])
         ax.set_xlim(lims)
         ax.set_ylim(lims)
         ax.set_zlim(lims)
@@ -264,26 +274,28 @@ if plot3d:
 
         # save
         if saveplots:
-            figname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
-            plt.savefig(figname)
+            figname = os.path.join(figdir, dn, 'trial{}'.format(i))
+            plt.savefig(figname + '.png')
+            plt.savefig(figname + '.pdf')
 
-        plt.pause(.25)
+        plt.pause(.2)
 
-# explore lesion units ++ 
-# model.units_pos[model.lesion_units[0]] # inspect which units were lesions on lesion trial 0
+# explore lesion units ++
+# model.units_pos[model.lesion_units[0]] # inspect which units were lesions on
+# lesion trial 0
 
 # %% make gifs
 
 savegif = False
 
-plot_seq = 'epoch'  # epoch/trls
+plot_seq = 'trls'  # epoch/trls
 
 # set params
-problem = 5
+problem = 0
 lr_clusters = .1
-lr_clusters_group = .0
-upd1noise = .0  # .1/.2
-recnoise = .0  # atm, 0 for dupd, .01 for catlearn
+lr_clusters_group = .4
+upd1noise = .15  # .1/.15/.2
+recnoise = .1
 
 # load from dir
 dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
@@ -295,16 +307,24 @@ dn = ('dupd_shj3d_{}_type{}_{}units_k{}_lr{}_grouplr{}_c{}_phi{}_attn{}_nn{}_'
       )
 
 if plot_seq == 'epoch':  # plot from start to end in n sections
-    n_ims = 20
+    n_ims = 9  # 9 / 20
     plot_trials = torch.tensor(
         torch.linspace(0, len(inputs) * n_epochs, n_ims), dtype=torch.long)
+
+    # # problem 2/3, 6 clus needed this
+    # n_ims = 18  # full
+    # plot_trials = torch.tensor(
+    #     torch.linspace(0, len(inputs) * n_epochs * 2, n_ims),
+    #     dtype=torch.long)
+    # plot_trials[-1] = plot_trials[-1]-1  # last trial
+
 elif plot_seq == 'trls':  # plot first n trials
-    plot_n_trials = 50
+    plot_n_trials = 80
     plot_trials = torch.arange(plot_n_trials)
 
 
 images = []
-for i in plot_trials[0:-1]:
+for i in plot_trials:
     fname = os.path.join(figdir, dn, 'trial{}.png'.format(i))
     images.append(imageio.imread(fname))
 
@@ -457,7 +477,7 @@ for i in range(niter):
 
         # new after trying out gridsearch
         # tensor([[1.6000, 1.0000, 0.4550, 0.2050, 0.3050, 0.7000]])
-        # tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better than above
+        # tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better
 
         params = {
             'r': 1,  # 1=city-block, 2=euclid
@@ -537,7 +557,8 @@ ax.plot(shj.T, 'k')
 ax.plot(pt_all.mean(axis=0).T, 'o-')
 # ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
 ax.set_ylim([0., .55])
-ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'), fontsize=7)
+ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'),
+          fontsize=7)
 
 # %% plotting weights to compare to nbank model
 
@@ -567,7 +588,7 @@ for problem in range(6):
 
 saveplots = 0
 
-problem = 5
+problem = 1
 
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
@@ -789,10 +810,10 @@ ax[3].set_ylim(ylims)
 ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
 ax[3].set_title('{} units'.format(n_units[3]), fontsize=fntsiz-5)
-ax[3].legend(('{} lesions'.format(n_lesions[0]),
-              '{} lesions'.format(n_lesions[1]),
-              '{} lesions'.format(n_lesions[2])),
-             fontsize=fntsiz-8, bbox_to_anchor=(1.1, 1.), loc="lower left")
+# ax[3].legend(('{} lesions'.format(n_lesions[0]),
+#               '{} lesions'.format(n_lesions[1]),
+#               '{} lesions'.format(n_lesions[2])),
+#              fontsize=fntsiz-8, bbox_to_anchor=(1.1, 1.), loc="lower left")
 ax[3].set_box_aspect(1)
 plt.tight_layout()
 if saveplots:
@@ -828,8 +849,8 @@ recr_plot = torch.stack(
 ax[0].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
            markersize=mrksiz)
 ax[0].set_title('{} units'.format(n_units[0]), fontsize=fntsiz-5)
-ax[0].tick_params(axis='x', labelsize=fntsiz-6)
-ax[0].tick_params(axis='y', labelsize=fntsiz-6)
+ax[0].tick_params(axis='x', labelsize=fntsiz-5)
+ax[0].tick_params(axis='y', labelsize=fntsiz-5)
 ax[0].set_ylabel('No. of recruitments', fontsize=fntsiz-3)
 ax[0].set_ylim(ylims)
 ax[0].set_box_aspect(1)
@@ -839,7 +860,7 @@ recr_plot = torch.stack(
 ax[1].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
            markersize=mrksiz)
 ax[1].set_title('{} units'.format(n_units[1]), fontsize=fntsiz-5)
-ax[1].tick_params(axis='x', labelsize=fntsiz-6)
+ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
 ax[1].set_ylim(ylims)
 ax[1].set_xlabel('                    No. of lesions', fontsize=fntsiz-3)
@@ -850,7 +871,7 @@ recr_plot = torch.stack(
 ax[2].plot(['0', '10', '20'], recr_plot, 'o--',
            color=col[problem], markersize=mrksiz)
 ax[2].set_title('{} units'.format(n_units[2]), fontsize=fntsiz-5)
-ax[2].tick_params(axis='x', labelsize=fntsiz-6)
+ax[2].tick_params(axis='x', labelsize=fntsiz-5)
 ax[2].set_yticklabels([])  # remove ticklables
 ax[2].set_ylim(ylims)
 ax[2].set_box_aspect(1)
@@ -860,7 +881,7 @@ recr_plot = torch.stack(
 ax[3].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
            markersize=mrksiz)
 ax[3].set_title('{} units'.format(n_units[3]), fontsize=fntsiz-5)
-ax[3].tick_params(axis='x', labelsize=fntsiz-6)
+ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
 ax[3].set_ylim(ylims)
 ax[3].set_box_aspect(1)
