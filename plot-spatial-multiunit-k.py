@@ -113,7 +113,7 @@ def _compute_act(dist, c, p):
 
 # %% plot
 
-saveplots = True
+saveplots = False
 
 n_sims = 100
 n_units = 1000
@@ -163,14 +163,13 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
 #           [.0075, .01],
 #           [.6, .8, 1.]]  # just .8, 1. for now
 
-
 # low k values w more clus, since <10 clus pattern weirder.. (like '19 paper)
 # even
 params = [[.08, .1, .12, .14, .16, .18],
           [.0075, .01],
           [.6, .8, 1.]]  # just .8, 1. for now
 
-# fewer with odd
+# .08-.18
 params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],  # .19
           [.0075, .01],
           [.6, .8, 1.]]  # just .8, 1. for now
@@ -179,8 +178,8 @@ param_sets = torch.tensor(list(it.product(*params)))
 
 # plot over k first
 # - set lr's for now
-lr = params[1][1]
-lr_group = params[2][2]
+lr = params[1][0]
+lr_group = params[2][0]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:

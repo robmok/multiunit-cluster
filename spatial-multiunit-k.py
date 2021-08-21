@@ -176,7 +176,7 @@ param_sets = torch.tensor(list(it.product(*params)))
 
 
 # split sets
-sets = torch.arange(0, len(param_sets), 2)
+sets = torch.arange(0, len(param_sets), 3)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -189,7 +189,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-5 sets, 2 each
+iset = 0  # 0-3 sets, 3 each
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
