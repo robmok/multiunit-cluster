@@ -29,7 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
-plot3d = True
+plot3d = False
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 # matplotlib first 6 default colours
@@ -173,7 +173,7 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
+noise = {'update1': [0, .2],  # . 1unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
           'recruit': [0., .1],  # .1 recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
@@ -181,7 +181,7 @@ noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=True, lesions=lesions,
+    model, inputs, output, n_epochs, shuffle=False, lesions=lesions,
     noise=noise, shj_order=True)
 
 # # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
@@ -199,12 +199,12 @@ plt.ylim([0, .5])
 plt.show()
 
 # # attention weights
-plt.plot(torch.stack(model.attn_trace, dim=0))
-# figname = os.path.join(figdir,
-#                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
-#                            problem, k, n_units, params['lr_attn'], n_epochs))
-# plt.savefig(figname)
-plt.show()
+# plt.plot(torch.stack(model.attn_trace, dim=0))
+# # figname = os.path.join(figdir,
+# #                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+# #                            problem, k, n_units, params['lr_attn'], n_epochs))
+# # plt.savefig(figname)
+# plt.show()
 
 # # unit positions
 # results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
