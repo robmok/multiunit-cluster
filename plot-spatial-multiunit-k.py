@@ -174,6 +174,12 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],  # .19
           [.0075, .01],
           [.6, .8, 1.]]  # just .8, 1. for now
 
+# faster lrs
+# params = [[.08, .1, .12, .14, .16, .18],
+#           [.015, 0.2],
+#           [1.]]  # just 1.
+
+
 param_sets = torch.tensor(list(it.product(*params)))
 
 # plot over k first
