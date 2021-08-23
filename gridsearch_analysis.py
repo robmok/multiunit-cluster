@@ -19,40 +19,60 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 k = 0.05
 n_units = 500
 
-n_sets = 865  # 250  # gsearch split into how many sets to load in
+n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
 
 resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
     k, n_units))
 
-# get params - 252000, 250 sets
-ranges = ([torch.arange(.8, 2.1, .2),
-          torch.arange(1., 19., 2),
-          torch.arange(.005, .5, .05),
-          torch.arange(.005, .5, .05), #  / lr_scale,  # ignoring this here
-          torch.arange(.005, .5, .05),
-          torch.arange(.1, .9, .2)]
-          )
+# # get params - 252000, 250 sets
+# ranges = ([torch.arange(.8, 2.1, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.005, .5, .05), #  / lr_scale,  # ignoring this here
+#           torch.arange(.005, .5, .05),
+#           torch.arange(.1, .9, .2)]
+#           )
 
-param_sets = torch.tensor(list(it.product(*ranges)))
+# param_sets = torch.tensor(list(it.product(*ranges)))
 
 # best params k=0.05
 # tensor([[1.6000, 1.0000, 0.4550, 0.2050, 0.3050, 0.7000]])
 
-
-# with rest of lr's - 865 sets
-# - this is actually not all.. need combination of 3 lrs...
-ranges = ([torch.arange(.8, 2.1, .2),
-          torch.arange(1., 19., 2),
-          torch.arange(.5, .95, .05),
-          torch.arange(.5, .95, .05),
-          torch.arange(.5, .95, .05),
-          torch.arange(.1, .9, .2)]  # fewer: 4 vals
-          )
-param_sets2 = torch.tensor(list(it.product(*ranges)))
-param_sets = torch.cat([param_sets, param_sets2])
+# # with rest of lr's - 865 sets
+# # - this is actually not all.. need combination of 3 lrs...
+# ranges = ([torch.arange(.8, 2.1, .2),
+#           torch.arange(1., 19., 2),
+#           torch.arange(.5, .95, .05),
+#           torch.arange(.5, .95, .05),
+#           torch.arange(.5, .95, .05),
+#           torch.arange(.1, .9, .2)]  # fewer: 4 vals
+#           )
+# param_sets2 = torch.tensor(list(it.product(*ranges)))
+# param_sets = torch.cat([param_sets, param_sets2])
 
 # best params
 # tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better than above
+
+# new all lr's
+ranges = ([torch.arange(.8, 2.1, .2),
+          torch.arange(1., 19., 2),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1),  # / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
+          )
+
+param_sets = torch.tensor(list(it.product(*ranges)))
+
+# TMP - remove some sets if incomplete - 80, 109
+sets = torch.arange(0, len(param_sets)+1, 700)
+ind = torch.ones(len(param_sets), dtype=torch.bool)
+ind[sets[80]:sets[81]] = False
+ind[sets[109]:sets[110]] = False
+param_sets = param_sets[ind]
+
+# best params
+# tensor([[0.8000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
 
 # load in
 pts = []
@@ -61,7 +81,9 @@ recs = []
 seeds = []
 
 sets = torch.arange(n_sets)
-# sets = sets[sets != 142]  # k=0.05, n_units=500, set 142 has some results but most empty - didn't finish?
+
+# TMP
+sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
 
 # for k0.05/0.01, n_units=500, ran 250 with more sets,
 # so rest of it is from 500+ (whereas others have all 865 sets)
@@ -69,7 +91,7 @@ sets = torch.arange(n_sets)
 # - but why does k0.1 have 250-500 sets? might be a stupid thing like i coded
 # in rest_of_lr's for those scripts. i don't remember editing those..!
 
-sets = torch.cat([torch.arange(250), torch.arange(500, 865)])
+# sets = torch.cat([torch.arange(250), torch.arange(500, 865)])
 
 
 for iset in sets:  # range(n_sets):
@@ -100,7 +122,6 @@ nlls = torch.stack(nlls)
 # TODO: i probably should have a set of sequences to run on each of the param
 # sets so they'd be the same across k conditions...
 # - when i run the "big" one, set and save the seeds
-
 
 # the human data from nosofsky, et al. replication
 shj = (
@@ -137,13 +158,14 @@ shj = (
 match_thresh = .95
 
 # pattern, meet criteria?
-sse = torch.zeros(len(pts))
+mse = torch.zeros(len(pts))
 ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
 for iparam in range(len(pts)):
 
-    # compute sse
-    sse[iparam] = torch.sum(torch.square(
+    # compute mse
+    sse[iparam] = torch.mean(torch.square(
         pts[iparam].T.flatten() - shj.flatten()))
+
 
     # pattern
     ptn = pts[iparam][0] < pts[iparam][1:]  # type I fastest
@@ -163,20 +185,19 @@ plt.plot(nlls[ptn_criteria_1])
 plt.ylim([88, 97])
 # plt.ylim([88, 89])
 plt.show()
-plt.plot(sse[ptn_criteria_1])
-plt.ylim([0, 16.5])
-# plt.ylim([0, 1])
-plt.show()
+plt.plot(mse[ptn_criteria_1])
+plt.ylim([0, 0.1])
+
 
 ind_nll = nlls == nlls[ptn_criteria_1].min()
-ind_sse = sse == sse[ptn_criteria_1].min()
+ind_mse = mse == mse[ptn_criteria_1].min()
 
 # ind_nll = nlls == nlls.min()
 # ind_sse = sse == sse.min()
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 print(param_sets[ind_nll])
-print(param_sets[ind_sse])
+print(param_sets[ind_mse])
 
 # more criteria
 # - maybe faster type I / slower type VI
@@ -197,7 +218,7 @@ ax[0].plot(shj)
 ax[0].set_ylim(ylims)
 ax[0].set_aspect(17)
 ax[0].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-ax[1].plot(pts[ind_sse].T.squeeze())
+ax[1].plot(pts[ind_mse].T.squeeze())
 ax[1].set_ylim(ylims)
 ax[1].set_aspect(17)
 plt.tight_layout()
@@ -210,7 +231,7 @@ plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
-ax.plot(pts[ind_sse].T.squeeze())
+ax.plot(pts[ind_mse].T.squeeze())
 ax.tick_params(axis='x', labelsize=fntsiz-3)
 ax.tick_params(axis='y', labelsize=fntsiz-3)
 ax.set_ylim(ylims)
@@ -243,7 +264,7 @@ plt.show()
 # plot on top of each other
 fig, ax = plt.subplots(1, 1)
 ax.plot(shj, 'k')
-ax.plot(pts[ind_sse].T.squeeze(), 'o-')
+ax.plot(pts[ind_mse].T.squeeze(), 'o-')
 ax.tick_params(axis='x', labelsize=fntsiz-3)
 ax.tick_params(axis='y', labelsize=fntsiz-3)
 ax.set_ylim(ylims)
