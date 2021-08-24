@@ -46,11 +46,11 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 # %% noise experiments
 
-saveplots = True
+saveplots = False
 
 n_sims = 50
 
-problem = 2
+problem = 5
 
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
