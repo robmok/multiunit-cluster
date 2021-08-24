@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import itertools as it
+import time
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
@@ -45,11 +46,11 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 # %% noise experiments
 
-saveplots = False
+saveplots = True
 
-n_sims = 5
+n_sims = 50
 
-problem = 4
+problem = 2
 
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
@@ -80,6 +81,8 @@ recruit_trial = []
 attn_trace = []
 
 # can add loop for problem in range(6)
+t0 = time.time()
+
 for s_cnt, sim_prms in enumerate(it.product(n_units, k, lr_group, noise_upd1)):
     print('Running {} / {} param sets'.format(
         s_cnt+1, len(list(it.product(n_units, k, lr_group, noise_upd1)))))
@@ -159,6 +162,9 @@ for s_cnt, sim_prms in enumerate(it.product(n_units, k, lr_group, noise_upd1)):
         recruit_trial.append(model.recruit_units_trl)
         attn_trace.append(torch.stack(model.attn_trace, dim=0))
 
+t1 = time.time()
+print(t1-t0)
+
 # % plot
 # dotted lines: (0, (3, 10, 1, 15)) means (3pt line, 10pt space, 1pt line, 15pt
 # space) with no offset.
@@ -194,7 +200,7 @@ ax[0].set_ylim(ylims)
 ax[0].tick_params(axis='x', labelsize=fntsiz-5)
 ax[0].tick_params(axis='y', labelsize=fntsiz-5)
 ax[0].set_ylabel('Pr of Error', fontsize=fntsiz-3)
-ax[0].set_title('{}, grp lr {}'.format(n_units[0], lr_group[0]),
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
                 fontsize=fntsiz-8)
 ax[0].set_box_aspect(1)
 
@@ -205,8 +211,9 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                Block', fontsize=fntsiz-3)
-ax[1].set_title('{}, grp lr {}'.format(n_units[0], lr_group[1]),
+ax[1].set_xlabel('                      {} units'.format(n_units[0]),
+                 fontsize=fntsiz-3)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
 
@@ -218,7 +225,7 @@ ax[2].set_ylim(ylims)
 ax[2].tick_params(axis='x', labelsize=fntsiz-5)
 ax[2].set_yticklabels([])  # remove ticklables
 ax[2].set_box_aspect(1)
-ax[2].set_title('{}, grp lr {}'.format(n_units[0], lr_group[2]),
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
                 fontsize=fntsiz-8)
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*3, len_p*4)]
@@ -228,7 +235,7 @@ ax[3].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[3].set_ylim(ylims)
 ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
-ax[3].set_title('{}, grp lr {}'.format(n_units[0], lr_group[3]),
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
 # ax[3].legend(('{} lesions'.format(n_lesions[0]),
 #               '{} lesions'.format(n_lesions[1]),
@@ -258,7 +265,7 @@ ax[0].set_ylim(ylims)
 ax[0].tick_params(axis='x', labelsize=fntsiz-5)
 ax[0].tick_params(axis='y', labelsize=fntsiz-5)
 ax[0].set_ylabel('Pr of Error', fontsize=fntsiz-3)
-ax[0].set_title('{}, grp lr {}'.format(n_units[1], lr_group[0]),
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
                 fontsize=fntsiz-8)
 ax[0].set_box_aspect(1)
 
@@ -269,8 +276,9 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                Block', fontsize=fntsiz-3)
-ax[1].set_title('{}, grp lr {}'.format(n_units[1], lr_group[1]),
+ax[1].set_xlabel('                     {} units'.format(n_units[1]),
+                 fontsize=fntsiz-3)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
 
@@ -282,7 +290,7 @@ ax[2].set_ylim(ylims)
 ax[2].tick_params(axis='x', labelsize=fntsiz-5)
 ax[2].set_yticklabels([])  # remove ticklables
 ax[2].set_box_aspect(1)
-ax[2].set_title('{}, grp lr {}'.format(n_units[1], lr_group[2]),
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
                 fontsize=fntsiz-8)
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*7, len_p*8)]
@@ -292,7 +300,7 @@ ax[3].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[3].set_ylim(ylims)
 ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
-ax[3].set_title('{}, grp lr {}'.format(n_units[1], lr_group[3]),
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
 # ax[3].legend(('{} lesions'.format(n_lesions[0]),
 #               '{} lesions'.format(n_lesions[1]),
@@ -322,7 +330,7 @@ ax[0].set_ylim(ylims)
 ax[0].tick_params(axis='x', labelsize=fntsiz-5)
 ax[0].tick_params(axis='y', labelsize=fntsiz-5)
 ax[0].set_ylabel('Pr of Error', fontsize=fntsiz-3)
-ax[0].set_title('{}, grp lr {}'.format(n_units[2], lr_group[0]),
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
                 fontsize=fntsiz-8)
 ax[0].set_box_aspect(1)
 
@@ -333,8 +341,9 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                Block', fontsize=fntsiz-3)
-ax[1].set_title('{}, grp lr {}'.format(n_units[2], lr_group[1]),
+ax[1].set_xlabel('                     {} units'.format(n_units[2]),
+                 fontsize=fntsiz-3)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
 
@@ -346,7 +355,7 @@ ax[2].set_ylim(ylims)
 ax[2].tick_params(axis='x', labelsize=fntsiz-5)
 ax[2].set_yticklabels([])  # remove ticklables
 ax[2].set_box_aspect(1)
-ax[2].set_title('{}, grp lr {}'.format(n_units[2], lr_group[2]),
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
                 fontsize=fntsiz-8)
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*11, len_p*12)]
@@ -356,7 +365,7 @@ ax[3].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[3].set_ylim(ylims)
 ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
-ax[3].set_title('{}, grp lr {}'.format(n_units[2], lr_group[3]),
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
 # ax[3].legend(('{} lesions'.format(n_lesions[0]),
 #               '{} lesions'.format(n_lesions[1]),
@@ -386,7 +395,7 @@ ax[0].set_ylim(ylims)
 ax[0].tick_params(axis='x', labelsize=fntsiz-5)
 ax[0].tick_params(axis='y', labelsize=fntsiz-5)
 ax[0].set_ylabel('Pr of Error', fontsize=fntsiz-3)
-ax[0].set_title('{}, grp lr {}'.format(n_units[3], lr_group[0]),
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
                 fontsize=fntsiz-8)
 ax[0].set_box_aspect(1)
 
@@ -397,8 +406,9 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                Block', fontsize=fntsiz-3)
-ax[1].set_title('{}, grp lr {}'.format(n_units[3], lr_group[1]),
+ax[1].set_xlabel('                     {} units'.format(n_units[3]),
+                 fontsize=fntsiz-3)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
 
@@ -410,7 +420,7 @@ ax[2].set_ylim(ylims)
 ax[2].tick_params(axis='x', labelsize=fntsiz-5)
 ax[2].set_yticklabels([])  # remove ticklables
 ax[2].set_box_aspect(1)
-ax[2].set_title('{}, grp lr {}'.format(n_units[3], lr_group[2]),
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
                 fontsize=fntsiz-8)
 
 pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p*15, len_p*16)]
@@ -420,7 +430,7 @@ ax[3].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[3].set_ylim(ylims)
 ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
-ax[3].set_title('{}, grp lr {}'.format(n_units[3], lr_group[3]),
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
 # ax[3].legend(('{} lesions'.format(n_lesions[0]),
 #               '{} lesions'.format(n_lesions[1]),
@@ -438,14 +448,6 @@ if saveplots:
     plt.savefig(figname + '.png', dpi=100)
     plt.savefig(figname + '.pdf')
 plt.show()
-
-
-
-
-
-
-
-
 
 
 # # recruit clusters
