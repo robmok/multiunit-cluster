@@ -69,10 +69,10 @@ n_epochs = 16
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
 # things to manipulate
-n_units = [20, 200, 2000, 20000]  # [20, 100, 1000, 10000]
+n_units = [20, 100, 1000, 10000]  # [20, 100, 1000, 10000]
 k = [.05]
-lr_group = [0., .3, .6, .9]
-noise_upd1 = [0., .6, 1.2]
+lr_group = [0., .333, .666, 1.]
+noise_upd1 = [0., .5, 1.]
 
 sim_ps = []
 pt = []
@@ -159,7 +159,7 @@ for s_cnt, sim_prms in enumerate(it.product(n_units, k, lr_group, noise_upd1)):
         recruit_trial.append(model.recruit_units_trl)
         attn_trace.append(torch.stack(model.attn_trace, dim=0))
 
-# %% plot
+# % plot
 # dotted lines: (0, (3, 10, 1, 15)) means (3pt line, 10pt space, 1pt line, 15pt
 # space) with no offset.
 

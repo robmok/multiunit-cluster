@@ -64,12 +64,12 @@ ranges = ([torch.arange(.8, 2.1, .2),
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
-# TMP - remove some sets if incomplete - 80, 109
-sets = torch.arange(0, len(param_sets)+1, 700)
-ind = torch.ones(len(param_sets), dtype=torch.bool)
-ind[sets[80]:sets[81]] = False
-ind[sets[109]:sets[110]] = False
-param_sets = param_sets[ind]
+# # TMP - remove some sets if incomplete - 80, 109
+# sets = torch.arange(0, len(param_sets)+1, 700)
+# ind = torch.ones(len(param_sets), dtype=torch.bool)
+# ind[sets[80]:sets[81]] = False
+# ind[sets[109]:sets[110]] = False
+# param_sets = param_sets[ind]
 
 # best params
 # tensor([[0.8000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
@@ -83,7 +83,7 @@ seeds = []
 sets = torch.arange(n_sets)
 
 # TMP
-sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
+# sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
 
 # for k0.05/0.01, n_units=500, ran 250 with more sets,
 # so rest of it is from 500+ (whereas others have all 865 sets)
@@ -158,14 +158,13 @@ shj = (
 match_thresh = .95
 
 # pattern, meet criteria?
-mse = torch.zeros(len(pts))
+sse = torch.zeros(len(pts))
 ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
 for iparam in range(len(pts)):
 
-    # compute mse
-    sse[iparam] = torch.mean(torch.square(
+    # compute sse
+    sse[iparam] = torch.sum(torch.square(
         pts[iparam].T.flatten() - shj.flatten()))
-
 
     # pattern
     ptn = pts[iparam][0] < pts[iparam][1:]  # type I fastest
@@ -185,25 +184,23 @@ plt.plot(nlls[ptn_criteria_1])
 plt.ylim([88, 97])
 # plt.ylim([88, 89])
 plt.show()
-plt.plot(mse[ptn_criteria_1])
-plt.ylim([0, 0.1])
-
+plt.plot(sse[ptn_criteria_1])
+plt.ylim([0, 9])
 
 ind_nll = nlls == nlls[ptn_criteria_1].min()
-ind_mse = mse == mse[ptn_criteria_1].min()
+ind_sse = sse == sse[ptn_criteria_1].min()
 
 # ind_nll = nlls == nlls.min()
 # ind_sse = sse == sse.min()
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 print(param_sets[ind_nll])
-print(param_sets[ind_mse])
+print(param_sets[ind_sse])
 
 # more criteria
 # - maybe faster type I / slower type VI
 # - types III-V need to be more similar (e.g. within some range)
 # - type I, II and the III-V's need to be larger differences
-
 
 
 # %% plot
@@ -218,7 +215,7 @@ ax[0].plot(shj)
 ax[0].set_ylim(ylims)
 ax[0].set_aspect(17)
 ax[0].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-ax[1].plot(pts[ind_mse].T.squeeze())
+ax[1].plot(pts[ind_sse].T.squeeze())
 ax[1].set_ylim(ylims)
 ax[1].set_aspect(17)
 plt.tight_layout()
@@ -231,7 +228,7 @@ plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
-ax.plot(pts[ind_mse].T.squeeze())
+ax.plot(pts[ind_sse].T.squeeze())
 ax.tick_params(axis='x', labelsize=fntsiz-3)
 ax.tick_params(axis='y', labelsize=fntsiz-3)
 ax.set_ylim(ylims)
@@ -264,11 +261,10 @@ plt.show()
 # plot on top of each other
 fig, ax = plt.subplots(1, 1)
 ax.plot(shj, 'k')
-ax.plot(pts[ind_mse].T.squeeze(), 'o-')
+ax.plot(pts[ind_sse].T.squeeze(), 'o-')
 ax.tick_params(axis='x', labelsize=fntsiz-3)
 ax.tick_params(axis='y', labelsize=fntsiz-3)
 ax.set_ylim(ylims)
 ax.set_xlabel('Learning Block', fontsize=fntsiz)
 ax.set_ylabel('Probability of Error', fontsize=fntsiz)
 plt.show()
-
