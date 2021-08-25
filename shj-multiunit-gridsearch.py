@@ -10,7 +10,6 @@ import os
 import sys
 import numpy as np
 import torch
-# import matplotlib.pyplot as plt
 import itertools as it
 import time
 from scipy import stats
@@ -133,13 +132,6 @@ iset = 0  # 18
 
 # for cbu-cluster
 iset = int(sys.argv[-1])
-# iset = 500+364 # from 500 to 864
-
-# # rest of lr's
-# rest_of_lrs = False
-
-# if rest_of_lrs:
-#     iset = iset-500  # reset when save
 
 n_units = 1000
 k = .05
@@ -153,56 +145,8 @@ sim_info = {
 lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
-# # trying
-# c - 0.8-2 in 0.2 steps; 7
-# phi - 1-19 in 2 steps; 10
-# lr_attn - 0.005-0.455 in .05 steps; 10
-# lr_nn - 0.005-0.5 in .05 steps; 10
-# lr_clusters - .005-.5 in .05 steps; 10
-# lr_clusters_group - .1 to .9 in .15 steps; 6
 
-# # 378000 param sets
-# ranges = ([torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.005, .5, .05) / lr_scale,
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.1, .9, .15)])
-
-# add k, fewer lr_group
-# - with 3 k values, this is double of above: 756000
-# - with 2 k values (just to see how different): 504000. orig is .75 of this. will take 1.33*
-# ranges = ([torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.005, .5, .05) / lr_scale,
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.1, .9, .2),  # fewer: 4 vals
-#           torch.tensor([.05, .1])]
-#           )
-
-# # without k - 252000
-# ranges = ([torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.005, .5, .05) / lr_scale,
-#           torch.arange(.005, .5, .05),
-#           torch.arange(.1, .9, .2)]  # fewer: 4 vals
-#           )
-# # add more lr's
-# # - if double (same nsetss - 25k), 10 more: .5 to .95. arange(.5, 1., .05)
-# # - could go up to .9, then 183708 sets - prob this
-# # - if .85, 129024
-# if rest_of_lrs:
-#     ranges = ([torch.arange(.8, 2.1, .2),
-#               torch.arange(1., 19., 2),
-#               torch.arange(.5, .95, .05),
-#               torch.arange(.5, .95, .05) / lr_scale,
-#               torch.arange(.5, .95, .05),
-#               torch.arange(.1, .9, .2)]  # fewer: 4 vals
-#               )
-
-# new - whole range of lrs, added group lr too
+# whole range of lrs, added group lr too
 ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(1., 19., 2),
           torch.arange(.05, 1., .1),
@@ -223,63 +167,21 @@ ranges = ([torch.arange(.4, 2.1, .2),
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
 
-# set up which subset of param_sets to run on a given run
-# param_sets_curr = param_sets  # all
-
-# update - cluster is faster than expected
+# timing
 # - 160 sets in 8.5 or 11.5 hours
 # - 160/8.5=18.8235 or 160/10.5=15.2381 sets per hour. Let's say 15 per hour.
-# - 	8.5/160=0.0531 or 10.5/160=0.0656 hours per set
-
-# w 378000
-# - divide by 500 sets = 756 per set
-# - divide by 250 sets = 1512 per set
-# - divide by 125 sets = 3024 per set
-# .0656*756=49.59/24=2.066, .0656*1512=99.1872/24=4.13 days (x2 since 250)
-# .0656*3024=198.3744/24=8.26 days
-
-# w 252000
-# 252000/250=1008*.0656=66.1248/24 = 2.7552 days (x2 = 5.51 days)
-
-# let's try 252000, 250 sets (1008 per set); x2 = 5.51 days
-# - run k=0.05, run sbatch w 250 jobs (should run 128 then queue)
-# - then run another sbatch with k=0.01 - check later if this times out since
-# it'll be 7+ days. but maybe ok since it's in a queue, not wall time?
-
-# NEW - now got lowpri - more cores:
-# - orig would've taken 2.755 days
-# 252000/350sets=720*.0656=47.232/24=1.96 days
-# 252000/400=630*.0656=41.328/24=1.72
-# 252000/450=560*.0656=36.736/24=1.53
-# 252000/500=504*.0656=33.0624=1.3776
-
-# 500 sets
-# - Run 0-127 jobs (128 cores) on normal priority
-# - Run 128-499 (372 cores) on lopri.
-
-# rest of lr's - 365 param sets (arange(.5, .95, .05) - up to .9)
-# 183708/365 = 503.3095*.0656=33.0171/24=1.37  days
-# - just do 504, final one have about half
+# - 8.5/160=0.0531 or 10.5/160=0.0656 hours per set
 
 # NEW - decided to test full range of lr's coarser - 315000 sets
 # - 315000/500=630*.0656=41.328/24=1.72 days
 # ah, but i want lopri to be ~300, so has to be less
 # - 315000/450=700*.0656=45.92=1.91 days. 322 lopri sets
 # - 315000/400=787.5*.0656=51.66/24=2.1525 days. 272 lopri sets, def OK.
-# --> try 450 first
+# --> 450
 
+# set up which subset of param_sets to run on a given run
 sets = torch.arange(0, len(param_sets)+1, 700)
-
-# add final set if doesn't mod - for 2nd part of lr's
-# if rest_of_lrs:
-#     sets = torch.cat(
-#         [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
-#     sets = torch.tensor(sets, dtype=torch.long)
-
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
-
-# if rest_of_lrs:
-#     iset = iset+500  # for saving
 
 # testing speed
 # param_sets_curr = param_sets_curr[0:1]

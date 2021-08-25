@@ -295,11 +295,11 @@ recr_n = torch.tensor(
 
 recr_avgs = torch.tensor(
     [[recr_n[ind_sims[i]].mode() for i in range(0, len_p)],
+     [recr_n[ind_sims[i]].mode() for i in range(len_p, len_p*2)],
      [recr_n[ind_sims[i]].mode() for i in range(len_p*2, len_p*3)],
      [recr_n[ind_sims[i]].mode() for i in range(len_p*3, len_p*4)]])
 
-
-ylims = (recr_avgs.min() - .5, recr_avgs.max() + .5)
+ylims = (0, recr_avgs[:, :, 0].max() + .5)  # index since mode gives indices..
 
 mrksiz = 4
 
