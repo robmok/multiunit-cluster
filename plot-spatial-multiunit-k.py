@@ -175,16 +175,16 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],  # .19
           [.6, .8, 1.]]  # just .8, 1. for now
 
 # faster lrs
-# params = [[.08, .1, .12, .14, .16, .18],
-#           [.015, 0.2],
-#           [1.]]  # just 1.
+params = [[.08, .1, .12, .14, .16, .18],
+          [.015, 0.02],
+          [1.]]  # just 1.
 
 
 param_sets = torch.tensor(list(it.product(*params)))
 
 # plot over k first
 # - set lr's for now
-lr = params[1][0]
+lr = params[1][1]
 lr_group = params[2][0]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
@@ -271,9 +271,9 @@ params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
 
-k = .22
+k = .3
 lr = params[1][0]
-lr_group = params[2][1]
+lr_group = params[2][2]
 
 # load
 fn = (
