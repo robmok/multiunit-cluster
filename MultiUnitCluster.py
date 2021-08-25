@@ -356,7 +356,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                     # divide grad by n active units (scales to any n_units)
                     model.attn.data += (
                         model.params['lr_attn']
-                        * (model.attn.grad / model.n_units))
+                        * (model.attn.grad / model.active_units.sum()))
+                        # * (model.attn.grad / model.n_units))
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -663,6 +664,7 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                         # divide grad by n active units (scales to any n_units)
                         model.attn.data += (
                             model.params['lr_attn']  # [itrl]  # when annealing
+                            # * (model.attn.grad / model.active_units.sum()))
                             * (model.attn.grad / model.n_units))
 
                         # ensure attention are non-negative

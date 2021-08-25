@@ -40,7 +40,8 @@ def negloglik(model_pr, beh_seq):
 
 # define model to run
 # - set up model, run through each shj problem, compute nll
-def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device):
+def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device,
+                seeds=None):
     """
     niter: number of runs per SHJ problem with different sequences (randomised)
     """
@@ -49,7 +50,8 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device):
     pt_all = torch.zeros([sim_info['niter'], 6, 16])
     rec_all = [[] for i in range(6)]
 
-    seeds = torch.randperm(sim_info['niter']*100)[:sim_info['niter']]
+    if seeds is None:  # else, put in the seed values
+        seeds = torch.randperm(sim_info['niter']*100)[:sim_info['niter']]
 
     # run niterations, 6 problems
     for problem, i in it.product(range(6), range(sim_info['niter'])):
@@ -139,7 +141,7 @@ iset = int(sys.argv[-1])
 # if rest_of_lrs:
 #     iset = iset-500  # reset when save
 
-n_units = 500
+n_units = 1000
 k = .05
 sim_info = {
     'n_units': n_units,
@@ -209,6 +211,14 @@ ranges = ([torch.arange(.8, 2.1, .2),
           torch.arange(.1, 1., .2)]
           )
 
+# edit - -2 phi (all gd params were 1!), and 2+ lower c values
+ranges = ([torch.arange(.4, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1) / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
+          )
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -278,7 +288,10 @@ param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 pt_all = [[] for i in range(len(param_sets_curr))]
 nlls = [[] for i in range(len(param_sets_curr))]
 rec_all = [[] for i in range(len(param_sets_curr))]
-seeds_all = [[] for i in range(len(param_sets_curr))]
+# seeds_all = [[] for i in range(len(param_sets_curr))]
+
+# set seeds for niters of shj problem randomised - same seqs across params
+seeds = torch.arange(sim_info['niter'])*10
 
 # fname to save to
 fn = os.path.join(datadir,
@@ -291,12 +304,13 @@ for i, fit_params in enumerate(param_sets_curr):
     print('Running param set {}/{} in set {}'.format(
         i+1, len(param_sets_curr), iset))
 
-    nlls[i], pt_all[i], rec_all[i], seeds_all[i] = run_shj_muc(
-        fit_params, sim_info, six_problems, beh_seq, device=device)
+    nlls[i], pt_all[i], rec_all[i], _ = run_shj_muc(
+        fit_params, sim_info, six_problems, beh_seq, device=device,
+        seeds=seeds)
 
     # save at certain points
     if (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
-        shj_gs_res = [nlls, pt_all, rec_all, seeds_all]
+        shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
         open_file.close()
