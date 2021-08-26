@@ -179,9 +179,9 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2,
           [.8]]
 
 # misssed - TO DO
-# params = [[.17],
-#           [.015],
-#           [1.]]
+params = [[.17],
+          [.015],
+          [1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 

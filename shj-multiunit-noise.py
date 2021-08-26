@@ -50,7 +50,7 @@ saveplots = True
 
 n_sims = 50
 
-problem = 3
+problem = 5
 
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
@@ -302,10 +302,6 @@ ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
 ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
-# ax[3].legend(('{} lesions'.format(n_lesions[0]),
-#               '{} lesions'.format(n_lesions[1]),
-#               '{} lesions'.format(n_lesions[2])),
-#              fontsize=fntsiz-8, bbox_to_anchor=(1.1, 1.), loc="lower left")
 ax[3].set_box_aspect(1)
 plt.tight_layout()
 if saveplots:
@@ -367,10 +363,6 @@ ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
 ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
-# ax[3].legend(('{} lesions'.format(n_lesions[0]),
-#               '{} lesions'.format(n_lesions[1]),
-#               '{} lesions'.format(n_lesions[2])),
-#              fontsize=fntsiz-8, bbox_to_anchor=(1.1, 1.), loc="lower left")
 ax[3].set_box_aspect(1)
 plt.tight_layout()
 if saveplots:
@@ -432,10 +424,6 @@ ax[3].tick_params(axis='x', labelsize=fntsiz-5)
 ax[3].set_yticklabels([])  # remove ticklables
 ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
                 fontsize=fntsiz-8)
-# ax[3].legend(('{} lesions'.format(n_lesions[0]),
-#               '{} lesions'.format(n_lesions[1]),
-#               '{} lesions'.format(n_lesions[2])),
-#              fontsize=fntsiz-8, bbox_to_anchor=(1.1, 1.), loc="lower left")
 ax[3].set_box_aspect(1)
 plt.tight_layout()
 if saveplots:
