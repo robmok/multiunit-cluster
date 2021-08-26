@@ -324,4 +324,3 @@ for pset, p in enumerate(param_sets_curr):
                    fn)
     t1 = time.time()
     print(t1-t0)
-
