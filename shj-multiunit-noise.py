@@ -46,11 +46,11 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 # %% noise experiments
 
-saveplots = False
+saveplots = True
 
-n_sims = 1
+n_sims = 50
 
-problem = 5
+problem = 3
 
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
@@ -518,15 +518,205 @@ ax[3].set_ylim(ylims)
 ax[3].set_box_aspect(1)
 plt.tight_layout()
 
-# if saveplots:
-#     figname = os.path.join(figdir,
-#                             'lesion_recruit_k{}_type{}_trl{}_{}-{}-{}-{}units_'
-#                             '{}sims'.format(
-#                                 sim_prms[1], problem+1, lesion_trials[0, 0],
-#                                 n_units[0], n_units[1], n_units[2], n_units[3],
-#                                 n_sims))
-#     plt.savefig(figname + '.png', dpi=100)
-#     plt.savefig(figname + '.pdf')
-# plt.show()
-# # # back to defaults
-# # plt.rcdefaults()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           '_{}sims'.format(
+                                sim_prms[1], problem+1, n_units[0],
+                                noise_upd1[0], noise_upd1[1], noise_upd1[2],
+                                n_sims))
+    plt.savefig(figname + '.png', dpi=100)
+    plt.savefig(figname + '.pdf')
+plt.show()
+
+# 100 units
+fig, ax, = plt.subplots(1, 4)
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*4, len_p*5)])
+ax[0].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
+                fontsize=fntsiz-8)
+ax[0].tick_params(axis='x', labelsize=fntsiz-5)
+ax[0].tick_params(axis='y', labelsize=fntsiz-5)
+ax[0].set_ylabel('No. of recruitments', fontsize=fntsiz-3)
+ax[0].set_ylim(ylims)
+ax[0].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*5, len_p*6)])
+ax[1].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
+                fontsize=fntsiz-8)
+ax[1].tick_params(axis='x', labelsize=fntsiz-5)
+ax[1].set_yticklabels([])  # remove ticklables
+ax[1].set_ylim(ylims)
+ax[1].set_xlabel('                   Update noise (s.d.)', fontsize=fntsiz-3)
+ax[1].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*6, len_p*7)])
+ax[2].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
+                fontsize=fntsiz-8)
+ax[2].tick_params(axis='x', labelsize=fntsiz-5)
+ax[2].set_yticklabels([])  # remove ticklables
+ax[2].set_ylim(ylims)
+ax[2].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*7, len_p*8)])
+ax[3].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
+                fontsize=fntsiz-8)
+ax[3].tick_params(axis='x', labelsize=fntsiz-5)
+ax[3].set_yticklabels([])  # remove ticklables
+ax[3].set_ylim(ylims)
+ax[3].set_box_aspect(1)
+plt.tight_layout()
+
+if saveplots:
+    figname = os.path.join(figdir,
+                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           '_{}sims'.format(
+                                sim_prms[1], problem+1, n_units[1],
+                                noise_upd1[0], noise_upd1[1], noise_upd1[2],
+                                n_sims))
+    plt.savefig(figname + '.png', dpi=100)
+    plt.savefig(figname + '.pdf')
+plt.show()
+
+# 1000 units
+fig, ax, = plt.subplots(1, 4)
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*5, len_p*6)])
+ax[0].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
+                fontsize=fntsiz-8)
+ax[0].tick_params(axis='x', labelsize=fntsiz-5)
+ax[0].tick_params(axis='y', labelsize=fntsiz-5)
+ax[0].set_ylabel('No. of recruitments', fontsize=fntsiz-3)
+ax[0].set_ylim(ylims)
+ax[0].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*6, len_p*7)])
+ax[1].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
+                fontsize=fntsiz-8)
+ax[1].tick_params(axis='x', labelsize=fntsiz-5)
+ax[1].set_yticklabels([])  # remove ticklables
+ax[1].set_ylim(ylims)
+ax[1].set_xlabel('                   Update noise (s.d.)', fontsize=fntsiz-3)
+ax[1].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*7, len_p*8)])
+ax[2].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
+                fontsize=fntsiz-8)
+ax[2].tick_params(axis='x', labelsize=fntsiz-5)
+ax[2].set_yticklabels([])  # remove ticklables
+ax[2].set_ylim(ylims)
+ax[2].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*8, len_p*9)])
+ax[3].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
+                fontsize=fntsiz-8)
+ax[3].tick_params(axis='x', labelsize=fntsiz-5)
+ax[3].set_yticklabels([])  # remove ticklables
+ax[3].set_ylim(ylims)
+ax[3].set_box_aspect(1)
+plt.tight_layout()
+
+if saveplots:
+    figname = os.path.join(figdir,
+                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           '_{}sims'.format(
+                                sim_prms[1], problem+1, n_units[2],
+                                noise_upd1[0], noise_upd1[1], noise_upd1[2],
+                                n_sims))
+    plt.savefig(figname + '.png', dpi=100)
+    plt.savefig(figname + '.pdf')
+plt.show()
+
+# 10000 units
+fig, ax, = plt.subplots(1, 4)
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*9, len_p*10)])
+ax[0].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[0].set_title('Recurrence: {}'.format(lr_group[0]),
+                fontsize=fntsiz-8)
+ax[0].tick_params(axis='x', labelsize=fntsiz-5)
+ax[0].tick_params(axis='y', labelsize=fntsiz-5)
+ax[0].set_ylabel('No. of recruitments', fontsize=fntsiz-3)
+ax[0].set_ylim(ylims)
+ax[0].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*10, len_p*11)])
+ax[1].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
+                fontsize=fntsiz-8)
+ax[1].tick_params(axis='x', labelsize=fntsiz-5)
+ax[1].set_yticklabels([])  # remove ticklables
+ax[1].set_ylim(ylims)
+ax[1].set_xlabel('                   Update noise (s.d.)', fontsize=fntsiz-3)
+ax[1].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*11, len_p*12)])
+ax[2].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[2].set_title('Recurrence: {}'.format(lr_group[2]),
+                fontsize=fntsiz-8)
+ax[2].tick_params(axis='x', labelsize=fntsiz-5)
+ax[2].set_yticklabels([])  # remove ticklables
+ax[2].set_ylim(ylims)
+ax[2].set_box_aspect(1)
+
+recr_plot = torch.stack(
+    [recr_n[ind_sims[i]].mode().values for i in range(len_p*12, len_p*13)])
+ax[3].plot(['{:d}'.format(int(noise_upd1[0])), '{:.1f}'.format(noise_upd1[1]),
+            '{:d}'.format(int(noise_upd1[2]))], recr_plot, 'o--',
+           color=col[problem], markersize=mrksiz)
+ax[3].set_title('Recurrence: {}'.format(lr_group[3]),
+                fontsize=fntsiz-8)
+ax[3].tick_params(axis='x', labelsize=fntsiz-5)
+ax[3].set_yticklabels([])  # remove ticklables
+ax[3].set_ylim(ylims)
+ax[3].set_box_aspect(1)
+plt.tight_layout()
+
+if saveplots:
+    figname = os.path.join(figdir,
+                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           '_{}sims'.format(
+                                sim_prms[1], problem+1, n_units[3],
+                                noise_upd1[0], noise_upd1[1], noise_upd1[2],
+                                n_sims))
+    plt.savefig(figname + '.png', dpi=100)
+    plt.savefig(figname + '.pdf')
+plt.show()

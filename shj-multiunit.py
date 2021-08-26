@@ -29,7 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
-plot3d = False
+plot3d = True
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 # matplotlib first 6 default colours
@@ -56,7 +56,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -68,7 +68,7 @@ output = output.repeat(2).T
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 10000
+n_units = 1000
 n_dims = inputs.shape[1]
 # nn_sizes = [clus_layer_width, 2]  # only association weights at the end
 loss_type = 'cross_entropy'
@@ -98,7 +98,7 @@ params = {
     'lr_attn': .35,  # this scales at grad computation now
     'lr_nn': .0075/lr_scale,  # scale by n_units*k
     'lr_clusters': .1,
-    'lr_clusters_group': .0,
+    'lr_clusters_group': .12,
     'k': k
     }
 
@@ -159,6 +159,48 @@ params = {
 #     'lr_clusters_group': .5,
 #     'k': k
 #     }
+# # tensor([[0.8000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': .8,  # w/ attn grad normalized, c can be large now
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 1.,
+#     'beta': 1.,
+#     'lr_attn': .85,  # this scales at grad computation now
+#     'lr_nn': .65/lr_scale,  # scale by n_units*k
+#     # 'lr_nn': .15*k,  # scale by k
+#     'lr_clusters': .45,  # .075/.1
+#     'lr_clusters_group': .9,
+#     'k': k
+#     }
+
+# # testing for noise plots
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': .75,
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 9.,
+#     'beta': 1.,
+#     'lr_attn': .35,  # this scales at grad computation now
+#     'lr_nn': .0075/lr_scale,  # scale by n_units*k
+#     'lr_clusters': .2,
+#     'lr_clusters_group': .4,
+#     'k': k
+#     }
+
+# best params, slower lr_clus
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .8,  # w/ attn grad normalized, c can be large now
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 1.,
+    'beta': 1.,
+    'lr_attn': .8,  # this scales at grad computation now
+    'lr_nn': .65/lr_scale,  # scale by n_units*k
+    'lr_clusters': .15,  # .075/.1
+    'lr_clusters_group': .4,
+    'k': k
+    }
 
 # lesioning
 lesions = None  # if no lesions
@@ -173,7 +215,7 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .5],  # . 1unit position updates 1 & 2
+noise = {'update1': [0, .1],  # . 1unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
           'recruit': [0., .0],  # .1 recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
@@ -506,6 +548,21 @@ for i in range(niter):
             'k': k
             }
 
+        # tensor([[0.8000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .8,  # w/ attn grad normalized, c can be large now
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1.,
+            'beta': 1.,
+            'lr_attn': .85,  # this scales at grad computation now
+            'lr_nn': .65/lr_scale,  # scale by n_units*k
+            # 'lr_nn': .15*k,  # scale by k
+            'lr_clusters': .45,  # .075/.1
+            'lr_clusters_group': .9,
+            'k': k
+            }
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -553,13 +610,13 @@ shj = (
 # ax[1].set_aspect(17)
 # plt.show()
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(shj.T, 'k')
-# ax.plot(pt_all.mean(axis=0).T, 'o-')
-# # ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
-# ax.set_ylim([0., .55])
-# ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'),
-#           fontsize=7)
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj.T, 'k')
+ax.plot(pt_all.mean(axis=0).T, 'o-')
+# ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
+ax.set_ylim([0., .55])
+ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'),
+          fontsize=7)
 
 # %% plotting weights to compare to nbank model
 

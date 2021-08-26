@@ -60,9 +60,10 @@ def normalise_act_map(nbins, binnumber):
             )
     return norm_mat
 
+
 # %%
 
-saveplots = True
+saveplots = False
 
 act_func = 'gauss'  # laplace or gauss
 
@@ -72,28 +73,33 @@ loc = [.5, .25]
 loc = [.75, .75]
 loc = [.25, .75]
 
-var =  .075
-cmap = 'Blues'
+if act_func == 'gauss':
 
-var = .005
-cmap = 'YlOrBr'
+    # wide tuning
+    var = .075
+    cmap = 'Blues'
 
-# # laplace
-# # for clusters
-# loc0 = [.25, .25]
-# loc1 = [.75, .75]
+    # narrow tuning
+    var = .005
+    cmap = 'YlOrBr'
 
-# c = .5
-# cmap = 'Blues'
-# # cmap = 'PuBu'
+    cov = torch.cholesky(torch.eye(2) * var)
+    mvn1 = torch.distributions.MultivariateNormal(torch.tensor(loc),
+                                                  scale_tril=cov)
 
-# c = 20
-# cmap = 'YlOrBr'
+else:  # laplace
+    loc0 = [.25, .25]
+    loc1 = [.75, .75]
 
-# gauss
-cov = torch.cholesky(torch.eye(2) * var)
-mvn1 = torch.distributions.MultivariateNormal(torch.tensor(loc),
-                                              scale_tril=cov)
+    # wide tuning
+    c = .5
+    cmap = 'Blues'
+    # cmap = 'PuBu'
+
+    # narrow tuning
+    c = 20
+    cmap = 'YlOrBr'
+
 
 path_test = torch.tensor(
     list(it.product(torch.arange(0, 1, .01), torch.arange(0, 1, .01))))
@@ -146,11 +152,3 @@ if saveplots:
     # plt.savefig(figname, dpi=100)
     plt.savefig(figname + '.pdf')
 plt.show()
-
-
-# %% plot diamond heatmaps for figure 4
-
-loc0 = [.25, .75]
-loc1 = [.75, .25]
-
-
