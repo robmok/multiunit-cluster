@@ -172,16 +172,16 @@ params = [[.09, .11, .13, .15, .16, .19, .2, .21, .22, .23, .24, .25, .26,
           [.015],  # faster
           [1.]]
 
-# # then - lr=0.015, group_lr=.8?
-# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2,
-#            .21, .22, .23, .24, .25, .26, .27, .28, .29, 3.],
-#           [.015],
-#           [.8]]
+# then - lr=0.015, group_lr=.8?
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2,
+            .21, .22, .23, .24, .25, .26, .27, .28, .29, 3.],
+          [.015],
+          [.8]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
-sets = torch.arange(0, len(param_sets), 3)
+sets = torch.arange(0, len(param_sets), 4)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -194,7 +194,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-5 sets, 3 each, 2 for last
+iset = 0  # 0-5 sets, 4 each, 3 at end
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
