@@ -211,8 +211,7 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                      {} units'.format(n_units[0]),
-                 fontsize=fntsiz-3)
+ax[1].set_xlabel('                      Block', fontsize=fntsiz-3)
 ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
@@ -276,8 +275,7 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                     {} units'.format(n_units[1]),
-                 fontsize=fntsiz-3)
+ax[1].set_xlabel('                      Block', fontsize=fntsiz-3)
 ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
@@ -337,8 +335,7 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                     {} units'.format(n_units[2]),
-                 fontsize=fntsiz-3)
+ax[1].set_xlabel('                      Block', fontsize=fntsiz-3)
 ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
@@ -398,8 +395,7 @@ ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
 ax[1].set_ylim(ylims)
 ax[1].tick_params(axis='x', labelsize=fntsiz-5)
 ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_xlabel('                     {} units'.format(n_units[3]),
-                 fontsize=fntsiz-3)
+ax[1].set_xlabel('                      Block', fontsize=fntsiz-3)
 ax[1].set_title('Recurrence: {}'.format(lr_group[1]),
                 fontsize=fntsiz-8)
 ax[1].set_box_aspect(1)
@@ -508,7 +504,7 @@ plt.tight_layout()
 
 if saveplots:
     figname = os.path.join(figdir,
-                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           'noise_recruit_subplot_k{}_type{}_{}units_noise{}-{}-{}'
                            '_{}sims'.format(
                                 sim_prms[1], problem+1, n_units[0],
                                 noise_upd1[0], noise_upd1[1], noise_upd1[2],
@@ -572,7 +568,7 @@ plt.tight_layout()
 
 if saveplots:
     figname = os.path.join(figdir,
-                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           'noise_recruit_subplot_k{}_type{}_{}units_noise{}-{}-{}'
                            '_{}sims'.format(
                                 sim_prms[1], problem+1, n_units[1],
                                 noise_upd1[0], noise_upd1[1], noise_upd1[2],
@@ -636,7 +632,7 @@ plt.tight_layout()
 
 if saveplots:
     figname = os.path.join(figdir,
-                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           'noise_recruit_subplot_k{}_type{}_{}units_noise{}-{}-{}'
                            '_{}sims'.format(
                                 sim_prms[1], problem+1, n_units[2],
                                 noise_upd1[0], noise_upd1[1], noise_upd1[2],
@@ -700,7 +696,7 @@ plt.tight_layout()
 
 if saveplots:
     figname = os.path.join(figdir,
-                           'noise_pt_subplot_k{}_type{}_{}units_noise{}-{}-{}'
+                           'noise_recruit_subplot_k{}_type{}_{}units_noise{}-{}-{}'
                            '_{}sims'.format(
                                 sim_prms[1], problem+1, n_units[3],
                                 noise_upd1[0], noise_upd1[1], noise_upd1[2],
