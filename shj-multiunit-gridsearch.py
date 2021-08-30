@@ -199,19 +199,40 @@ seeds = torch.arange(sim_info['niter'])*10
 fn = os.path.join(datadir,
                   'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
+# on mbp testing
+# fn = os.path.join(datadir, 'gsearch_k0.05_1000units/'
+#                'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
+# if file exists, load up and rerun
+if os.path.exists(fn):
+    open_file = open(fn, "rb")
+    loaded_list = pickle.load(open_file)
+    open_file.close()
+
+    # load back in
+    nlls = loaded_list[0]
+    pt_all = loaded_list[1]
+    rec_all = loaded_list[2]
+
+    # find where to restart from
+    ind = [nlls[i] == [] for i in range(len(param_sets_curr))]
+    start = torch.nonzero(torch.tensor(ind)).min()
+else:
+    start = 0
+
 # grid search
 t0 = time.time()
-for i, fit_params in enumerate(param_sets_curr):
+for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
 
     print('Running param set {}/{} in set {}'.format(
-        i+1, len(param_sets_curr), iset))
+        i + 1 + start, len(param_sets_curr), iset))
 
     nlls[i], pt_all[i], rec_all[i], _ = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq, device=device,
         seeds=seeds)
 
-    # save at certain points
-    if (np.mod(i, 100) == 0) | (i == len(param_sets_curr)-1):
+    # save at certain points and at the end
+    if (np.mod(i + start, 100) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)

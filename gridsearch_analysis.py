@@ -17,7 +17,7 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 k = 0.05
-n_units = 500
+n_units = 1000
 
 n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
 

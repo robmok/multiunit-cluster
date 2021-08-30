@@ -56,7 +56,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -198,7 +198,7 @@ params = {
     'lr_attn': .8,  # this scales at grad computation now
     'lr_nn': .65/lr_scale,  # scale by n_units*k
     'lr_clusters': .15,  # .075/.1
-    'lr_clusters_group': .4,
+    'lr_clusters_group': .5,
     'k': k
     }
 
@@ -215,9 +215,9 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .1],  # . 1unit position updates 1 & 2
+noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-          'recruit': [0., .0],  # .1 recruitment position placement
+          'recruit': [0., .1],  # .1 recruitment position placement
           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
@@ -328,14 +328,14 @@ if plot3d:
 
 # %% make gifs
 
-savegif = False
+savegif = True
 
 plot_seq = 'trls'  # epoch/trls
 
 # set params
-problem = 0
-lr_clusters = .1
-lr_clusters_group = .4
+problem = 5
+lr_clusters = .15
+lr_clusters_group = .5
 upd1noise = .15  # .1/.15/.2
 recnoise = .1
 
