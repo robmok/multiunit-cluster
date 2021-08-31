@@ -179,17 +179,26 @@ params = [[.08, .1, .12, .14, .16, .18],
           [.015, 0.02],
           [1.]]  # just 1.
 
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
-           .22, .24, .26, .28, .3],
-          [.015],
-          [1.]]  # just 1.
+# .0075, .015
+# - .0075 more g>0.2 for group_lr=1.0. looks a bit better too
+# -
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .18, .19, .2, .21,
+           .22, .24, .26, .28],
+          [.0075, .015],
+          [.8, 1.]]
 
-param_sets = torch.tensor(list(it.product(*params)))
+# fewer - # .0075, .01, .015
+# grouplr=.8: .01 some higher .0075.. but latter more balanced so num's end up similar.
+# grouplr=1.0: all v sim. maybe .0075/.01 better
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
+          [.0075, .01, .015],
+          [.8, 1.]]
+
 
 # plot over k first
 # - set lr's for now
-lr = params[1][0]
-lr_group = params[2][0]
+lr = params[1][2]
+lr_group = params[2][1]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
