@@ -54,10 +54,10 @@ resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
 # tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better than above
 
 # new all lr's
-ranges = ([torch.arange(.8, 2.1, .2),
-          torch.arange(1., 19., 2),
+ranges = ([torch.arange(.4, 2.1, .2),
+          torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),  # / lr_scale,
+          torch.arange(.05, 1., .1),
           torch.arange(.05, 1., .1),
           torch.arange(.1, 1., .2)]
           )
@@ -157,9 +157,32 @@ shj = (
 # - note depending on the comparison, num total is diff (so prop is diff)
 match_thresh = .95
 
-# pattern, meet criteria?
+# criterion 1 - shj pattern (qualitative)
 sse = torch.zeros(len(pts))
 ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
+
+# criterion 2 (quantitative - shj curves difference magnitude)
+sse_diff = torch.zeros(len(pts))
+shj_diff = torch.tensor([
+    torch.sum((shj[:, 1] - shj[:, 0])),
+    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
+    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1)))])
+
+# include types 3-5 differences? should be low.. lower but not nth..
+shj_diff = torch.tensor([
+    torch.sum((shj[:, 1] - shj[:, 0])),
+    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
+    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
+    torch.sum(torch.abs(shj[:, 2] - shj[:, 3])),
+    torch.sum(torch.abs(shj[:, 2] - shj[:, 4])),
+    torch.sum(torch.abs(shj[:, 3] - shj[:, 4]))])
+# or assume diffs between them 0
+shj_diff = torch.tensor([
+    torch.sum((shj[:, 1] - shj[:, 0])),
+    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
+    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
+    0, 0, 0])
+
 for iparam in range(len(pts)):
 
     # compute sse
@@ -176,31 +199,64 @@ for iparam in range(len(pts)):
 
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
+    # difference between curves magnitude
+    # diff = torch.tensor([
+    #     torch.sum(pts[iparam][1] - pts[iparam][0]),
+    #     torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
+    #     torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))])
+    # include diffs of 3-5
+    diff = torch.tensor([
+        torch.sum(pts[iparam][1] - pts[iparam][0]),
+        torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
+        torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0)),
+        torch.sum(torch.abs(pts[iparam][2] - pts[iparam][3])),
+        torch.sum(torch.abs(pts[iparam][2] - pts[iparam][4])),
+        torch.sum(torch.abs(pts[iparam][3] - pts[iparam][4]))
+        ])
+
+    sse_diff[iparam] = torch.sum(torch.square(diff - shj_diff))
 
 # criteria 1 already reduces to <12% of the params
-
-# sse and nll very similar, though LOWEST value differ. interesting
-plt.plot(nlls[ptn_criteria_1])
-plt.ylim([88, 97])
-# plt.ylim([88, 89])
-plt.show()
-plt.plot(sse[ptn_criteria_1])
-plt.ylim([0, 9])
 
 ind_nll = nlls == nlls[ptn_criteria_1].min()
 ind_sse = sse == sse[ptn_criteria_1].min()
 
-# ind_nll = nlls == nlls.min()
-# ind_sse = sse == sse.min()
+# 2 sses weighted
+# - with mse & mean all, w=.35-.4
+# - with sse & sum all, w=.9. less then pr3 fast. more then too steep 6
+w = .9 # larger = weight total more, smaller = weight differences more
+sses_w = sse * w + sse_diff * (1-w)
+# ind_sse_w = sses_w == sses_w[~sses_w.isnan()].min()  # ignore qual pattern
+ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 print(param_sets[ind_nll])
 print(param_sets[ind_sse])
 
+print(param_sets[ind_sse_w])
+
+plt.plot(nlls[ptn_criteria_1])
+# plt.ylim([88, 97])
+plt.show()
+plt.plot(sse[ptn_criteria_1])
+# plt.ylim([0, 9])
+plt.show()
+plt.plot(sses_w[ptn_criteria_1])
+plt.show()
+
+# select which to use
+ind = ind_sse_w
+
 # more criteria
 # - maybe faster type I / slower type VI
 # - types III-V need to be more similar (e.g. within some range)
 # - type I, II and the III-V's need to be larger differences
+
+
+
+# maybe run MLE after gridsearch
+
+
 
 
 # %% plot
@@ -215,7 +271,7 @@ ax[0].plot(shj)
 ax[0].set_ylim(ylims)
 ax[0].set_aspect(17)
 ax[0].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-ax[1].plot(pts[ind_sse].T.squeeze())
+ax[1].plot(pts[ind].T.squeeze())
 ax[1].set_ylim(ylims)
 ax[1].set_aspect(17)
 plt.tight_layout()
@@ -228,7 +284,7 @@ plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
-ax.plot(pts[ind_sse].T.squeeze())
+ax.plot(pts[ind].T.squeeze())
 ax.tick_params(axis='x', labelsize=fntsiz-3)
 ax.tick_params(axis='y', labelsize=fntsiz-3)
 ax.set_ylim(ylims)
@@ -261,7 +317,7 @@ plt.show()
 # plot on top of each other
 fig, ax = plt.subplots(1, 1)
 ax.plot(shj, 'k')
-ax.plot(pts[ind_sse].T.squeeze(), 'o-')
+ax.plot(pts[ind].T.squeeze(), 'o-')
 ax.tick_params(axis='x', labelsize=fntsiz-3)
 ax.tick_params(axis='y', labelsize=fntsiz-3)
 ax.set_ylim(ylims)

@@ -29,7 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
-plot3d = True
+plot3d = False
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 # matplotlib first 6 default colours
@@ -202,6 +202,20 @@ params = {
     'k': k
     }
 
+# tensor([ 2.0000, 17.0000,  0.9500,  0.9500,  0.9500,  0.9000])
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': 2.,  # w/ attn grad normalized, c can be large now
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 17.,
+    'beta': 1.,
+    'lr_attn': .95,  # this scales at grad computation now
+    'lr_nn': .95/lr_scale,  # scale by n_units*k
+    'lr_clusters': .95,  # .075/.1
+    'lr_clusters_group': .9,
+    'k': k
+    }
+
 # lesioning
 lesions = None  # if no lesions
 # lesions = {
@@ -215,10 +229,10 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
-          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-          'recruit': [0., .1],  # .1 recruitment position placement
-          'act': [.5, .1]}  # unit activations (non-negative)
+# noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
+#           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+#           'recruit': [0., .1],  # .1 recruitment position placement
+#           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -233,7 +247,7 @@ model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
 
 print(model.recruit_units_trl)
 # print(len(model.recruit_units_trl))
-
+print(epoch_ptarget)
 
 # pr target
 plt.plot(1 - epoch_ptarget.detach())
@@ -423,7 +437,7 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-        n_units = 5000
+        n_units = 1000
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
         k = .05  # top k%. so .05 = top 5%
@@ -518,47 +532,32 @@ for i in range(niter):
         #     }
 
         # new after trying out gridsearch
-        # tensor([[1.6000, 1.0000, 0.4550, 0.2050, 0.3050, 0.7000]])
-        # tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better
 
+        # tensor([[1.8000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]]) # mse
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.6,  # w/ attn grad normalized, c can be large now
+            'c': 1.8,
             'p': 1,  # p=1 exp, p=2 gauss
             'phi': 1.,
             'beta': 1.,
-            'lr_attn': .455,  # this scales at grad computation now
-            'lr_nn': .205/lr_scale,  # scale by n_units*k
-            'lr_clusters': .305,  # .075/.1
-            'lr_clusters_group': .7,
+            'lr_attn': .55,  # this scales at grad computation now
+            'lr_nn': .15/lr_scale,  # scale by n_units*k
+            # 'lr_nn': .15*k,  # scale by k
+            'lr_clusters': .15,  # .075/.1
+            'lr_clusters_group': .9,
             'k': k
             }
-
+        # tensor([[0.4000, 7.0000, 0.9500, 0.0500, 0.3500, 0.9000]])# sse- seems more stable with recruited clusters
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': .8,  # w/ attn grad normalized, c can be large now
+            'c': .4,
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.,
+            'phi': 7.,
             'beta': 1.,
-            'lr_attn': .8,  # this scales at grad computation now
-            'lr_nn': .65/lr_scale,  # scale by n_units*k
+            'lr_attn': .95,  # this scales at grad computation now
+            'lr_nn': .05/lr_scale,  # scale by n_units*k
             # 'lr_nn': .15*k,  # scale by k
-            'lr_clusters': .5,  # .075/.1
-            'lr_clusters_group': .5,
-            'k': k
-            }
-
-        # tensor([[0.8000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .8,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.,
-            'beta': 1.,
-            'lr_attn': .85,  # this scales at grad computation now
-            'lr_nn': .65/lr_scale,  # scale by n_units*k
-            # 'lr_nn': .15*k,  # scale by k
-            'lr_clusters': .45,  # .075/.1
+            'lr_clusters': .35,  # .075/.1
             'lr_clusters_group': .9,
             'k': k
             }
@@ -566,7 +565,8 @@ for i in range(niter):
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True, shuffle_seed=2, shj_order=True)
+            model, inputs, output, n_epochs, shuffle=True,
+            shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 
@@ -574,6 +574,7 @@ for i in range(niter):
         attn_trace[problem].append(torch.stack(model.attn_trace))
 
         print(model.recruit_units_trl)
+
 
 plt.plot(pt_all.mean(axis=0).T)
 plt.ylim([0., 0.55])

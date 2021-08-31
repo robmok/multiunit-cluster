@@ -29,9 +29,6 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-# gpu if available - cpu much faster for this
-device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
-
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -39,7 +36,7 @@ def negloglik(model_pr, beh_seq):
 
 # define model to run
 # - set up model, run through each shj problem, compute nll
-def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device,
+def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
                 seeds=None):
     """
     niter: number of runs per SHJ problem with different sequences (randomised)
@@ -70,12 +67,11 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device,
                                  sim_info['k'],
                                  params=None,
                                  fit_params=True,
-                                 start_params=start_params,
-                                 device=device).to(device)
+                                 start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i],
-            shj_order=True, device=device)
+            shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         rec_all[problem].append(model.recruit_units_trl)
@@ -84,7 +80,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq, device,
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    return nll_all.sum(), pt_all.mean(axis=0), rec_all, seeds
+    return nll_all.sum(), np.nanmean(pt_all.mean, axis=0), rec_all, seeds
 
 
 # %% grid search, fit shj
@@ -128,13 +124,13 @@ beh_seq = shj.T
 
 
 # start
-iset = 0  # 18
+iset = 0
 
 # for cbu-cluster
 iset = int(sys.argv[-1])
 
-n_units = 1000
-k = .05
+n_units = 2000
+k = .01
 sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
@@ -164,6 +160,15 @@ ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(.1, 1., .2)]
           )
 
+# add 1 more c value
+ranges = ([torch.arange(.2, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1) / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
+          )
+
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -179,8 +184,18 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # - 315000/400=787.5*.0656=51.66/24=2.1525 days. 272 lopri sets, def OK.
 # --> 450
 
+# added 2 lower c's, removed 2 higher phi's
+
+# added another lower c val
+# 350000/450=777.77*.0656=51.02/24=2.125 days
+
 # set up which subset of param_sets to run on a given run
-sets = torch.arange(0, len(param_sets)+1, 700)
+sets = torch.arange(0, len(param_sets)+1, 778)
+# not a great way to add final set on
+sets = torch.cat(
+    [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
+sets = torch.tensor(sets, dtype=torch.long)
+
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
 # testing speed
@@ -228,8 +243,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
         i + 1 + start, len(param_sets_curr), iset))
 
     nlls[i], pt_all[i], rec_all[i], _ = run_shj_muc(
-        fit_params, sim_info, six_problems, beh_seq, device=device,
-        seeds=seeds)
+        fit_params, sim_info, six_problems, beh_seq, seeds=seeds)
 
     # save at certain points and at the end
     if (np.mod(i + start, 100) == 0) | (i + start == len(param_sets_curr)-1):
