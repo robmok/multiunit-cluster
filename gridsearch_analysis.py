@@ -220,7 +220,7 @@ ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
 # 2 sses weighted
 # - with mse & mean all, w=.35-.4
 # - with sse & sum all, w=.9. less then pr3 fast. more then too steep 6
-w = .1 # larger = weight total more, smaller = weight differences more
+w = .5 # larger = weight total more, smaller = weight differences more
 sses_w = sse * w + sse_diff * (1-w)
 # ind_sse_w = sses_w == sses_w[~sses_w.isnan()].min()  # ignore qual pattern
 ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
