@@ -189,21 +189,21 @@ params = [[.11],
           [.015],
           [1.]]
 
-# ann_rate = 150  # faster
-# params = [[.11],
-#           [.015],
-#           [1.]]
+ann_rate = 150  # faster
+params = [[.11],
+          [.015],
+          [1.]]
 
-# ann_rate = 50 # change to 500k trials, slower
-# params = [[.11],
-#           [.015],
-#           [1.]]
+# change to 500k trials,
+ann_rate = 50 # slower
+params = [[.11],
+          [.015],
+          [1.]]
 
-# TO RUN
-# ann_rate = 200 # 500k trials, faster
-# params = [[.11],
-#           [.015],
-#           [1.]]
+ann_rate = 200 # 500k trials, faster
+params = [[.11],
+          [.015],
+          [1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 
