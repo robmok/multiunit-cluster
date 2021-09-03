@@ -166,26 +166,44 @@ attn_type = 'dimensional_local'
 #           [.015, .02],  # faster
 #           [1.]]  # probably 1 is best, but check 0.6 results above first
 
-# odds and more - 17 sets
-params = [[.09, .11, .13, .15, .16, .19, .2, .21, .22, .23, .24, .25, .26,
-           .27, .28, .29, 3.],
-          [.015],  # faster
-          [1.]]
+# # odds and more - 17 sets
+# params = [[.09, .11, .13, .15, .16, .19, .2, .21, .22, .23, .24, .25, .26,
+#            .27, .28, .29, 3.],
+#           [.015],  # faster
+#           [1.]]
 
-# then - lr=0.015, group_lr=.8
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2,
-            .21, .22, .23, .24, .25, .26, .27, .28, .29, 3.],
+# # then - lr=0.015, group_lr=.8
+# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2,
+#             .21, .22, .23, .24, .25, .26, .27, .28, .29, 3.],
+#           [.015],
+#           [.8]]
+
+# # 1m trials
+# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
+#           [.01],
+#           [1.]]
+
+# test different annealing rates w 1m trials- before 100
+ann_rate = 50  # this with 1m trials is same as 100 for 500k trials
+params = [[.11],
           [.015],
-          [.8]]
-
-# 1m trials
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
-          [.01],
           [1.]]
 
-# next - lr=.0075 / .015. maybe try group lr=.08?
+# ann_rate = 150  # faster
+# params = [[.11],
+#           [.015],
+#           [1.]]
 
+# ann_rate = 50 # change to 500k trials, slower
+# params = [[.11],
+#           [.015],
+#           [1.]]
 
+# TO RUN
+# ann_rate = 200 # 500k trials, faster
+# params = [[.11],
+#           [.015],
+#           [1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 
@@ -237,7 +255,7 @@ for pset, p in enumerate(param_sets_curr):
         # annealed lr
         orig_lr = p[1]
         ann_c = (1/n_trials)/n_trials
-        ann_decay = ann_c * (n_trials * 100)  # 100
+        ann_decay = ann_c * (n_trials * ann_rate)  # ann_rate=100
         lr = [orig_lr / (1 + (ann_decay * itrial))
               for itrial in range(n_trials)]
 
@@ -322,6 +340,16 @@ for pset, p in enumerate(param_sets_curr):
                          '{:d}sims.pkl'.format(
                              n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
             )
+
+        # test ann rate
+        fn = (
+            os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
+                         'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
+                         '{:d}sims_annrate{}.pkl'.format(
+                             n_units, p[0], p[1], p[2], n_trials//1000,
+                             n_sims, ann_rate))
+            )
+
         # open_file = open(fn1, "wb")
         # pickle.dump(score_60, open_file)
         # open_file.close()

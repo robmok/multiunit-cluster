@@ -24,7 +24,7 @@ elif location == 'cluster':
     maindir = '/imaging/duncan/users/rm05/'
     sys.path.append('/home/rm05/Documents/multiunit-cluster')
 
-from MultiUnitCluster import (MultiUnitCluster, train)
+from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
@@ -41,8 +41,10 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
     niter: number of runs per SHJ problem with different sequences (randomised)
     """
 
+    n_banks = 2
+
     nll_all = torch.zeros(6)
-    pt_all = torch.zeros([sim_info['niter'], 6, 16])
+    pt_all = torch.zeros([sim_info['niter'], 6, n_banks+1, 16])
     rec_all = [[] for i in range(6)]
 
     if seeds is None:  # else, put in the seed values
@@ -61,7 +63,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
         n_dims = inputs.shape[1]
 
         # initialize model
-        model = MultiUnitCluster(sim_info['n_units'], n_dims,
+        model = MultiUnitClusterNBanks(sim_info['n_units'], n_dims, n_banks,
                                  sim_info['attn_type'],
                                  sim_info['k'],
                                  params=None,
@@ -75,8 +77,8 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         rec_all[problem].append(model.recruit_units_trl)
 
-    for problem in range(6):
-        nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
+    for problem in range(6):  # TODO - check if this computing correctly
+        nll_all[problem] = negloglik(pt_all[:, problem, 0].mean(axis=0),  # 0 indexing the output of the nbanks
                                      beh_seq[:, problem])
 
     return nll_all.sum(), np.nanmean(pt_all, axis=0), rec_all, seeds
