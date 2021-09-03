@@ -15,7 +15,7 @@ import time
 from scipy import stats
 import pickle
 
-location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
+location = 'mbp'  # 'mbp' or 'cluster' (cbu cluster - unix)
 
 if location == 'mbp':
     maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
@@ -26,7 +26,6 @@ elif location == 'cluster':
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
-figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
 
@@ -127,7 +126,7 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-iset = int(sys.argv[-1])
+# iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -221,7 +220,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
 # testing speed
-# param_sets_curr = param_sets_curr[0:1]
+param_sets_curr = param_sets_curr[0:1]
 
 # use list, so can combine later
 pt_all = [[] for i in range(len(param_sets_curr))]
@@ -234,11 +233,8 @@ seeds = torch.arange(sim_info['niter'])*10
 
 # fname to save to
 fn = os.path.join(datadir,
-                  'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
-
-# on mbp testing
-# fn = os.path.join(datadir, 'gsearch_k0.05_1000units/'
-#                'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+                  'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
+                      k, n_units, iset))
 
 # if file exists, load up and rerun
 if os.path.exists(fn):
@@ -273,10 +269,6 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
         open_file.close()
-
-        # print time elapsed till now
-    # t1 = time.time()
-    # print(t1-t0)
 
 t1 = time.time()
 print(t1-t0)

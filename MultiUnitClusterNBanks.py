@@ -17,7 +17,8 @@ import warnings
 
 
 class MultiUnitClusterNBanks(nn.Module):
-    def __init__(self, n_units, n_dims, n_banks, attn_type, k, params=None):
+    def __init__(self, n_units, n_dims, n_banks, attn_type, k, params=None,
+                 fit_params=False, start_params=False):
         super(MultiUnitClusterNBanks, self).__init__()
         self.attn_type = attn_type
         self.n_units = n_units
@@ -40,19 +41,36 @@ class MultiUnitClusterNBanks(nn.Module):
         self.dist_trace = []
         self.act_trace = []
 
+        lr_scale = (self.n_units * k) / 1
+
         # free params
         if params:
             self.params = params
         else:
             self.params = {
-                'r': 1,  # 1=city-block, 2=euclid
-                'c': 2,  # node specificity
-                'p': 1,  # alcove: p=1 exp, p=2 gauss
-                'phi': 1,  # response parameter, non-negative
-                'lr_attn': .25,
-                'lr_nn': .25,
-                'lr_clusters': .15,
-                'lr_clusters_group': .95,
+                'r': 1,
+                'c': [.75, 2.5],
+                'p': 1,
+                'phi': [1.3, 1.2],
+                'beta': 1,
+                'lr_attn': [.2, .002],
+                'lr_nn': [.05/lr_scale, .01/lr_scale],
+                'lr_clusters': [.05, .05],
+                'lr_clusters_group': [.1, .1],
+                'k': k
+                }
+
+        if fit_params:
+            self.params = {
+                'r': 1,
+                'c': [start_params[0], start_params[6]],
+                'p': 1,
+                'phi': [start_params[1], start_params[7]],
+                'beta': 1,
+                'lr_attn': [start_params[2], start_params[8]],
+                'lr_nn': [start_params[3]/lr_scale, start_params[9]/lr_scale],
+                'lr_clusters': [start_params[4], start_params[10]],
+                'lr_clusters_group': [start_params[5], start_params[11]],
                 'k': k
                 }
 
@@ -154,7 +172,8 @@ class MultiUnitClusterNBanks(nn.Module):
         return out, pr
 
 
-def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
+def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
+          lesions=None, noise=None, shj_order=False):   # to add noise
 
     criterion = nn.CrossEntropyLoss()
 
@@ -187,15 +206,29 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
             lesion_trials = lesions['lesion_trials']
 
     model.train()
+
+    if shuffle_seed:
+        torch.manual_seed(shuffle_seed)
+
     for epoch in range(n_epochs):
         # torch.manual_seed(5)
         if shuffle:
             shuffle_ind = torch.randperm(len(inputs))
             inputs_ = inputs[shuffle_ind]
             output_ = output[shuffle_ind]
+
+        # 1st block, show 8 unique stim, then 8 again. after, shuffle 16
+        if shj_order:
+            shuffle_ind = torch.cat(
+                [torch.randperm(len(inputs)//2),
+                 torch.randperm(len(inputs)//2) + len(inputs)//2])
+            inputs_ = inputs[shuffle_ind]
+            output_ = output[shuffle_ind]
+
         else:
             inputs_ = inputs
             output_ = output
+
         for x, target in zip(inputs_, output_):
 
             # testing
@@ -329,13 +362,15 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                                     model.params['c'][ibank],
                                     model.params['p']))
                             )
-                        
+
                         # compute gradient
                         act_1.backward(retain_graph=True)
                         # divide grad by n active units (scales to any n_units)
                         model.attn.data[:, ibank] += (
                             torch.tensor(model.params['lr_attn'][ibank])
-                            * (model.attn.grad[:, ibank] / model.n_units))  # should this be n_units per bank? edited now, but was n_total_units before
+                            * (model.attn.grad[:, ibank]
+                                / model.active_units[
+                                    model.bmask[ibank].squeeze()].sum()))
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -497,8 +532,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, lesions=None):
                     model.fc1.weight.grad[:, model.bmask[ibank].squeeze()] = 0
 
                 optimizer.step()
-
-                # TODO - local attn update? omitted for now
 
                 # save updated attn ws - save even if not update
                 model.attn_trace.append(model.attn.detach().clone())

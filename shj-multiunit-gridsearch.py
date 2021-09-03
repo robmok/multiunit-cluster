@@ -26,7 +26,6 @@ elif location == 'cluster':
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
-figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
 
