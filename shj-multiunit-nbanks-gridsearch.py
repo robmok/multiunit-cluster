@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jul  7 23:30:33 2021
+Created on Fri Sep  3 12:03:23 2021
 
 @author: robert.mok
 """
@@ -140,54 +140,74 @@ sim_info = {
 
 lr_scale = (n_units * k) / 1
 
-# c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
+# c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group x 2
 
-# whole range of lrs, added group lr too
-# ranges = ([torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
+# n-banks model - run something bigger, like 10k units, k=.01
+# - with ~ 4 values per param, 5,308,416 param sets, 5.308m
+# ranges = ([torch.arange(.1, 1.1, .3),
+#           torch.arange(1., 15., 6),
+#           torch.arange(.05, 1., .25),
+#           torch.arange(.05, 1., .25) / lr_scale,
+#           torch.arange(.05, 1., .25),
+#           torch.arange(.2, 1., .3),
+
+#           torch.arange(1.8, 3., .3),
+#           torch.arange(1., 15., 6),
+#           torch.arange(.05, 1., .25),
+#           torch.arange(.05, 1., .25) / lr_scale,
+#           torch.arange(.05, 1., .25),
+#           torch.arange(.2, 1., .3)])
+
+# 5308416/350000 - 15.16x of orig params
+# orig took ~ 2 days for 700 sets. max is 7 days per job
+# - (2200psets*.0656)/24=6.013 days
+# - (2250psets*.0656)/24=6.15 days
+# - (2400psets*.0656)/24=6.56 days
+# - (2500*.0656)/24=6.833 days
+# 5308416/2200 = 2412.916 sets to run
+# - currently running 450 sets/cores at a time, ~2 days
+# - 2412.916/450 = 5.362 - run 2200 psets 5.36 times
+# - 2200 sets takes 6 days. so 6*5.36=32.16 days
+
+# # cut lrs, +1 more phi 746496 psets
+# ranges = ([torch.arange(.1, 1.1, .3),
+#           torch.arange(1., 15., 4),
+#           torch.arange(.05, 1., .4),
+#           torch.arange(.05, 1., .4) / lr_scale,
+#           torch.arange(.05, 1., .4),
+#           torch.arange(.4, 1., .4),
+
+#           torch.arange(2.1, 3.1, .3),
+#           torch.arange(1., 15., 4),
+#           torch.arange(.05, 1., .4),
+#           torch.arange(.05, 1., .4) / lr_scale,
+#           torch.arange(.05, 1., .4),
+#           torch.arange(.4, 1., .4)]
 #           )
 
-# # edit - -2 phi (all gd params were 1!), and 2+ lower c values
-# ranges = ([torch.arange(.4, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
+# 746496/2200=339.31 sets to run - could run all in 1 go < 7 days
+# 746496/1700= 439.115 # - even better, quicker
 
-# add 1 more c value
-ranges = ([torch.arange(.2, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1) / lr_scale,
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
+# or could do sth midway between above, run 2 weeks. aim for ~3.15m psets
+# - more attn and nn lr's, same lr_clus
+# - 2,359,296 psets
+ranges = ([torch.arange(.1, 1.1, .3),
+          torch.arange(1., 15., 4),
+          torch.arange(.05, 1., .25),
+          torch.arange(.05, 1., .25) / lr_scale,
+          torch.arange(.05, 1., .35),
+          torch.arange(.4, 1., .4),
+
+          torch.arange(2.1, 3.1, .3),
+          torch.arange(1., 15., 4),
+          torch.arange(.05, 1., .25),
+          torch.arange(.05, 1., .25) / lr_scale,
+          torch.arange(.05, 1., .35),
+          torch.arange(.4, 1., .4)]
           )
-
-# set up and save nll, pt, and fit_params
-param_sets = torch.tensor(list(it.product(*ranges)))
-
-# timing
-# - 160 sets in 8.5 or 11.5 hours
-# - 160/8.5=18.8235 or 160/10.5=15.2381 sets per hour. Let's say 15 per hour.
-# - 8.5/160=0.0531 or 10.5/160=0.0656 hours per set
-
-# NEW - decided to test full range of lr's coarser - 315000 sets
-# - 315000/500=630*.0656=41.328/24=1.72 days
-# ah, but i want lopri to be ~300, so has to be less
-# - 315000/450=700*.0656=45.92=1.91 days. 322 lopri sets
-# - 315000/400=787.5*.0656=51.66/24=2.1525 days. 272 lopri sets, def OK.
-# --> 450
-
-# added 2 lower c's, removed 2 higher phi's
-
-# added another lower c val
-# 350000/450=777.77*.0656=51.02/24=2.125 days
+# # 2359296/2200sets=1072.407
+# # 1072.407/450=2.383
+# # 6*2.383=14.298 days - 2 weeks
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
