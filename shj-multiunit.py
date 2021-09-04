@@ -29,7 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
-plot3d = False
+plot3d = True
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 # matplotlib first 6 default colours
@@ -56,7 +56,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 5
+problem = 4
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -216,6 +216,33 @@ params = {
 #     'k': k
 #     }
 
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .4,
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 7.,
+    'beta': 1.,
+    'lr_attn': .95,  # this scales at grad computation now
+    'lr_nn': .05/lr_scale,  # scale by n_units*k
+    # 'lr_nn': .15*k,  # scale by k
+    'lr_clusters': .35,  # .075/.1
+    'lr_clusters_group': .9,
+    'k': k
+    }
+
+# editing one of gsearch results, looks ok
+params = {
+    'r': 1,  # 1=city-block, 2=euclid
+    'c': .3,
+    'p': 1,  # p=1 exp, p=2 gauss
+    'phi': 3.5,
+    'beta': 1.,
+    'lr_attn': .95,  # this scales at grad computation now
+    'lr_nn': .25/lr_scale,  # scale by n_units*k
+    'lr_clusters': .35,  # .075/.1
+    'lr_clusters_group': .9,
+    'k': k
+            }
 # lesioning
 lesions = None  # if no lesions
 # lesions = {
@@ -229,16 +256,17 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-# noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
-#           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-#           'recruit': [0., .1],  # .1 recruitment position placement
-#           'act': [.5, .1]}  # unit activations (non-negative)
+noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
+          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+          'recruit': [0., .1],  # .1 recruitment position placement
+          'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
     model, inputs, output, n_epochs, shuffle=True, lesions=lesions,
     noise=noise, shj_order=True)
+
 
 # # print(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2))
 # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=2), axis=0))
@@ -413,7 +441,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 20
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -562,16 +590,36 @@ for i in range(niter):
             'k': k
             }
 
-        # playing around after discovered dist**2 was important
+        # new gridsearch
+        # tensor([[0.4000, 3.0000, 0.4500, 0.2500, 0.3500, 0.9000]])
+        # tensor([[0.4000, 7.0000, 0.5500, 0.0500, 0.4500, 0.9000]])
+        
+        # tensor([[0.4000, 3.0000, 0.6500, 0.2500, 0.4500, 0.9000]])
+        # tensor([[0.4000, 7.0000, 0.9500, 0.0500, 0.3500, 0.9000]])
+        # tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
+
         params = {
             'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.,
+            'c': .4,
             'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 2.5,
+            'phi': 3.,
+            'beta': 1.,
+            'lr_attn': .45,  # this scales at grad computation now
+            'lr_nn': .25/lr_scale,  # scale by n_units*k
+            'lr_clusters': .35,  # .075/.1
+            'lr_clusters_group': .9,
+            'k': k
+            }
+
+        # editing above to make better
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .3,
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 3.5,
             'beta': 1.,
             'lr_attn': .95,  # this scales at grad computation now
-            'lr_nn': .05/lr_scale,  # scale by n_units*k
-            # 'lr_nn': .15*k,  # scale by k
+            'lr_nn': .25/lr_scale,  # scale by n_units*k
             'lr_clusters': .35,  # .075/.1
             'lr_clusters_group': .9,
             'k': k
@@ -591,7 +639,7 @@ for i in range(niter):
         print(model.recruit_units_trl)
 
 
-plt.plot(pt_all.mean(axis=0).T)
+plt.plot(np.nanmean(pt_all, axis=0).T)
 plt.ylim([0., 0.55])
 plt.gca().legend(('1', '2', '3', '4', '5', '6'))
 plt.show()
