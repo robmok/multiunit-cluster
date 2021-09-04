@@ -7,7 +7,7 @@ Created on Mon Aug  2 22:57:19 2021
 """
 
 import os
-# import numpy as np
+import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import pickle
@@ -62,10 +62,10 @@ for iset in sets:  # range(n_sets):
     loaded_list = pickle.load(open_file)
     open_file.close()
 
-    if not loaded_list[1]:
-        print(iset)
+    # if not loaded_list[1]:
+    #     print(iset)
 
-    if not loaded_list[1][-1]:  # check last one
+    if not np.any(loaded_list[1][-1]):  # check last one
         print(iset)
 
     nlls.extend(loaded_list[0])
