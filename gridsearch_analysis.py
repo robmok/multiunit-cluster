@@ -16,8 +16,8 @@ import itertools as it
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-k = 0.05
-n_units = 1000
+k = 0.01
+n_units = 2000
 
 n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
 
@@ -65,15 +65,23 @@ for iset in sets:  # range(n_sets):
     if not loaded_list[1]:
         print(iset)
 
+    if not loaded_list[1][-1]:  # check last one
+        print(iset)
+
     nlls.extend(loaded_list[0])
     pts.extend(loaded_list[1])
     # recs.extend(loaded_list[2])
     # seeds.extend(loaded_list[3])
 
-pts = torch.stack(pts)
-nlls = torch.stack(nlls)
+
+# pts = torch.stack(pts)
+# nlls = torch.stack(nlls)
 # recs = torch.stack(recs)
 # seeds = torch.stack(seeds)
+
+# after doing nan mean, these are now numpy arrays. will change later
+# pts = np.stack(pts)
+# nlls = np.stack(nlls)
 
 # %% fit
 

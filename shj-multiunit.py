@@ -413,7 +413,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 1
+niter = 20
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -562,10 +562,25 @@ for i in range(niter):
             'k': k
             }
 
+        # playing around after discovered dist**2 was important
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': 1.,
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 2.5,
+            'beta': 1.,
+            'lr_attn': .95,  # this scales at grad computation now
+            'lr_nn': .05/lr_scale,  # scale by n_units*k
+            # 'lr_nn': .15*k,  # scale by k
+            'lr_clusters': .35,  # .075/.1
+            'lr_clusters_group': .9,
+            'k': k
+            }
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True, shuffle_seed=2,
+            model, inputs, output, n_epochs, shuffle=True,  # shuffle_seed=2,
             shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
