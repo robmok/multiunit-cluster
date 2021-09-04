@@ -80,8 +80,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    return (nll_all.sum(), torch.tensor(np.nanmean(pt_all, axis=0)), rec_all,
-            seeds)
+    return nll_all.sum(), np.nanmean(pt_all, axis=0), rec_all, seeds
 
 
 # %% grid search, fit shj
