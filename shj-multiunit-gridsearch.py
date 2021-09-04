@@ -162,7 +162,16 @@ lr_scale = (n_units * k) / 1
 #           )
 
 # add 1 more c value
-ranges = ([torch.arange(.2, 2.1, .2),
+# ranges = ([torch.arange(.2, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1) / lr_scale,
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
+
+# when changing dist**2, changing c to start from .3
+ranges = ([torch.arange(.3, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),
           torch.arange(.05, 1., .1) / lr_scale,

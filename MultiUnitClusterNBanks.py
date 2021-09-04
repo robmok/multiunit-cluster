@@ -594,7 +594,7 @@ def _compute_dist(dim_dist, attn_w, r, n_banks):
                     )
         else:
             d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-    return d
+    return d  # **2  # squared dist
 
 
 def _compute_act(dist, c, p):
