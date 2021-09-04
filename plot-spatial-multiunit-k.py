@@ -117,7 +117,7 @@ saveplots = False
 
 n_sims = 100
 n_units = 1000
-n_trials = 500000
+n_trials = 1000000
 
 # params to test
 # k:  .08 (12 clus), .1 (9), .13 (7), .26 (5), .28 (3)
@@ -194,11 +194,18 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
           [.0075, .01, .015],
           [.8, 1.]]
 
+# 1m trials - ran lr=.01, group_lr=1
+
+ann_rate = 50  # slower
+params = [[.11],
+          [.015],
+          [1.]]
+
 
 # plot over k first
 # - set lr's for now
-lr = params[1][2]
-lr_group = params[2][1]
+lr = params[1][0]
+lr_group = params[2][0]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
@@ -212,6 +219,15 @@ for k in params[0]:
                      '{:d}sims.pkl'.format(
                           n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
         )
+
+    fn = (
+        os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
+                      'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
+                      '{:d}sims_annrate{}.pkl'.format(
+                          n_units, p[0], p[1], p[2], n_trials//1000, n_sims,
+                          ann_rate))
+        )
+
     f = torch.load(fn)
 
     df_gscore[k] = np.array(f['gscore'])
@@ -578,18 +594,20 @@ plt.show()
 # [0.13, 0.01, 1.], 500k trials  # low-ish - no .png? convert and make gif?
 # - remember to use spatial_randomscatter_{}units_mrksiz{}_converted' to start
 
-savegif = False
+savegif = True
 
 # set params
-k = .28
-orig_lr = .01
+k = .14
+orig_lr = .0075
 lr_group = 1.
 
 n_units = 1000
-n_trials = 50000
+n_trials = 500000
 
-plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
-# plot_trials = torch.arange(0, 8000, 100, dtype=torch.long)
+# plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
+plot_trials = torch.arange(0, 8000, 100, dtype=torch.long)
+
+plot_trials = torch.arange(0, 10000, 500, dtype=torch.long)
 
 images = []
 

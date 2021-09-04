@@ -202,19 +202,19 @@ params = {
     'k': k
     }
 
-# tensor([ 2.0000, 17.0000,  0.9500,  0.9500,  0.9500,  0.9000])
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': 2.,  # w/ attn grad normalized, c can be large now
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 17.,
-    'beta': 1.,
-    'lr_attn': .95,  # this scales at grad computation now
-    'lr_nn': .95/lr_scale,  # scale by n_units*k
-    'lr_clusters': .95,  # .075/.1
-    'lr_clusters_group': .9,
-    'k': k
-    }
+# # tensor([ 2.0000, 17.0000,  0.9500,  0.9500,  0.9500,  0.9000])
+# params = {
+#     'r': 1,  # 1=city-block, 2=euclid
+#     'c': 2.,  # w/ attn grad normalized, c can be large now
+#     'p': 1,  # p=1 exp, p=2 gauss
+#     'phi': 17.,
+#     'beta': 1.,
+#     'lr_attn': .95,  # this scales at grad computation now
+#     'lr_nn': .95/lr_scale,  # scale by n_units*k
+#     'lr_clusters': .95,  # .075/.1
+#     'lr_clusters_group': .9,
+#     'k': k
+#     }
 
 # lesioning
 lesions = None  # if no lesions
@@ -565,7 +565,7 @@ for i in range(niter):
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True,
+            model, inputs, output, n_epochs, shuffle=True, shuffle_seed=2,
             shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()

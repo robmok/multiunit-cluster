@@ -74,19 +74,6 @@ class MultiUnitCluster(nn.Module):
                 'k': k,  # start_params[6],
                 }
 
-        # if fit_params:
-        #     self.params = {
-        #         'r': 1,
-        #         'c': start_params[0],
-        #         'p': 1,
-        #         'phi': 1,
-        #         'lr_attn': 0.35,
-        #         'lr_nn': 0.0003,
-        #         'lr_clusters': 0.075,
-        #         'lr_clusters_group': 0.12,
-        #         'k': k
-        #         }
-
         # units
         # self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
 
@@ -179,7 +166,7 @@ class MultiUnitCluster(nn.Module):
             d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
         else:
             d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-        return d
+        return d**2  # squared dist
 
     def _compute_act(self, dist, c, p):
         if self.device != torch.device(type='cpu'):
