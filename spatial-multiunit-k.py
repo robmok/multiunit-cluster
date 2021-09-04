@@ -111,7 +111,7 @@ save_sims = True
 
 n_dims = 2
 n_epochs = 1
-n_trials = 1000000
+n_trials = 500000
 attn_type = 'dimensional_local'
 
 # params to test
@@ -206,14 +206,20 @@ params = [[.11],
           [1.]]
 
 # new
-# 1m & 500k
-ann_rate = 75
+# 1m & 500k - CANCELLED, slower is worse
+# ann_rate = 75
+# params = [[.11],
+#           [.015],
+#           [1.]]
+
+# 1m
+ann_rate = 200 # faster
 params = [[.11],
           [.015],
           [1.]]
 
-# 1m
-ann_rate = 200 # faster
+# 500k
+ann_rate = 150  # faster
 params = [[.11],
           [.015],
           [1.]]
