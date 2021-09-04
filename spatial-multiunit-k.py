@@ -184,23 +184,36 @@ attn_type = 'dimensional_local'
 #           [1.]]
 
 # test different annealing rates w 1m trials- before 100
-ann_rate = 50  # this with 1m trials is same as 100 for 500k trials
-params = [[.11],
-          [.015],
-          [1.]]
+# ann_rate = 50  # this with 1m trials is same as 100 for 500k trials
+# params = [[.11],
+#           [.015],
+#           [1.]]
 
 ann_rate = 150  # faster
 params = [[.11],
           [.015],
           [1.]]
 
-# change to 500k trials,
-ann_rate = 50 # slower
+# # change to 500k trials,
+# ann_rate = 50 # slower
+# params = [[.11],
+#           [.015],
+#           [1.]]
+
+ann_rate = 200 # 500k trials, faster
 params = [[.11],
           [.015],
           [1.]]
 
-ann_rate = 200 # 500k trials, faster
+# new
+# 1m & 500k
+ann_rate = 75
+params = [[.11],
+          [.015],
+          [1.]]
+
+# 1m
+ann_rate = 200 # faster
 params = [[.11],
           [.015],
           [1.]]
