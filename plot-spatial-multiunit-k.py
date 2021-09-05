@@ -196,8 +196,9 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 
 # 1m trials - ran lr=.01, group_lr=1
 
-# testing ann rate, 500k / 1m trials
-ann_rate = 150  # 50, 150, 200. orig=100
+# testing ann rate, 500k / 1m trials. from 250+, just 500k
+# - atm, 400 best. missed 300
+ann_rate = 600  # orig=100. 50, 150, 200, 250, 300(? missed?), 400, 500, 600
 params = [[.11],
           [.015],
           [1.]]
