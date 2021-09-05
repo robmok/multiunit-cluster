@@ -117,7 +117,7 @@ saveplots = False
 
 n_sims = 100
 n_units = 1000
-n_trials = 1000000
+n_trials = 500000
 
 # params to test
 # k:  .08 (12 clus), .1 (9), .13 (7), .26 (5), .28 (3)
@@ -196,7 +196,8 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 
 # 1m trials - ran lr=.01, group_lr=1
 
-ann_rate = 50  # slower
+# testing ann rate, 500k / 1m trials
+ann_rate = 150  # 50, 150, 200. orig=100
 params = [[.11],
           [.015],
           [1.]]

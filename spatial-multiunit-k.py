@@ -189,40 +189,33 @@ attn_type = 'dimensional_local'
 #           [.015],
 #           [1.]]
 
-ann_rate = 150  # faster
-params = [[.11],
+# 500k trials, faster
+ann_rate = 250
+params = [[.11, .16],
           [.015],
           [1.]]
 
-# # change to 500k trials,
-# ann_rate = 50 # slower
-# params = [[.11],
-#           [.015],
-#           [1.]]
 
-ann_rate = 200 # 500k trials, faster
-params = [[.11],
+ann_rate = 300
+params = [[.11, .16],
           [.015],
           [1.]]
 
-# new
-# 1m & 500k - CANCELLED, slower is worse
-# ann_rate = 75
-# params = [[.11],
-#           [.015],
-#           [1.]]
-
-# 1m
-ann_rate = 200 # faster
-params = [[.11],
+ann_rate = 400
+params = [[.11, .16],
           [.015],
           [1.]]
 
-# 500k
-ann_rate = 150  # faster
-params = [[.11],
+ann_rate = 500
+params = [[.11, .16],
           [.015],
           [1.]]
+
+ann_rate = 600
+params = [[.11, .16],
+          [.015],
+          [1.]]
+
 
 param_sets = torch.tensor(list(it.product(*params)))
 
