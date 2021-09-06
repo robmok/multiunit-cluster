@@ -210,6 +210,11 @@ ranges = ([torch.arange(.1, 1.1, .3),
 # # 1072.407/450=2.383
 # # 6*2.383=14.298 days - 2 weeks
 
+# RECALCULATE - based on slower to run nbanks
+
+
+
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run

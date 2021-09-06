@@ -198,11 +198,25 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 
 # testing ann rate, 500k / 1m trials. from 250+, just 500k
 # - atm, 350/400 best .350 slightly better
-ann_rate = 350  # orig=100. 50, 150, 200, 250, 300(? missed?), 400, 500, 600
+ann_rate = 70  # orig=100. 50, 150, 200, 250, 300(? missed?), 400, 500, 600
 params = [[.11],
           [.015],
           [1.]]
 
+n_trials = 100000
+
+# # 400k trials
+# ann_rate = 280
+# # 350k trials
+# ann_rate = 245
+# # 250k trials
+# ann_rate = 175
+# # 150k trials
+# ann_rate = 105
+# # 100k trials
+# ann_rate = 70
+
+# in the end, 500k best.
 
 # plot over k first
 # - set lr's for now

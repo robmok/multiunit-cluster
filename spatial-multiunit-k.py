@@ -189,40 +189,32 @@ attn_type = 'dimensional_local'
 #           [.015],
 #           [1.]]
 
-# 500k trials, faster
+# 500k trial, 350 ann rte
 ann_rate = 350  # best
 params = [[.11],
           [.015],
           [1.]]
 
-# TODO NEXT
-# - get the good ann_decay value
-# - calculate if fewer trials, what the ann_decay value is (slower)
-# - test a few with fewer trials; so no need to run as many
 
-# ann_rate=350, 500k trials, to get new ann_rate for n_trials:
-# ann_rate = (350/500)*n_trials, where ntrials is ntrials/100
-
-
-# 400k trials
-ann_rate = 280
-# 350k trials
-ann_rate = 250
-# 250k trials
-ann_rate = 175
-# 150k trials
-ann_rate = 105
-# 100k trials
-ann_rate = 70
-
-params = [[.11],
-          [.015],
+params = [[.08, .09, .1, .12, .13, .14, .15, .16, .17, .18, .19],  # removed .11
+          [.01, .015],
           [1.]]
 
-param_sets = torch.tensor(list(it.product(*params)))
+# maybe do .2-.3 later?
+# or group_lr=.8 first?
+
+# TMP commented out
+# param_sets = torch.tensor(list(it.product(*params)))
+
+# TMP did .11-.015 already. here .01
+param_sets = list(it.product(*params))
+param_sets.append([.11, .01, 1.])
+param_sets = torch.tensor(param_sets)
+
+
 
 # split sets
-sets = torch.arange(0, len(param_sets), 3)
+sets = torch.arange(0, len(param_sets), 4)
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -235,7 +227,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-3 sets, 3 each, 2 at end
+iset = 0  # 0-5 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
