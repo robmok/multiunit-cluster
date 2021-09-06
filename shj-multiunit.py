@@ -447,7 +447,7 @@ pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
 attn_trace = [[] for i in range(6)]
 
-t0 = time.time()
+# t0 = time.time()
 
 # run multiple iterations
 for i in range(niter):
@@ -630,7 +630,7 @@ for i in range(niter):
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True,  # shuffle_seed=2,
+            model, inputs, output, n_epochs,  # shuffle_seed=2,
             shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
@@ -640,8 +640,8 @@ for i in range(niter):
 
         print(model.recruit_units_trl)
 
-t1 = time.time()
-print(t1-t0)
+# t1 = time.time()
+# print(t1-t0)
 
 plt.plot(np.nanmean(pt_all, axis=0).T)
 plt.ylim([0., 0.55])

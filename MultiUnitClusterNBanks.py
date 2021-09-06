@@ -6,13 +6,9 @@ Created on Mon Jun 14 16:12:07 2021
 @author: robert.mok
 """
 
-import os
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib.pyplot as plt
-import itertools as it
 import warnings
 
 
@@ -35,11 +31,6 @@ class MultiUnitClusterNBanks(nn.Module):
         self.recruit_units_trl = [[] for i in range(self.n_banks)]
         self.fc1_w_trace = []
         self.fc1_act_trace = []
-
-        # checking stuff
-        self.winners_trace = []
-        self.dist_trace = []
-        self.act_trace = []
 
         lr_scale = (self.n_units * k) / 1
 
@@ -75,23 +66,17 @@ class MultiUnitClusterNBanks(nn.Module):
                 }
 
         # units
-        self.units_pos = torch.zeros(
-            [self.n_total_units, n_dims], dtype=torch.float)
-
         # randomly scatter
         self.units_pos = torch.rand(
             [self.n_total_units, n_dims], dtype=torch.float)
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
-        if self.attn_type[0:4] == 'dime':
-            self.attn = (
-                torch.nn.Parameter(
-                    torch.ones([n_dims, n_banks], dtype=torch.float)
-                    * (1 / 3))
-            )
-            # normalize attn to 1, in case not set correctly above
-            self.attn.data = (self.attn.data
-                              / torch.sum(self.attn.data, dim=0).T)
+        self.attn = torch.nn.Parameter(torch.ones([n_dims, n_banks],
+                                                  dtype=torch.float)
+                                       * (1 / 3))
+        # normalize attn to 1, in case not set correctly above
+        self.attn.data = (self.attn.data
+                          / torch.sum(self.attn.data, dim=0).T)
 
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
@@ -121,8 +106,6 @@ class MultiUnitClusterNBanks(nn.Module):
 
     def forward(self, x):
 
-        # compute activations. stim x unit_pos x attn
-
         # distance measure
         dim_dist = abs(x - self.units_pos)
         dist = _compute_dist(dim_dist, self.attn, self.params['r'],
@@ -135,12 +118,10 @@ class MultiUnitClusterNBanks(nn.Module):
         units_output = torch.sum(act * self.winning_units * self.bmask, axis=0)
 
         # save cluster positions and activations
-        # self.units_pos_trace.append(self.units_pos.detach().clone())
         self.units_act_trace.append(
             units_output[self.active_units].detach().clone())
 
         # output
-        # include phi param into output
         # output across all banks / full model
         out_b = []
         pr_b = []
@@ -172,8 +153,8 @@ class MultiUnitClusterNBanks(nn.Module):
         return out, pr
 
 
-def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
-          lesions=None, noise=None, shj_order=False):   # to add noise
+def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
+          noise=None, shj_order=False):   # to add noise
 
     criterion = nn.CrossEntropyLoss()
 
@@ -194,16 +175,16 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
     trial_ptarget = torch.zeros([model.n_banks + 1, n_trials])
     epoch_ptarget = torch.zeros([model.n_banks + 1, n_epochs])
 
-    # lesion units during learning
-    if lesions:
-        model.lesion_units = []  # save which units were lesioned
-        if lesions['gen_rand_lesions_trials']:  # lesion at randomly timepoints
-            lesion_trials = (
-                torch.randint(n_trials,
-                              (int(n_trials * lesions['pr_lesion_trials']),)))
-            model.lesion_trials = lesion_trials  # save which were lesioned
-        else:  # lesion at pre-specified timepoints
-            lesion_trials = lesions['lesion_trials']
+    # # lesion units during learning
+    # if lesions:
+    #     model.lesion_units = []  # save which units were lesioned
+    #     if lesions['gen_rand_lesions_trials']:  # lesion at randomly timepoints
+    #         lesion_trials = (
+    #             torch.randint(n_trials,
+    #                           (int(n_trials * lesions['pr_lesion_trials']),)))
+    #         model.lesion_trials = lesion_trials  # save which were lesioned
+    #     else:  # lesion at pre-specified timepoints
+    #         lesion_trials = lesions['lesion_trials']
 
     model.train()
 
@@ -211,11 +192,10 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
         torch.manual_seed(shuffle_seed)
 
     for epoch in range(n_epochs):
-        # torch.manual_seed(5)
-        if shuffle:
-            shuffle_ind = torch.randperm(len(inputs))
-            inputs_ = inputs[shuffle_ind]
-            output_ = output[shuffle_ind]
+
+        shuffle_ind = torch.randperm(len(inputs))
+        inputs_ = inputs[shuffle_ind]
+        output_ = output[shuffle_ind]
 
         # 1st block, show 8 unique stim, then 8 again. after, shuffle 16
         if shj_order:
@@ -237,16 +217,16 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             # x=inputs_[itrl]
             # target=output_[itrl]
 
-            # lesion trials
-            if lesions:
-                if torch.any(itrl == lesion_trials):
-                    # find active ws, randomly turn off n units (n_lesions)
-                    w_ind = np.nonzero(model.active_units)
-                    les = w_ind[torch.randint(w_ind.numel(),
-                                              (lesions['n_lesions'],))]
-                    model.lesion_units.append(les)
-                    with torch.no_grad():
-                        model.fc1.weight[:, les] = 0
+            # # lesion trials
+            # if lesions:
+            #     if torch.any(itrl == lesion_trials):
+            #         # find active ws, randomly turn off n units (n_lesions)
+            #         w_ind = np.nonzero(model.active_units)
+            #         les = w_ind[torch.randint(w_ind.numel(),
+            #                                   (lesions['n_lesions'],))]
+            #         model.lesion_units.append(les)
+            #         with torch.no_grad():
+            #             model.fc1.weight[:, les] = 0
 
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
@@ -304,8 +284,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                         )
 
             # if local attn - clear attn grad computed above
-            if model.attn_type[-5:] == 'local':
-                model.attn.grad[:] = 0
+            model.attn.grad[:] = 0
 
             # update model - if inc/recruit a cluster, don't update here
 
@@ -329,56 +308,53 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # update nn weights
                 optimizer.step()
 
-                if model.attn_type[-5:] == 'local':
+                # if local attn - k-wta only
+                for ibank in upd_banks:
 
-                    # wta only
-                    for ibank in upd_banks:
+                    win_ind_b = (model.winning_units
+                                 & model.bmask[ibank].squeeze())
+                    lose_ind = (
+                        (model.winning_units == 0)
+                        & model.active_units
+                        & model.bmask[ibank].squeeze()
+                        )
 
-                        win_ind_b = (model.winning_units
-                                     & model.bmask[ibank].squeeze())
-                        lose_ind = (
-                            (model.winning_units == 0)
-                            & model.active_units
-                            & model.bmask[ibank].squeeze()
-                            )
+                    # compute grad based on act of winners *minus* losers
+                    act_1 = (
+                        torch.sum(
+                            _compute_act(
+                                _compute_dist(
+                                    abs(x - model.units_pos[win_ind_b]),
+                                    model.attn[:, ibank].squeeze(),
+                                    model.params['r'], model.n_banks),
+                                model.params['c'][ibank],
+                                model.params['p']))
 
-                        # compute grad based on act of winners *minus* losers
-                        act_1 = (
-                            torch.sum(
-                                _compute_act(
-                                    _compute_dist(
-                                        abs(x - model.units_pos[win_ind_b]),
-                                        model.attn[:, ibank].squeeze(),
-                                        model.params['r'], model.n_banks),
-                                    model.params['c'][ibank],
-                                    model.params['p']))
+                        - torch.sum(
+                            _compute_act(
+                                _compute_dist(
+                                    abs(x - model.units_pos[lose_ind]),
+                                    model.attn[:, ibank].squeeze(),
+                                    model.params['r'], model.n_banks),
+                                model.params['c'][ibank],
+                                model.params['p']))
+                        )
 
-                            - torch.sum(
-                                _compute_act(
-                                    _compute_dist(
-                                        abs(x - model.units_pos[lose_ind]),
-                                        model.attn[:, ibank].squeeze(),
-                                        model.params['r'], model.n_banks),
-                                    model.params['c'][ibank],
-                                    model.params['p']))
-                            )
-
-                        # compute gradient
-                        act_1.backward(retain_graph=True)
-                        # divide grad by n active units (scales to any n_units)
-                        model.attn.data[:, ibank] += (
-                            torch.tensor(model.params['lr_attn'][ibank])
-                            * (model.attn.grad[:, ibank]
-                                / model.active_units[
-                                    model.bmask[ibank].squeeze()].sum()))
+                    # compute gradient
+                    act_1.backward(retain_graph=True)
+                    # divide grad by n active units (scales to any n_units)
+                    model.attn.data[:, ibank] += (
+                        torch.tensor(model.params['lr_attn'][ibank])
+                        * (model.attn.grad[:, ibank]
+                            / model.active_units[
+                                model.bmask[ibank].squeeze()].sum()))
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
-                if model.attn_type[0:4] == 'dime':
-                    model.attn.data = (
-                        model.attn.data / torch.sum(model.attn.data, dim=0).T
-                        )
+                model.attn.data = (
+                    model.attn.data / torch.sum(model.attn.data, dim=0).T
+                    )
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -409,9 +385,8 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
             for ibank in range(model.n_banks + 1):
                 trial_ptarget[ibank, itrl] = pr[ibank][target]
 
-            # Recruit cluster, and update model
-            if (any(recruit) and
-                torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
+            # Recruit cluster, and update model (if no avail units, stop)
+            if any(recruit) and torch.sum(model.fc1.weight == 0) > 0:
 
                 # 1st trial - select closest k inactive units for both banks
                 if itrl == 0:
@@ -429,7 +404,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
 
                 # recruit and REPLACE k units that mispredicted
                 else:
-
                     mispred_units = [
                         torch.argmax(
                             model.fc1.weight[:, win_ind[ibank]].detach(),
@@ -471,7 +445,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                     for item in sublist]
 
                 # since topk takes top even if all 0s, remove the 0 acts
-                # - atm this works because i made the irrelevant bank -0.01..
+                # - note this works because i made irrelevant bank units -0.01
                 # check other script for notes
                 if torch.any(act[:, recruit_ind_flat] == 0):
                     r_ind_tmp = []
@@ -524,8 +498,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                             * model.params['lr_nn'][ibank]
                             )
 
-                if model.attn_type[-5:] == 'local':
-                    model.attn.grad[:] = 0  # clear grad
+                model.attn.grad[:] = 0  # clear grad
 
                 # remove nn updates for non-recruiting bank
                 for ibank in upd_banks:
@@ -536,24 +509,26 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # save updated attn ws - save even if not update
                 model.attn_trace.append(model.attn.detach().clone())
 
-                # update units pos w multiple banks - double update rule
-                # - probably no need since on the stim
-                for ibank in rec_banks:
-                    units_ind = (model.winning_units
-                                 & model.bmask[ibank].squeeze())
-                    update = (
-                        (x - model.units_pos[units_ind])
-                        * model.params['lr_clusters'][ibank]
-                        )
-                    model.units_pos[units_ind] += update
+                # NOTE: TEMPORARILY COMMENTED OUT for gridsearch
 
-                    # - step 2 - winners update towards self
-                    winner_mean = torch.mean(
-                        model.units_pos[units_ind], axis=0)
-                    update = (
-                        (winner_mean - model.units_pos[units_ind])
-                        * model.params['lr_clusters_group'][ibank])
-                    model.units_pos[units_ind] += update
+                # update units pos w multiple banks - double update rule
+                # - no need since on the stim - unless noise
+                # for ibank in rec_banks:
+                #     units_ind = (model.winning_units
+                #                  & model.bmask[ibank].squeeze())
+                #     update = (
+                #         (x - model.units_pos[units_ind])
+                #         * model.params['lr_clusters'][ibank]
+                #         )
+                #     model.units_pos[units_ind] += update
+
+                #     # - step 2 - winners update towards self
+                #     winner_mean = torch.mean(
+                #         model.units_pos[units_ind], axis=0)
+                #     update = (
+                #         (winner_mean - model.units_pos[units_ind])
+                #         * model.params['lr_clusters_group'][ibank])
+                #     model.units_pos[units_ind] += update
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())

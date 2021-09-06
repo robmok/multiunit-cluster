@@ -183,8 +183,8 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
             }
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True,
-            shuffle_seed=shuffle_seeds[isim], lesions=lesions)
+            model, inputs, output, n_epochs, shuffle_seed=shuffle_seeds[isim],
+            lesions=lesions)
 
         pt.append(1 - epoch_ptarget.detach())
         recruit_trial.append(model.recruit_units_trl)

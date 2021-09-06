@@ -214,7 +214,7 @@ params = {
 model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=False)
+    model, inputs, output, n_epochs, shuffle=False, shj_order=True)
 
 # pr target
 plt.plot(1 - epoch_ptarget.T.detach())
@@ -251,7 +251,7 @@ plt.show()
 
 saveplots = False
 
-niter = 50
+niter = 1
 
 n_banks = 2
 
@@ -270,6 +270,8 @@ w_trace = [[] for i in range(6)]
 act_trace = [[] for i in range(6)]
 attn_trace = [[] for i in range(6)]
 
+
+t0 = time.time()
 # run multiple iterations
 for i in range(niter):
 
@@ -319,7 +321,7 @@ for i in range(niter):
                                  params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True)
+            model, inputs, output, n_epochs)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
@@ -329,6 +331,9 @@ for i in range(niter):
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
         # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=1), axis=0))
+
+t1 = time.time()
+print(t1-t0)
 
 aspect = 40
 fig, ax = plt.subplots(1, 3)

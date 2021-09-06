@@ -70,7 +70,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
                                  start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i],
+            model, inputs, output, 16, shuffle_seed=seeds[i],
             shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
@@ -170,7 +170,7 @@ lr_scale = (n_units * k) / 1
 #           torch.arange(.1, 1., .2)]
 #           )
 
-# when changing dist**2, changing c to start from .3
+# when changing dist**2, changing c to start from .3, which loses one c value
 ranges = ([torch.arange(.3, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),

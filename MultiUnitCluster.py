@@ -28,6 +28,7 @@ class MultiUnitCluster(nn.Module):
         self.softmax = nn.Softmax(dim=0)
         self.logsoftmax = nn.LogSoftmax(dim=0)
         self.active_units = torch.zeros(n_units, dtype=torch.bool)
+
         # history
         self.attn_trace = []
         self.units_pos_trace = []
@@ -37,16 +38,10 @@ class MultiUnitCluster(nn.Module):
         self.fc1_w_trace = []
         self.fc1_act_trace = []
 
-        # checking stuff
-        self.winners_trace = []
-        self.dist_trace = []
-        self.act_trace = []
-
         # free params
-        # - can estimate all, but probably don't need to include some (e.g. r)
         if params:
             self.params = params
-        else:
+        else:  # some defaults - not really using
             self.params = {
                 'r': 1,  # 1=city-block, 2=euclid
                 'c': 2,  # node specificity
@@ -59,6 +54,7 @@ class MultiUnitCluster(nn.Module):
                 'k': k
                 }
 
+        # if fitting params (gridsearch, mle)
         if fit_params:
             self.params = {
                 'r': 1,
@@ -72,10 +68,7 @@ class MultiUnitCluster(nn.Module):
                 'k': k,  # start_params[6],
                 }
 
-        # units
-        # self.units_pos = torch.zeros([n_units, n_dims], dtype=torch.float)
-
-        # randomly scatter
+        # randomly scatter units
         self.units_pos = torch.rand([n_units, n_dims], dtype=torch.float)
 
         # attention weights - 'dimensional' = ndims / 'unit' = clusters x ndim
@@ -90,21 +83,14 @@ class MultiUnitCluster(nn.Module):
         self.fc1 = nn.Linear(n_units, n_classes, bias=False)
         self.fc1.weight = torch.nn.Parameter(torch.zeros([n_classes, n_units]))
 
-        # mask for NN
-        # - probably don't need this
-        # - below I used win_mask to define this, then used win_mask to create
-        # model.winning_units... actually probably can just have one.
-        # self.mask = torch.zeros([n_classes, n_units], dtype=torch.bool)
-
         # mask for updating attention weights based on winning units
         # - winning_units is like active_units before, but winning on that
         # trial, since active is define by connection weight ~=0
         # mask for winning clusters
         self.winning_units = torch.zeros(n_units, dtype=torch.bool)
 
+    # compute forward pass / activations. stim x unit_pos x attn
     def forward(self, x):
-
-        # compute activations. stim x unit_pos x attn
 
         # distance measure. *attn works for both dimensional or unit-based
         dim_dist = abs(x - self.units_pos)
@@ -123,7 +109,7 @@ class MultiUnitCluster(nn.Module):
             units_output[self.active_units].detach().clone())
 
         # association weights / NN
-        # new - include phi param into output
+        # - include phi param into output
         # - note pytorch takes this out and computes CE loss by combining
         # nn.LogSoftmax() and nn.NLLLoss(), so logsoftmax is applied, no need
         # to apply to out here
@@ -152,18 +138,18 @@ class MultiUnitCluster(nn.Module):
         return c * torch.exp(-c * dist)  # sustain-like
 
 
-def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
-          lesions=None, noise=None, shj_order=False):
+def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
+          noise=None, shj_order=False):
 
     criterion = nn.CrossEntropyLoss()
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
-    if model.attn_type[-5:] != 'local':
-        p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
-        prms = [p_fc1, p_attn]
-    else:
-        prms = [p_fc1]
+    # if model.attn_type[-5:] != 'local':
+    #     p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
+    #     prms = [p_fc1, p_attn]
+    # else:
+    prms = [p_fc1]
 
     optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # , momentum=0.)
 
@@ -192,22 +178,18 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
         torch.manual_seed(shuffle_seed)
 
     for epoch in range(n_epochs):
-        if shuffle:
-            shuffle_ind = torch.randperm(len(inputs))
+        shuffle_ind = torch.randperm(len(inputs))
+        inputs_ = inputs[shuffle_ind]
+        output_ = output[shuffle_ind]
+
+        # 1st block, show 8 unique stim, then 8 again. after, shuffle 16
+        if shj_order:
+            shuffle_ind = torch.cat(
+                [torch.randperm(len(inputs)//2),
+                 torch.randperm(len(inputs)//2) + len(inputs)//2])
             inputs_ = inputs[shuffle_ind]
             output_ = output[shuffle_ind]
 
-            # 1st block, show 8 unique stim, then 8 again. after, shuffle 16
-            if shj_order:
-                shuffle_ind = torch.cat(
-                    [torch.randperm(len(inputs)//2),
-                     torch.randperm(len(inputs)//2) + len(inputs)//2])
-                inputs_ = inputs[shuffle_ind]
-                output_ = output[shuffle_ind]
-
-        else:
-            inputs_ = inputs
-            output_ = output
         for x, target in zip(inputs_, output_):
 
             # testing
@@ -262,8 +244,7 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 #     model.attn.grad.mul_(win_mask[0].unsqueeze(0).T)
 
             # if local attn - clear attn grad computed above
-            if model.attn_type[-5:] == 'local':
-                model.attn.grad[:] = 0
+            model.attn.grad[:] = 0
 
             # update model - if inc/recruit a cluster, don't update here
             # if incorrect, recruit
@@ -459,46 +440,46 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                 # save updated attn ws - even if don't update
                 model.attn_trace.append(model.attn.detach().clone())
 
-                # update units positions - double update rule
-                update = (
-                    (x - model.units_pos[model.winning_units])
-                    * model.params['lr_clusters']
-                    )
+                # # update units positions - double update rule
+                # update = (
+                #     (x - model.units_pos[model.winning_units])
+                #     * model.params['lr_clusters']
+                #     )
 
-                # add noise to updates
-                if noise:
-                    update += (
-                        torch.tensor(
-                            norm.rvs(loc=noise['update1'][0],
-                                     scale=noise['update1'][1],
-                                     size=(len(update), model.n_dims)))
-                        * model.params['lr_clusters']
-                            )
+                # # add noise to updates
+                # if noise:
+                #     update += (
+                #         torch.tensor(
+                #             norm.rvs(loc=noise['update1'][0],
+                #                      scale=noise['update1'][1],
+                #                      size=(len(update), model.n_dims)))
+                #         * model.params['lr_clusters']
+                #             )
 
-                model.units_pos[model.winning_units] += update
+                # model.units_pos[model.winning_units] += update
 
-                # store unit positions after both upds
-                model.units_pos_bothupd_trace.append(
-                    model.units_pos.detach().clone())
+                # # store unit positions after both upds
+                # model.units_pos_bothupd_trace.append(
+                #     model.units_pos.detach().clone())
 
-                # - step 2 - winners update towards self
-                winner_mean = torch.mean(
-                    model.units_pos[model.winning_units], axis=0)
-                update = (
-                    (winner_mean - model.units_pos[model.winning_units])
-                    * model.params['lr_clusters_group'])
+                # # - step 2 - winners update towards self
+                # winner_mean = torch.mean(
+                #     model.units_pos[model.winning_units], axis=0)
+                # update = (
+                #     (winner_mean - model.units_pos[model.winning_units])
+                #     * model.params['lr_clusters_group'])
 
-                # add noise to 2nd update?
-                if noise:
-                    update += (
-                        torch.tensor(
-                            norm.rvs(loc=noise['update2'][0],
-                                     scale=noise['update2'][1],
-                                     size=(len(update), model.n_dims)))
-                        * model.params['lr_clusters_group']
-                            )
+                # # add noise to 2nd update?
+                # if noise:
+                #     update += (
+                #         torch.tensor(
+                #             norm.rvs(loc=noise['update2'][0],
+                #                      scale=noise['update2'][1],
+                #                      size=(len(update), model.n_dims)))
+                #         * model.params['lr_clusters_group']
+                #             )
 
-                model.units_pos[model.winning_units] += update
+                # model.units_pos[model.winning_units] += update
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
@@ -513,9 +494,6 @@ def train(model, inputs, output, n_epochs, shuffle=False, shuffle_seed=None,
                                      scale=noise['update2'][1],
                                      size=(len(update), model.n_dims)))
                             )
-
-            # tmp
-            # model.winners_trace.append(model.units_pos[model.winning_units])
 
             itrl += 1
 
@@ -793,7 +771,6 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
             # save acts - may want to have it separately for recruit and upd?
             model.fc1_act_trace.append(
                 act[model.winning_units].detach().clone())
-            # model.winners_trace.append(model.units_pos[model.winning_units])
 
             itrl += 1
 

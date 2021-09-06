@@ -155,7 +155,7 @@ for s_cnt, sim_prms in enumerate(it.product(n_units, k, lr_group, noise_upd1)):
                                  params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shuffle=True, noise=noise,
+            model, inputs, output, n_epochs, noise=noise,
             shuffle_seed=shuffle_seeds[isim], shj_order=True)
 
         pt.append(1 - epoch_ptarget.detach())
