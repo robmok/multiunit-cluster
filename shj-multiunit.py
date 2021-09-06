@@ -13,7 +13,7 @@ import torch
 import matplotlib.pyplot as plt
 import itertools as it
 import imageio
-# import time
+import time
 # from scipy import stats
 # from scipy import optimize as opt
 # import pickle
@@ -29,7 +29,7 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 saveplots = False  # 3d plots
 
-plot3d = True
+plot3d = False
 plot_seq = 'epoch'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
 
 # matplotlib first 6 default colours
@@ -447,6 +447,8 @@ pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
 attn_trace = [[] for i in range(6)]
 
+t0 = time.time()
+
 # run multiple iterations
 for i in range(niter):
 
@@ -638,6 +640,8 @@ for i in range(niter):
 
         print(model.recruit_units_trl)
 
+t1 = time.time()
+print(t1-t0)
 
 plt.plot(np.nanmean(pt_all, axis=0).T)
 plt.ylim([0., 0.55])
