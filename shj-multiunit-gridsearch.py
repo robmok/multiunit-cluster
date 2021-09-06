@@ -258,7 +258,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
         fit_params, sim_info, six_problems, beh_seq, seeds=seeds)
 
     # save at certain points and at the end
-    if (np.mod(i + start, 100) == 0) | (i + start == len(param_sets_curr)-1):
+    if (np.mod(i + start, 50) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)

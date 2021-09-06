@@ -440,46 +440,46 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 # save updated attn ws - even if don't update
                 model.attn_trace.append(model.attn.detach().clone())
 
-                # # update units positions - double update rule
-                # update = (
-                #     (x - model.units_pos[model.winning_units])
-                #     * model.params['lr_clusters']
-                #     )
+                # update units positions - double update rule
+                update = (
+                    (x - model.units_pos[model.winning_units])
+                    * model.params['lr_clusters']
+                    )
 
-                # # add noise to updates
-                # if noise:
-                #     update += (
-                #         torch.tensor(
-                #             norm.rvs(loc=noise['update1'][0],
-                #                      scale=noise['update1'][1],
-                #                      size=(len(update), model.n_dims)))
-                #         * model.params['lr_clusters']
-                #             )
+                # add noise to updates
+                if noise:
+                    update += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['update1'][0],
+                                     scale=noise['update1'][1],
+                                     size=(len(update), model.n_dims)))
+                        * model.params['lr_clusters']
+                            )
 
-                # model.units_pos[model.winning_units] += update
+                model.units_pos[model.winning_units] += update
 
-                # # store unit positions after both upds
-                # model.units_pos_bothupd_trace.append(
-                #     model.units_pos.detach().clone())
+                # store unit positions after both upds
+                model.units_pos_bothupd_trace.append(
+                    model.units_pos.detach().clone())
 
-                # # - step 2 - winners update towards self
-                # winner_mean = torch.mean(
-                #     model.units_pos[model.winning_units], axis=0)
-                # update = (
-                #     (winner_mean - model.units_pos[model.winning_units])
-                #     * model.params['lr_clusters_group'])
+                # - step 2 - winners update towards self
+                winner_mean = torch.mean(
+                    model.units_pos[model.winning_units], axis=0)
+                update = (
+                    (winner_mean - model.units_pos[model.winning_units])
+                    * model.params['lr_clusters_group'])
 
-                # # add noise to 2nd update?
-                # if noise:
-                #     update += (
-                #         torch.tensor(
-                #             norm.rvs(loc=noise['update2'][0],
-                #                      scale=noise['update2'][1],
-                #                      size=(len(update), model.n_dims)))
-                #         * model.params['lr_clusters_group']
-                #             )
+                # add noise to 2nd update?
+                if noise:
+                    update += (
+                        torch.tensor(
+                            norm.rvs(loc=noise['update2'][0],
+                                     scale=noise['update2'][1],
+                                     size=(len(update), model.n_dims)))
+                        * model.params['lr_clusters_group']
+                            )
 
-                # model.units_pos[model.winning_units] += update
+                model.units_pos[model.winning_units] += update
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
