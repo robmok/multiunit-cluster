@@ -203,14 +203,17 @@ params = [[.11],
 # ann_rate=350, 500k trials, to get new ann_rate for n_trials:
 # ann_rate = (350/500)*n_trials, where ntrials is ntrials/100
 
+
+# 400k trials
+ann_rate = 280
+# 350k trials
+ann_rate = 250
 # 250k trials
 ann_rate = 175
 # 150k trials
 ann_rate = 105
 # 100k trials
 ann_rate = 70
-# 70k trials
-ann_rate = 52.5
 
 params = [[.11],
           [.015],
