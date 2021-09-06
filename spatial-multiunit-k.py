@@ -190,28 +190,31 @@ attn_type = 'dimensional_local'
 #           [1.]]
 
 # 500k trials, faster
-
-ann_rate = 300
+ann_rate = 350  # best
 params = [[.11],
           [.015],
           [1.]]
 
-ann_rate = 350
-params = [[.11],
-          [.015],
-          [1.]]
-
-ann_rate = 450
-params = [[.11],
-          [.015],
-          [1.]]
 # TODO NEXT
 # - get the good ann_decay value
 # - calculate if fewer trials, what the ann_decay value is (slower)
 # - test a few with fewer trials; so no need to run as many
 
+# ann_rate=350, 500k trials, to get new ann_rate for n_trials:
+# ann_rate = (350/500)*n_trials, where ntrials is ntrials/100
 
+# 250k trials
+ann_rate = 175
+# 150k trials
+ann_rate = 105
+# 100k trials
+ann_rate = 70
+# 70k trials
+ann_rate = 52.5
 
+params = [[.11],
+          [.015],
+          [1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 

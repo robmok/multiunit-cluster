@@ -197,8 +197,8 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 # 1m trials - ran lr=.01, group_lr=1
 
 # testing ann rate, 500k / 1m trials. from 250+, just 500k
-# - atm, 400 best. missed 300
-ann_rate = 600  # orig=100. 50, 150, 200, 250, 300(? missed?), 400, 500, 600
+# - atm, 350/400 best .350 slightly better
+ann_rate = 350  # orig=100. 50, 150, 200, 250, 300(? missed?), 400, 500, 600
 params = [[.11],
           [.015],
           [1.]]
@@ -240,6 +240,8 @@ for k in params[0]:
 thr = .2
 print('lr={}, lr_group={}: {} > {}'.format(
     lr, lr_group, (df_gscore > thr).sum().sum(), thr))
+
+print(df_gscore.mean())
 
 # gscore = f['gscore']
 # pos_trace = f['pos']
