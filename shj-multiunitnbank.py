@@ -270,8 +270,6 @@ w_trace = [[] for i in range(6)]
 act_trace = [[] for i in range(6)]
 attn_trace = [[] for i in range(6)]
 
-
-t0 = time.time()
 # run multiple iterations
 for i in range(niter):
 
@@ -349,9 +347,6 @@ for i in range(niter):
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
         # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=1), axis=0))
-
-t1 = time.time()
-print(t1-t0)
 
 aspect = 40
 fig, ax = plt.subplots(1, 3)
