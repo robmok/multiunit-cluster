@@ -214,7 +214,7 @@ params = {
 model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=False, shj_order=True)
+    model, inputs, output, n_epochs, shj_order=True)
 
 # pr target
 plt.plot(1 - epoch_ptarget.T.detach())
@@ -317,11 +317,29 @@ for i in range(niter):
             'k': k
             }
 
+        # testing based on single bank gridsearch results
+        params = {
+            'r': 1,
+            # 'c': [.75, 2.5],
+            'c': [.4, 2.4],
+            # 'c': [.2, 2.],
+            'p': 1,
+            # 'phi': [1., 2.],
+            'phi': [2., 2.5],
+            # 'phi': [2., 2.],
+            'beta': 1,
+            'lr_attn': [.26, .001],
+            'lr_nn': [.5/lr_scale, .01/lr_scale],
+            'lr_clusters': [.3, .3],
+            'lr_clusters_group': [.9, .9],
+            'k': k
+            }
+
         model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k,
                                  params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs)
+            model, inputs, output, n_epochs, shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
@@ -362,6 +380,20 @@ plt.show()
 # plt.plot(pt_all[:, :, 2].mean(axis=0).T)
 # plt.ylim([0., .55])
 
+# plot out
+plt.plot(pt_all[:, :, 0].mean(axis=0).T)
+plt.title('full model')
+plt.ylim([0., .55])
+if saveplots:
+    figname = (
+        os.path.join(figdir,
+                     'shj_nbanks{}_curves_sep_b12_c{}{}_k{}_{}units_{}sims.pdf'
+                     .format(n_banks, params['c'][0], params['c'][1], k,
+                             n_units, niter))
+    )
+    plt.savefig(figname)
+plt.show()
+
 # plot single to compare with single bank
 # bank 1
 plt.plot(pt_all[:, :, 1].mean(axis=0).T)
@@ -370,8 +402,8 @@ plt.ylim([0., .55])
 if saveplots:
     figname = (
         os.path.join(figdir,
-                     'shj_nbanks{}_curves_sep_b1_c{}_k{}_{}units_{}sims.pdf'.format(
-                     n_banks, params['c'][0], k, n_units, niter))
+                     'shj_nbanks{}_curves_sep_b1_c{}_k{}_{}units_{}sims.pdf'
+                     .format(n_banks, params['c'][0], k, n_units, niter))
     )
     plt.savefig(figname)
 plt.show()
@@ -382,8 +414,8 @@ plt.title('c = {}'.format(params['c'][1]))
 if saveplots:
     figname = (
         os.path.join(figdir,
-                     'shj_nbanks{}_curves_sep_b2_k{}_{}units_{}sims.pdf'.format(
-                     n_banks, params['c'][1], k, n_units, niter))
+                     'shj_nbanks{}_curves_sep_b2_c{}_k{}_{}units_{}sims.pdf'
+                     .format(n_banks, params['c'][1], k, n_units, niter))
     )
     plt.savefig(figname)
 plt.show()

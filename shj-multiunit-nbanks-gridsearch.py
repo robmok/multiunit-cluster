@@ -64,15 +64,14 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
 
         # initialize model
         model = MultiUnitClusterNBanks(sim_info['n_units'], n_dims, n_banks,
-                                 sim_info['attn_type'],
-                                 sim_info['k'],
-                                 params=None,
-                                 fit_params=True,
-                                 start_params=start_params)
+                                       sim_info['attn_type'],
+                                       sim_info['k'],
+                                       params=None,
+                                       fit_params=True,
+                                       start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, 16, shuffle=True, shuffle_seed=seeds[i],
-            shj_order=True)
+            model, inputs, output, 16, shuffle_seed=seeds[i], shj_order=True)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         rec_all[problem].append(model.recruit_units_trl)
@@ -81,7 +80,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
         nll_all[problem] = negloglik(pt_all[:, problem, 0].mean(axis=0),  # 0 indexing the output of the nbanks
                                      beh_seq[:, problem])
 
-    return nll_all.sum(), np.nanmean(pt_all, axis=0), rec_all, seeds
+    return nll_all.sum(), torch.tensor(np.nanmean(pt_all, axis=0)), rec_all, seeds
 
 
 # %% grid search, fit shj
@@ -212,8 +211,27 @@ ranges = ([torch.arange(.1, 1.1, .3),
 
 # RECALCULATE - based on slower to run nbanks
 
+# prob no need to test all params.
+# - c is key - 5 values each
+# - phi can be lower, esp since 2 models now - but might be useful. .5 steps
+# - lr_clus and lr_group can keep same
+# - attn no need to go to 1. 2nd bank can be lower - bt should i enforce ths?
 
+# 360000
+ranges = ([torch.arange(.2, 1.2, .2),
+          torch.arange(1., 4., .5),
+          torch.arange(.01, 1., .25),
+          torch.arange(.01, .7, .15) / lr_scale,
+          torch.tensor([.3]),
+          torch.tensor([.9]),
 
+          torch.arange(2., 3., .2),
+          torch.arange(1., 4., .5),
+          torch.arange(.01, 1., .25),
+          torch.arange(.01, .7, .15) / lr_scale,
+          torch.tensor([.3]),
+          torch.tensor([.9])]
+          )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 

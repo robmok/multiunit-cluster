@@ -9,7 +9,7 @@ Created on Mon Jun 14 16:12:07 2021
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import warnings
+# import warnings
 
 
 class MultiUnitClusterNBanks(nn.Module):
@@ -108,11 +108,11 @@ class MultiUnitClusterNBanks(nn.Module):
 
         # distance measure
         dim_dist = abs(x - self.units_pos)
-        dist = _compute_dist(dim_dist, self.attn, self.params['r'],
-                             self.n_banks)
+        dist = self._compute_dist(dim_dist, self.attn, self.params['r'],
+                                  self.n_banks)
 
         # compute attention-weighted dist & activation (based on similarity)
-        act = _compute_act(dist, self.params['c'], self.params['p'])
+        act = self._compute_act(dist, self.params['c'], self.params['p'])
 
         # bmask - remove acts in wrong bank, sum over banks (0s for wrong bank)
         units_output = torch.sum(act * self.winning_units * self.bmask, axis=0)
@@ -151,6 +151,42 @@ class MultiUnitClusterNBanks(nn.Module):
         self.fc1_act_trace.append(torch.stack(pr).detach().clone())
 
         return out, pr
+
+    def _compute_dist(self, dim_dist, attn_w, r, n_banks):
+        # since sqrt of 0 returns nan for gradient, need this bit
+        # e.g. euclid, can't **(1/2)
+        if r > 1:
+            # d = torch.zeros(len(dim_dist))
+            # ind = torch.sum(dim_dist, axis=1) > 0
+            # dim_dist_tmp = dim_dist[ind]
+            # d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
+            pass
+        else:
+            # compute distances weighted by 2 banks of attn weights
+            if len(attn_w.shape) > 1:  # if more than 1 bank
+                # - all dists computed but for each bank, only n_units shd be used
+                d = torch.zeros([len(dim_dist), n_banks])
+                for ibank in range(n_banks):
+                    d[:, ibank] = (
+                        torch.sum(attn_w[:, ibank] * (dim_dist**r), axis=1)
+                        ** (1/r)
+                        )
+            else:
+                d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
+        return d  # **2  # squared dist
+
+    def _compute_act(self, dist, c, p):
+        """
+        - dist is n_banks x n_total_units, and params['c'] size is n_banks, so
+        can just multiple by banks
+        - sustain activation function
+        """
+        if torch.tensor(c).numel() > 1:
+            act = torch.transpose(
+                torch.tensor(c) * torch.exp(-torch.tensor(c) * dist), 0, 1)
+        else:
+            act = c * torch.exp(-c * dist)
+        return act
 
 
 def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
@@ -230,9 +266,10 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
-            dist = _compute_dist(dim_dist, model.attn, model.params['r'],
-                                 model.n_banks)
-            act = _compute_act(dist, model.params['c'], model.params['p'])
+            dist = model._compute_dist(dim_dist, model.attn, model.params['r'],
+                                       model.n_banks)
+            act = model._compute_act(
+                dist, model.params['c'], model.params['p'])
             act[:, ~model.active_units] = 0  # not connected, no act
 
             # bank mask
@@ -322,8 +359,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                     # compute grad based on act of winners *minus* losers
                     act_1 = (
                         torch.sum(
-                            _compute_act(
-                                _compute_dist(
+                            model._compute_act(
+                                model._compute_dist(
                                     abs(x - model.units_pos[win_ind_b]),
                                     model.attn[:, ibank].squeeze(),
                                     model.params['r'], model.n_banks),
@@ -331,8 +368,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                                 model.params['p']))
 
                         - torch.sum(
-                            _compute_act(
-                                _compute_dist(
+                            model._compute_act(
+                                model._compute_dist(
                                     abs(x - model.units_pos[lose_ind]),
                                     model.attn[:, ibank].squeeze(),
                                     model.params['r'], model.n_banks),
@@ -390,7 +427,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
                 # 1st trial - select closest k inactive units for both banks
                 if itrl == 0:
-                    act = _compute_act(
+                    act = model._compute_act(
                         dist, model.params['c'], model.params['p'])
                     act[~model.bmask] = -.01  # negative so never win
 
@@ -423,7 +460,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                     # enumerate (count, ibanks) in the loop, so use
                     # n_mispred_units[count] / mispred_units[count].
 
-                    act = _compute_act(
+                    act = model._compute_act(
                         dist, model.params['c'], model.params['p'])
                     act[~model.bmask] = -.01  # negative so never win
                     act[:, model.active_units] = 0  # REMOVE all active units
@@ -535,8 +572,9 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
             itrl += 1
 
-            if torch.sum(model.fc1.weight == 0) == 0:  # no units to recruit
-                warnings.warn("No more units to recruit")
+            # TMP removed
+            # if torch.sum(model.fc1.weight == 0) == 0:  # no units to recruit
+            #     warnings.warn("No more units to recruit")
 
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
@@ -546,41 +584,3 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 )
 
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget
-
-
-def _compute_dist(dim_dist, attn_w, r, n_banks):
-    # since sqrt of 0 returns nan for gradient, need this bit
-    # e.g. euclid, can't **(1/2)
-    if r > 1:
-        # d = torch.zeros(len(dim_dist))
-        # ind = torch.sum(dim_dist, axis=1) > 0
-        # dim_dist_tmp = dim_dist[ind]
-        # d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
-        pass
-    else:
-        # compute distances weighted by 2 banks of attn weights
-        if len(attn_w.shape) > 1:  # if more than 1 bank
-            # - all dists computed but for each bank, only n_units shd be used
-            d = torch.zeros([len(dim_dist), n_banks])
-            for ibank in range(n_banks):
-                d[:, ibank] = (
-                    torch.sum(attn_w[:, ibank] * (dim_dist**r), axis=1)
-                    ** (1/r)
-                    )
-        else:
-            d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-    return d  # **2  # squared dist
-
-
-def _compute_act(dist, c, p):
-    """
-    - dist is n_banks x n_total_units, and params['c'] size is n_banks, so
-    can just multiple by banks
-    - sustain activation function
-    """
-    if torch.tensor(c).numel() > 1:
-        act = torch.transpose(
-            torch.tensor(c) * torch.exp(-torch.tensor(c) * dist), 0, 1)
-    else:
-        act = c * torch.exp(-c * dist)
-    return act
