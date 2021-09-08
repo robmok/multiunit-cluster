@@ -217,6 +217,12 @@ n_trials = 100000
 # ann_rate = 70
 
 # in the end, 500k best.
+ann_rate = 350
+
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
+          [.0075, .01, .015],  # just .01/.015 now
+          [.8, 1.]] # just 1. now
+
 
 # plot over k first
 # - set lr's for now

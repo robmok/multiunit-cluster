@@ -191,17 +191,21 @@ attn_type = 'dimensional_local'
 
 # 500k trial, 350 ann rte
 ann_rate = 350  # best
-params = [[.11],
-          [.015],
-          [1.]]
+# params = [[.11],
+#           [.015],
+#           [1.]]
 
-
-params = [[.08, .09, .1, .12, .13, .14, .15, .16, .17, .18, .19],  # removed .11
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.01, .015],
           [1.]]
 
+# group_lr=.8 first
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.01, .015],
+          [.8]]
+
 # maybe do .2-.3 later?
-# or group_lr=.8 first?
+
 
 # TMP commented out
 # param_sets = torch.tensor(list(it.product(*params)))
