@@ -203,7 +203,7 @@ params = [[.11],
           [.015],
           [1.]]
 
-n_trials = 100000
+n_trials = 500000
 
 # # 400k trials
 # ann_rate = 280
@@ -226,8 +226,8 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 
 # plot over k first
 # - set lr's for now
-lr = params[1][0]
-lr_group = params[2][0]
+lr = params[1][2]
+lr_group = params[2][1]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:

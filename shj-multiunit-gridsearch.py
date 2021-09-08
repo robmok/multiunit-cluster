@@ -161,23 +161,23 @@ lr_scale = (n_units * k) / 1
 #           torch.arange(.1, 1., .2)]
 #           )
 
-# add 1 more c value
-# ranges = ([torch.arange(.2, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
-
-# when changing dist**2, changing c to start from .3, which loses one c value
-ranges = ([torch.arange(.3, 2.1, .2),
+# add 1 more c value - previous one, just dist
+ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),
           torch.arange(.05, 1., .1) / lr_scale,
           torch.arange(.05, 1., .1),
           torch.arange(.1, 1., .2)]
           )
+
+# when changing dist**2, changing c to start from .3, which loses one c value
+# ranges = ([torch.arange(.3, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1) / lr_scale,
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -254,11 +254,12 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
     print('Running param set {}/{} in set {}'.format(
         i + 1 + start, len(param_sets_curr), iset))
 
-    nlls[i], pt_all[i], rec_all[i], _ = run_shj_muc(
+    nlls[i + start], pt_all[i + start], rec_all[i + start], _ = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq, seeds=seeds)
 
     # save at certain points and at the end
     if (np.mod(i + start, 50) == 0) | (i + start == len(param_sets_curr)-1):
+        print('a')
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
