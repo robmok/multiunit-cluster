@@ -204,18 +204,19 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.01, .015],
           [.8]]
 
-# maybe do .2-.3 later?
+
+# # try faster lr, .02, .025
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.02, .025],
+          [1.]]
+
+# maybe do .2-.3 later? (for lr.01, .015. and/or gd ones above)
+
+# if lr=.02/.025 gd, could do group=.08 as well
 
 
-# TMP commented out
-# param_sets = torch.tensor(list(it.product(*params)))
 
-# TMP did .11-.015 already. here .01
-param_sets = list(it.product(*params))
-param_sets.append([.11, .01, 1.])
-param_sets = torch.tensor(param_sets)
-
-
+param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
 sets = torch.arange(0, len(param_sets), 4)
@@ -265,7 +266,7 @@ for pset, p in enumerate(param_sets_curr):
         # annealed lr
         orig_lr = p[1]
         ann_c = (1/n_trials)/n_trials
-        ann_decay = ann_c * (n_trials * ann_rate)  # ann_rate=100
+        ann_decay = ann_c * (n_trials * ann_rate)
         lr = [orig_lr / (1 + (ann_decay * itrial))
               for itrial in range(n_trials)]
 
