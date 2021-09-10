@@ -80,9 +80,10 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    return (nll_all.sum(), torch.tensor(np.nanmean(pt_all, axis=0)), rec_all,
+    # return (nll_all.sum(), torch.tensor(np.nanmean(pt_all, axis=0)), rec_all,
+    #         seeds)
+    return (nll_all.sum(), np.nanmean(pt_all, axis=0), rec_all,
             seeds)
-
 
 # %% grid search, fit shj
 
@@ -171,13 +172,13 @@ ranges = ([torch.arange(.2, 2.1, .2),
           )
 
 # when changing dist**2, changing c to start from .3, which loses one c value
-ranges = ([torch.arange(.3, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1) / lr_scale,
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
+# ranges = ([torch.arange(.3, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1) / lr_scale,
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
 # set up and save nll, pt, and fit_params
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -202,8 +203,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
-# sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
-sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
+sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
+# sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()

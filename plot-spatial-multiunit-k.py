@@ -226,7 +226,7 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 
 # plot over k first
 # - set lr's for now
-lr = params[1][2]
+lr = params[1][1]
 lr_group = params[2][1]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
@@ -289,8 +289,10 @@ g.ax.set_ylabel('Grid Score', fontsize=fntsiz)
 plt.tight_layout()
 if saveplots:
     figname = os.path.join(
-        figdir, 'gscores_violin_{}units_lr{}_grouplr{}_{}trials_{}sims'.format(
-            n_units, p[1], p[2], n_trials//1000, n_sims))
+        figdir,
+        'gscores_violin_{}units_lr{}_grouplr{}_{}trials_{}sims_annrate{}'
+        .format(
+            n_units, p[1], p[2], n_trials//1000, n_sims, ann_rate))
     # plt.savefig(figname, dpi=100)
     plt.savefig(figname + '.pdf')
 plt.show()

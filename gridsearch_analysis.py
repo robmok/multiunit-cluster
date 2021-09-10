@@ -21,7 +21,7 @@ n_units = 2000
 
 n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
 
-resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
+resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
     k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
@@ -65,8 +65,9 @@ for iset in sets:  # range(n_sets):
     # if not loaded_list[1]:
     #     print(iset)
 
-    if not np.any(loaded_list[1][-1]):  # check last one
-        print(iset)
+    # if not np.any(loaded_list[0][-1]):  # check last one
+    # # if not torch.tensor(loaded_list[0][-1], dtype=torch.bool):  # check last one
+    #     print(iset)
 
     nlls.extend(loaded_list[0])
     pts.extend(loaded_list[1])
