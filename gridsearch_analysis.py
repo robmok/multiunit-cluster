@@ -16,16 +16,16 @@ import itertools as it
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-k = 0.05
-n_units = 1000
+k = 0.01
+n_units = 2000
 
 n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
 
 resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
     k, n_units))
 
-# resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
-#     k, n_units))
+resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+    k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -44,14 +44,14 @@ ranges = ([torch.arange(.4, 2.1, .2),
 # #           torch.arange(.1, 1., .2)]
 # #           )
 
-# # when changing dist**2, changing c to start from .3, which loses one c value
-# ranges = ([torch.arange(.3, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
+# when changing dist**2, changing c to start from .3, which loses one c value
+ranges = ([torch.arange(.3, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
+          )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -188,6 +188,15 @@ shj_diff = torch.tensor([
 #     torch.sum(torch.square((shj[:, 5] - shj[:, 2:5].mean(axis=1)))),
 #     0, 0, 0])
 
+# separate 3-5 diffs and other problem diffs
+sse_diff1 = torch.zeros(len(pts))
+sse_diff2 = torch.zeros(len(pts))
+shj_diff1 = torch.tensor([
+    torch.sum((shj[:, 1] - shj[:, 0])),
+    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
+    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1)))])
+shj_diff2 = torch.tensor([0, 0, 0])
+
 for iparam in range(len(pts)):
 
     # compute sse
@@ -239,7 +248,22 @@ for iparam in range(len(pts)):
     #     torch.sum(torch.square(pts[iparam][3] - pts[iparam][4]))
     #     ])
 
-    sse_diff[iparam] = torch.sum(torch.square(diff - shj_diff))
+    # sse_diff[iparam] = torch.sum(torch.square(diff - shj_diff))
+
+    # separate 3-5 diffs and other problem diffs
+    diff1 = torch.tensor([
+        torch.sum(pts[iparam][1] - pts[iparam][0]),
+        torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
+        torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))
+        ])
+    diff2 = torch.tensor([
+        torch.sum(torch.abs(pts[iparam][2] - pts[iparam][3])),
+        torch.sum(torch.abs(pts[iparam][2] - pts[iparam][4])),
+        torch.sum(torch.abs(pts[iparam][3] - pts[iparam][4]))
+        ])
+
+    sse_diff1[iparam] = torch.sum(torch.square(diff1 - shj_diff1))
+    sse_diff2[iparam] = torch.sum(torch.square(diff2 - shj_diff2))
 
 # criteria 1 already reduces to <12% of the params
 
@@ -251,21 +275,63 @@ for iparam in range(len(pts)):
 
 ind_nll = nlls == nlls[ptn_criteria_1].min()
 ind_sse = sse == sse[ptn_criteria_1].min()
-ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
+# ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
+
+ind_sse_diff1 = sse_diff1 == sse_diff1[ptn_criteria_1].min()
+ind_sse_diff2 = sse_diff2 == sse_diff2[ptn_criteria_1].min()
 
 # %%
-# 2 sses weighted
-# - with mse & mean all, w=.35-.4
-# - with sse & sum all, w=.9. less then pr3 fast. more then too steep 6
-w = .5 # larger = weight total more, smaller = weight differences more
-sses_w = sse * w + sse_diff * (1-w)
-# ind_sse_w = sses_w == sses_w[~sses_w.isnan()].min()  # ignore qual pattern
+
+# # 2 sses weighted
+# # - with mse & mean all, w=.35-.4
+# # - with sse & sum all, w=.9. less then pr3 fast. more then too steep 6
+# w = .5  # larger = weight total more, smaller = weight differences more
+# sses_w = sse * w + sse_diff * (1-w)
+# # ind_sse_w = sses_w == sses_w[~sses_w.isnan()].min()  # ignore qual pattern
+# ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
+
+# 3 sses weighted - sse, sse_diff1, sse_diff2
+w = [1/3, 1/3, 1/3]
+# w = [2/6, 1/6, 3/6]
+# w = [1/6, 0/6, 5/6]
+sses_w = sse * w[0] + sse_diff1 * w[1] + sse_diff * w[2]
 ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
+
+# # RANK
+# # ranked_nll = [sorted(nlls).index(i) for i in nlls]
+# from scipy.stats import rankdata
+
+# # note, scipy.stats.rankdata starts from 1
+# ranked_nll = rankdata(nlls, method='min')
+# ranked_sse = rankdata(sse, method='min')
+# ranked_sse_diff = rankdata(sse_diff, method='min')
+# # ignore
+# ranked_nll[~ptn_criteria_1] = 10**6
+# ranked_sse[~ptn_criteria_1] = 10**6
+# ranked_sse_diff[~ptn_criteria_1] = 10**6
+
+# # since there are ties, get the first n values
+# irank = 0 # start from 0
+
+# ranks = np.sort(ranked_nll)
+# ind_nll = ranked_nll == ranks[irank]
+# ranks = np.sort(ranked_sse)
+# ind_sse = ranked_sse == ranks[irank]
+# ranks = np.sort(ranked_sse_diff)
+# ind_sse_diff = ranked_sse_diff == ranks[irank]
+# # use ranks
+# ranked_sse_w = rankdata(sses_w, method='min')
+# ranked_sse_w[~ptn_criteria_1] = 10**6  # ignore
+# ranks = np.sort(ranked_sse_w)
+# ind_sse_w = ranked_sse_w == ranks[irank]
+
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 # print(param_sets[ind_nll])
 print(param_sets[ind_sse])
-print(param_sets[ind_sse_diff])
+# print(param_sets[ind_sse_diff])
+print(param_sets[ind_sse_diff1])
+print(param_sets[ind_sse_diff2])
 
 print(param_sets[ind_sse_w])
 
@@ -330,6 +396,62 @@ ind = ind_sse_w
 # - all 3 rulex's together
 # - actully, the weighting doesn't change anything
 # tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
+
+
+# new - dist**2
+# check best params to do a finer gridsearch
+
+# assume 3-5's are 0, BEST params:
+# sse, sse_diff (though prob don't want to do this):
+# tensor([[0.3000, 9.0000, 0.7500, 0.0500, 0.4500, 0.9000]])
+# tensor([[0.3000, 1.0000, 0.1500, 0.8500, 0.6500, 0.1000]])
+# weighted sse
+# - .5: tensor([[0.3000, 3.0000, 0.6500, 0.3500, 0.4500, 0.9000]])
+# - .75: tensor([[0.3000, 5.0000, 0.6500, 0.1500, 0.4500, 0.9000]])
+# - .95: tensor([[0.3000, 3.0000, 0.7500, 0.4500, 0.4500, 0.9000]])
+
+# 2nd best params
+# sse, sse_diff
+# tensor([[0.3000, 3.0000, 0.7500, 0.4500, 0.4500, 0.9000]])
+# tensor([[0.3000, 1.0000, 0.1500, 0.9500, 0.6500, 0.1000]])
+# weighted sse
+# - .5: tensor([[0.7000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
+# - .75: tensor([[0.3000, 5.0000, 0.7500, 0.1500, 0.4500, 0.9000]])
+# - .95: tensor([[0.3000, 9.0000, 0.7500, 0.0500, 0.4500, 0.9000]])
+
+
+# 3 weights
+# w = [1/3, 1/3, 1/3]
+# tensor([[0.3000, 3.0000, 0.6500, 0.3500, 0.4500, 0.9000]])
+# w = [2/6, 1/6, 3/6]
+# tensor([[0.3000, 5.0000, 0.6500, 0.1500, 0.4500, 0.9000]])
+# w = [1/6, 0/6, 5/6]
+# tensor([[0.3000, 9.0000, 0.7500, 0.0500, 0.4500, 0.9000]])
+
+
+# ATM:
+# c=0.3, phi = 1/3/5, lr_attn = .15,.35, .65, lr_nn = .15/.35.. also .45
+# lr_clus=.45, lr_group=.9
+
+# - can fix lr_clus/lr_group
+# - c can be around 0.3. arange(.2, .4 , .05) - 4 vals.
+# np.arange(.2, .45 , 1/30) - 8 vals. remove final 0.43 gives 7 vals
+# - phi tricky, maybe from ~1-5, e.g. 0.75, 1, 1.25... might be too many?
+# now 1,3,5. could do range(1,5,steps = 1) - 5 vals or (1,5.1,steps=.5)- 8 vals
+# - lr_attn: .15-.65, same values. shouldn't change curves much
+# - lr_nn: .15-.45, same or a few more values in between... this shifts curves
+# same would be .15, .25, .35, .45, .55, .65. - 6 vals.
+# arange(.15, .6 , .05) = 9 vals
+
+# 3888 right now. actually could have more.
+# ranges = ([torch.arange(.2, .45 , 1/30),
+#           torch.arange(1., 5.1, .5),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .6, .05),
+#           torch.tensor([.45]),
+#           torch.tensor([.9])]
+#           )
+# param_sets = torch.tensor(list(it.product(*ranges)))
 
 
 saveplots = False
