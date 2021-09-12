@@ -220,13 +220,12 @@ n_trials = 500000
 ann_rate = 350
 
 params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
-          [.0075, .01, .015],  # just .01/.015 now
-          [.8, 1.]] # just 1. now
-
+          [.01, .015, .02, .025],  # .02 best
+          [.8, 1.]] # just 1 for most. 0.8 for [.01, .015]
 
 # plot over k first
 # - set lr's for now
-lr = params[1][1]
+lr = params[1][2]
 lr_group = params[2][1]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
@@ -257,11 +256,14 @@ for k in params[0]:
 # n gscores > threshold
 # - turns out lr doesn't change this that much - mainly the magnitude changes
 # if anything, slower has more...! faster has more high gscores maybe?
-thr = .2
+thr = .3
 print('lr={}, lr_group={}: {} > {}'.format(
     lr, lr_group, (df_gscore > thr).sum().sum(), thr))
 
-print(df_gscore.mean())
+print((df_gscore > thr).sum().sum() / (len(params[0] * 100)))
+print(df_gscore.mean().mean())
+# print(df_gscore.mean())
+
 
 # gscore = f['gscore']
 # pos_trace = f['pos']

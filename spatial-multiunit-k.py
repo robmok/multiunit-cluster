@@ -205,16 +205,18 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.8]]
 
 
-# # try faster lr, .02, .025
+# try faster lr, .02, .025
 params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.02, .025],
           [1.]]
 
 # maybe do .2-.3 later? (for lr.01, .015. and/or gd ones above)
-
 # if lr=.02/.025 gd, could do group=.08 as well
 
-
+# .02 gd - do more or less
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.018, .022],
+          [1.]]
 
 param_sets = torch.tensor(list(it.product(*params)))
 

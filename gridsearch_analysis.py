@@ -16,13 +16,16 @@ import itertools as it
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-k = 0.01
-n_units = 2000
+k = 0.05
+n_units = 1000
 
 n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
 
-resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
     k, n_units))
+
+# resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+#     k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -31,6 +34,24 @@ ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(.05, 1., .1),
           torch.arange(.1, 1., .2)]
           )
+
+# newer ~August/Sept
+# # ranges = ([torch.arange(.2, 2.1, .2),
+# #           torch.arange(1., 15., 2),
+# #           torch.arange(.05, 1., .1),
+# #           torch.arange(.05, 1., .1),
+# #           torch.arange(.05, 1., .1),
+# #           torch.arange(.1, 1., .2)]
+# #           )
+
+# # when changing dist**2, changing c to start from .3, which loses one c value
+# ranges = ([torch.arange(.3, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -75,8 +96,8 @@ for iset in sets:  # range(n_sets):
     # seeds.extend(loaded_list[3])
 
 
-# pts = torch.stack(pts)
-# nlls = torch.stack(nlls)
+pts = torch.stack(pts)
+nlls = torch.stack(nlls)
 # recs = torch.stack(recs)
 # seeds = torch.stack(seeds)
 
@@ -116,9 +137,9 @@ shj = (
 # iparam = 0
 
 # match threshold
-# - 1 if match fully. can allow some error to be safe, eg ~.9
+# - 1 if match fully. can allow some error to be safe, eg ~.9/.95
 # - note depending on the comparison, num total is diff (so prop is diff)
-match_thresh = .95
+match_thresh = .9
 
 # criterion 1 - shj pattern (qualitative)
 sse = torch.zeros(len(pts))
@@ -132,19 +153,19 @@ shj_diff = torch.tensor([
     torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1)))])
 
 # include types 3-5 differences? should be low.. lower but not nth..
-# shj_diff = torch.tensor([
-#     torch.sum((shj[:, 1] - shj[:, 0])),
-#     torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
-#     torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
-#     torch.sum(torch.abs(shj[:, 2] - shj[:, 3])),
-#     torch.sum(torch.abs(shj[:, 2] - shj[:, 4])),
-#     torch.sum(torch.abs(shj[:, 3] - shj[:, 4]))])
+shj_diff = torch.tensor([
+    torch.sum((shj[:, 1] - shj[:, 0])),
+    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
+    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
+    torch.sum(torch.abs(shj[:, 2] - shj[:, 3])),
+    torch.sum(torch.abs(shj[:, 2] - shj[:, 4])),
+    torch.sum(torch.abs(shj[:, 3] - shj[:, 4]))])
 # or assume diffs between them 0
-# shj_diff = torch.tensor([
-#     torch.sum((shj[:, 1] - shj[:, 0])),
-#     torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
-#     torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
-#     0, 0, 0])
+shj_diff = torch.tensor([
+    torch.sum((shj[:, 1] - shj[:, 0])),
+    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
+    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
+    0, 0, 0])
 
 # squared diffs
 # - above seems better - maybe the direction does matter..
@@ -160,7 +181,7 @@ shj_diff = torch.tensor([
 #     torch.sum(torch.square(torch.abs(shj[:, 2] - shj[:, 3]))),
 #     torch.sum(torch.square(torch.abs(shj[:, 2] - shj[:, 4]))),
 #     torch.sum(torch.square(torch.abs(shj[:, 3] - shj[:, 4])))])
-# # or assume diffs between them 0
+# or assume diffs between them 0
 # shj_diff = torch.tensor([
 #     torch.sum(torch.square((shj[:, 1] - shj[:, 0]))),
 #     torch.sum(torch.square(shj[:, 2:5].mean(axis=1) - (shj[:, 1]))),
@@ -184,21 +205,21 @@ for iparam in range(len(pts)):
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
     # difference between curves magnitude
-    diff = torch.tensor([
-        torch.sum(pts[iparam][1] - pts[iparam][0]),
-        torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
-        torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))])
-    # include diffs of 3-5
     # diff = torch.tensor([
     #     torch.sum(pts[iparam][1] - pts[iparam][0]),
     #     torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
-    #     torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0)),
-    #     torch.sum(torch.abs(pts[iparam][2] - pts[iparam][3])),
-    #     torch.sum(torch.abs(pts[iparam][2] - pts[iparam][4])),
-    #     torch.sum(torch.abs(pts[iparam][3] - pts[iparam][4]))
-    #     ])
+    #     torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))])
+    # include diffs of 3-5
+    diff = torch.tensor([
+        torch.sum(pts[iparam][1] - pts[iparam][0]),
+        torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
+        torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0)),
+        torch.sum(torch.abs(pts[iparam][2] - pts[iparam][3])),
+        torch.sum(torch.abs(pts[iparam][2] - pts[iparam][4])),
+        torch.sum(torch.abs(pts[iparam][3] - pts[iparam][4]))
+        ])
 
-    # should it be squared (abs) differences for all?
+    # # should it be squared (abs) differences for all?
     # diff = torch.tensor([
     #     torch.sum(torch.square(pts[iparam][1] - pts[iparam][0])),
     #     torch.sum(
@@ -222,10 +243,17 @@ for iparam in range(len(pts)):
 
 # criteria 1 already reduces to <12% of the params
 
+# remove those with nans at all (i.e. still got a curve for those with nanmean)
+# ind_nan = np.isnan(nlls)
+# nlls[ind_nan] = np.inf
+# sse[ind_nan] = np.inf
+# sse_diff[ind_nan] = np.inf
+
 ind_nll = nlls == nlls[ptn_criteria_1].min()
 ind_sse = sse == sse[ptn_criteria_1].min()
 ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
 
+# %%
 # 2 sses weighted
 # - with mse & mean all, w=.35-.4
 # - with sse & sum all, w=.9. less then pr3 fast. more then too steep 6
@@ -253,12 +281,18 @@ print(param_sets[ind_sse_w])
 # select which to use
 ind = ind_sse_w
 
+# ind = ind_nll.clone()
+
+# if more than 1 match, remove one
+# ind[torch.nonzero(ind_nll)[0]] = True
+# ind[torch.nonzero(ind_nll)[1]] = False
+
 # more criteria
 # - maybe faster type I / slower type VI
 # - types III-V need to be more similar (e.g. within some range)
 # - type I, II and the III-V's need to be larger differences
 
-# %% plot
+# % plot
 
 # matching differences, fitting differences of 3-5. w=.5
 # - similar to .9 curve
@@ -298,7 +332,7 @@ ind = ind_sse_w
 # tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
 
 
-saveplots = True
+saveplots = False
 
 fntsiz = 15
 ylims = (0., .55)
@@ -308,22 +342,22 @@ import matplotlib.font_manager as font_manager
 font = font_manager.FontProperties(family='Tahoma',
                                    style='normal', size=fntsiz-2)
 
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj)
-ax[0].set_ylim(ylims)
-ax[0].set_aspect(17)
-ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
-ax[1].plot(pts[ind].T.squeeze())
-ax[1].set_ylim(ylims)
-ax[1].set_aspect(17)
-plt.tight_layout()
-if saveplots:
-    figname = os.path.join(figdir,
-                           'shj_gsearch_n94_subplots_{}units_k{}_w{}_notfitrulexdiffs.pdf'
-                           .format(
-                               n_units, k, w))
-    plt.savefig(figname)
-plt.show()
+# fig, ax = plt.subplots(2, 1)
+# ax[0].plot(shj)
+# ax[0].set_ylim(ylims)
+# ax[0].set_aspect(17)
+# ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
+# ax[1].plot(pts[ind].T.squeeze())
+# ax[1].set_ylim(ylims)
+# ax[1].set_aspect(17)
+# plt.tight_layout()
+# if saveplots:
+#     figname = os.path.join(figdir,
+#                            'shj_gsearch_n94_subplots_{}units_k{}_w{}_notfitrulexdiffs.pdf'
+#                            .format(
+#                                n_units, k, w))
+#     plt.savefig(figname)
+# plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
@@ -342,31 +376,31 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# nosofsky '94 by itself
-fig, ax = plt.subplots(1, 1)
-ax.plot(shj)
-ax.set_ylim(ylims)
-ax.tick_params(axis='x', labelsize=fntsiz-3)
-ax.tick_params(axis='y', labelsize=fntsiz-3)
-# ax.legend(('1', '2', '3', '4', '5', '6'), fontsize=fntsiz-2)
-ax.set_xlabel('Learning Block', fontsize=fntsiz)
-ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-plt.tight_layout()
-# if saveplots:
-#     figname = os.path.join(figdir, 'nosofsky94_shj.pdf')
-#     plt.savefig(figname)
-plt.show()
+# # nosofsky '94 by itself
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(shj)
+# ax.set_ylim(ylims)
+# ax.tick_params(axis='x', labelsize=fntsiz-3)
+# ax.tick_params(axis='y', labelsize=fntsiz-3)
+# # ax.legend(('1', '2', '3', '4', '5', '6'), fontsize=fntsiz-2)
+# ax.set_xlabel('Learning Block', fontsize=fntsiz)
+# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+# plt.tight_layout()
+# # if saveplots:
+# #     figname = os.path.join(figdir, 'nosofsky94_shj.pdf')
+# #     plt.savefig(figname)
+# plt.show()
 
-# plot on top of each other
-fig, ax = plt.subplots(1, 1)
-ax.plot(shj, 'k')
-ax.plot(pts[ind].T.squeeze(), 'o-')
-ax.tick_params(axis='x', labelsize=fntsiz-3)
-ax.tick_params(axis='y', labelsize=fntsiz-3)
-ax.set_ylim(ylims)
-ax.set_xlabel('Learning Block', fontsize=fntsiz)
-ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-plt.show()
+# # plot on top of each other
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(shj, 'k')
+# ax.plot(pts[ind].T.squeeze(), 'o-')
+# ax.tick_params(axis='x', labelsize=fntsiz-3)
+# ax.tick_params(axis='y', labelsize=fntsiz-3)
+# ax.set_ylim(ylims)
+# ax.set_xlabel('Learning Block', fontsize=fntsiz)
+# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+# plt.show()
 
 
  # %% run MLE after gridsearch
