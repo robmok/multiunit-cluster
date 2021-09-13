@@ -132,7 +132,7 @@ class MultiUnitCluster(nn.Module):
             d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
         else:
             d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-        return d  # **2  # squared dist
+        return d**2  # squared dist
 
     def _compute_act(self, dist, c, p):
         return c * torch.exp(-c * dist)  # sustain-like

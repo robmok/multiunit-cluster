@@ -29,6 +29,8 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
+finegsearch = True
+
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -80,10 +82,10 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
         nll_all[problem] = negloglik(pt_all[:, problem].mean(axis=0),
                                      beh_seq[:, problem])
 
-    # return (nll_all.sum(), torch.tensor(np.nanmean(pt_all, axis=0)), rec_all,
-    #         seeds)
-    return (nll_all.sum(), np.nanmean(pt_all, axis=0), rec_all,
+    return (nll_all.sum(), torch.tensor(np.nanmean(pt_all, axis=0)), rec_all,
             seeds)
+    # return (nll_all.sum(), np.nanmean(pt_all, axis=0), rec_all,
+    #         seeds)
 
 # %% grid search, fit shj
 
@@ -180,9 +182,6 @@ ranges = ([torch.arange(.2, 2.1, .2),
 #           torch.arange(.1, 1., .2)]
 #           )
 
-# set up and save nll, pt, and fit_params
-param_sets = torch.tensor(list(it.product(*ranges)))
-
 # timing
 # - 160 sets in 8.5 or 11.5 hours
 # - 160/8.5=18.8235 or 160/10.5=15.2381 sets per hour. Let's say 15 per hour.
@@ -200,17 +199,32 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # added another lower c val
 # 350000/450=777.77*.0656=51.02/24=2.125 days
 
+# **newer estimate of time: 0.12 hours per param (max)
+
+# for finer gridsearch
+# 63648 params - 400 sets, 160 psets per set; 160*.12=19.2/24=.8 days
+# 63648 params - 420 sets, 152 psets per set; 152*.12=18.24/24=.76
+# 95472 params - 420 sets, 228 psets per set: 228*.12=27.36/24=1.14
+# 95472 params - 440 sets, 217 psets per set: 217*.12=26.04/24=1.085
+# 95472 params - 450 sets, 213 psets per set: 213*.12=25.56/24=1.065
+# - do 440 sets so slightly less likely gets kicked off. just 30 min diff.
+
+if finegsearch:
+    ranges = ([torch.arange(.2, .45, 1/30),
+              torch.arange(1., 5.1, .25),
+              torch.arange(.15, .66, .1),
+              torch.arange(.15, .8, .05),  # 3 more vals for the low c's
+              torch.arange(.25, .5, .1),  # 3 vals
+              torch.arange(.8, 1.01, .1)]  # 3 vals
+              )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
-sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
+# sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
 # sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
 
-# for finer gridsearch
-# 63648 params - 400 sets, 160 psets per set; 160*.0656=10.496/24=0.437 days
-# 63648 params - 420 sets, 152 psets per set; 152*.0656=9.97/24=0.415 days
-# 95472 params - 420 sets, 228 psets per set: 228*.0656=14.9568/24=0.623
-# sets = torch.arange(0, len(param_sets), 160)
+sets = torch.arange(0, len(param_sets), 217)
 
 # not a great way to add final set on
 sets = torch.cat(
@@ -234,6 +248,13 @@ seeds = torch.arange(sim_info['niter'])*10
 # fname to save to
 fn = os.path.join(datadir,
                   'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
+
+if finegsearch:
+    fn = os.path.join(datadir,
+                      'shj_finegsearch_k{}_{}units_set{}.pkl'.format(
+                          k, n_units, iset))
+
 
 # on mbp testing
 # fn = os.path.join(datadir, 'gsearch_k0.05_1000units/'
