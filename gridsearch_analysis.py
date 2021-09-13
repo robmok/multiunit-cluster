@@ -443,16 +443,69 @@ ind = ind_sse_w
 # same would be .15, .25, .35, .45, .55, .65. - 6 vals.
 # arange(.15, .6 , .05) = 9 vals
 
-# 3888 right now. actually could have more.
-# ranges = ([torch.arange(.2, .45 , 1/30),
+# 3888 right now. actually could have way more.
+# ranges = ([torch.arange(.2, .45, 1/30),
 #           torch.arange(1., 5.1, .5),
 #           torch.arange(.15, .66, .1),
 #           torch.arange(.15, .6, .05),
 #           torch.tensor([.45]),
 #           torch.tensor([.9])]
 #           )
-# param_sets = torch.tensor(list(it.product(*ranges)))
 
+# # 34992 - 3 more cluster lr's
+# ranges = ([torch.arange(.2, .45, 1/30),
+#           torch.arange(1., 5.1, .5),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .6, .05),
+#           torch.arange(.25, .5, .1),  # 3 vals
+#           torch.arange(.8, 1.01, .1)]  # 3 vals
+#           )
+# # 15552 - if just 2 clus vals
+# ranges = ([torch.arange(.2, .45, 1/30),
+#           torch.arange(1., 5.1, .5),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .6, .05),
+#           torch.arange(.35, .5, .1),  # 2 vals
+#           torch.arange(.8, 1.0, .1)]  # 2 vals
+#           )
+
+# # 29376 - more phi (.25 steps), 2 more clus vals
+# ranges = ([torch.arange(.2, .45, 1/30),
+#           torch.arange(1., 5.1, .25),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .6, .05),
+#           torch.arange(.35, .5, .1),  # 2 vals
+#           torch.arange(.8, 1.0, .1)]  # 2 vals
+#           )
+# # 42432 - more lr_nn as well
+# ranges = ([torch.arange(.2, .45, 1/30),
+#           torch.arange(1., 5.1, .25),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .8, .05), # 3 more vals for the low c's
+#           torch.arange(.35, .5, .1),  # 2 vals
+#           torch.arange(.8, 1.0, .1)]  # 2 vals
+#           )
+# # 63648 - with 2 clus vals, 3 group clus vals
+# ranges = ([torch.arange(.2, .45, 1/30),
+#           torch.arange(1., 5.1, .25),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .8, .05), # 3 more vals for the low c's
+#           torch.arange(.35, .5, .1),  # 2 vals
+#           torch.arange(.8, 1.01, .1)]  # 3 vals
+#           )
+# 95472 - with 3 clus vals for both
+ranges = ([torch.arange(.2, .45, 1/30),
+          torch.arange(1., 5.1, .25),
+          torch.arange(.15, .66, .1),
+          torch.arange(.15, .8, .05),  # 3 more vals for the low c's
+          torch.arange(.25, .5, .1),  # 3 vals
+          torch.arange(.8, 1.01, .1)]  # 3 vals
+          )
+
+
+param_sets = torch.tensor(list(it.product(*ranges)))
+
+print(len(param_sets))
 
 saveplots = False
 

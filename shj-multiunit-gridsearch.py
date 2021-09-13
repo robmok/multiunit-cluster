@@ -205,6 +205,13 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # set up which subset of param_sets to run on a given run
 sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
 # sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
+
+# for finer gridsearch
+# 63648 params - 400 sets, 160 psets per set; 160*.0656=10.496/24=0.437 days
+# 63648 params - 420 sets, 152 psets per set; 152*.0656=9.97/24=0.415 days
+# 95472 params - 420 sets, 228 psets per set: 228*.0656=14.9568/24=0.623
+# sets = torch.arange(0, len(param_sets), 160)
+
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
