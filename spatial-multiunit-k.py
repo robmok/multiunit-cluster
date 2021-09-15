@@ -223,10 +223,14 @@ params = [[.2, .21, .22, .23, .24, .25, .26, .27, .28, .29, .3],
           [.02],
           [1.]]
 
-# NEXT .02; group=0.8
-# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-#           [.02],
-#           [.8]]
+# .02; group=0.8
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.02],
+          [.8]]
+
+# NEXT: group .06? or .2-3 for gropu=0.8?
+
+
 
 param_sets = torch.tensor(list(it.product(*params)))
 
@@ -244,7 +248,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 # has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
 # - maybe do 6 in one go next time if slower?
 
-iset = 0  # 0-3 sets
+iset = 0  # 0-4 sets
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 

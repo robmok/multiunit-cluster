@@ -165,13 +165,13 @@ lr_scale = (n_units * k) / 1
 #           )
 
 # add 1 more c value - previous one, just dist
-ranges = ([torch.arange(.2, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1) / lr_scale,
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
+# ranges = ([torch.arange(.2, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1) / lr_scale,
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
 # when changing dist**2, changing c to start from .3, which loses one c value
 # ranges = ([torch.arange(.3, 2.1, .2),
@@ -209,14 +209,46 @@ ranges = ([torch.arange(.2, 2.1, .2),
 # 95472 params - 450 sets, 213 psets per set: 213*.12=25.56/24=1.065
 # - do 440 sets so slightly less likely gets kicked off. just 30 min diff.
 
+# dist
+# 17010 params - 300 sets, 56 psets per set; 56*.12=6.72 hours
+# 17010 params - 350 sets, 49 psets per set; 49*.12=5.88 hours
+# 21870 params - 350 sets, 63 psets per set; 63*.12=7.56 hours
+
+# dist**2 second go
+# 47040 params - 350 sets, 135 psets per set; 135*.12=16.2 hours
+
 if finegsearch:
-    ranges = ([torch.arange(.2, .45, 1/30),
-              torch.arange(1., 5.1, .25),
-              torch.arange(.15, .66, .1),
-              torch.arange(.15, .8, .05),  # 3 more vals for the low c's
-              torch.arange(.25, .5, .1),  # 3 vals
-              torch.arange(.8, 1.01, .1)]  # 3 vals
+    # # dist**2 initial
+    # ranges = ([torch.arange(.2, .45, 1/30),
+    #           torch.arange(1., 5.1, .25),
+    #           torch.arange(.15, .66, .1),
+    #           torch.arange(.15, .8, .05),  # 3 more vals for the low c's
+    #           torch.arange(.25, .5, .1),  # 3 vals
+    #           torch.arange(.8, 1.01, .1)]  # 3 vals
+    #           )
+
+    # dist
+    # c=.2/1.2, phi=3/1, lr_attn=.75/.95/, lr_nn=.35/.85, lr_clus=.35/.45, group=.9
+    ranges = ([torch.cat([torch.arange(.1, .35, .05),
+                          torch.arange(1.05, 1.25, .05)]),
+              torch.arange(.75, 5.1, .25),
+              torch.arange(.55, .96, .1),
+              torch.cat([torch.arange(.25, .5, .05),
+                         torch.arange(.8, .96, .05)]),
+              torch.tensor([.25, .35, .45]),
+              torch.tensor([.9])]
               )
+
+    # dist**2 second go
+    # # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
+    # ranges = ([torch.arange(.1, .45, .05),
+    #           torch.arange(.75, 5.6, .25),  # many
+    #           torch.arange(.05, .41, .05),
+    #           torch.arange(.05, .36, .05),
+    #           torch.tensor([.15, .35, .45]),
+    #           torch.tensor([.3, .9])]
+    #           )
+
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -224,7 +256,9 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
 # sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
 
-sets = torch.arange(0, len(param_sets), 217)
+# finer gsearch
+# sets = torch.arange(0, len(param_sets), 217)
+sets = torch.arange(0, len(param_sets), 63)  # dist
 
 # not a great way to add final set on
 sets = torch.cat(
