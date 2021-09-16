@@ -20,7 +20,7 @@ k = 0.01
 n_units = 2000
 
 # gsearch split into how many sets to load in
-n_sets = 440  # 450 sets. 440 for finegsearch1.
+n_sets = 348  # 450 sets. 440 for finegsearch1. 348 for finegsearch dist.
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -34,9 +34,14 @@ n_sets = 440  # 450 sets. 440 for finegsearch1.
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
 #     k, n_units))
 
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq1'.format(
+#         k, n_units))
+
 resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/finegsearch_{}_{}units_distsq1'.format(
+    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist'.format(
         k, n_units))
+
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -72,6 +77,29 @@ ranges = ([torch.arange(.2, .45, 1/30),
           torch.arange(.25, .5, .1),
           torch.arange(.8, 1.01, .1)]
           )
+
+# dist
+# c=.2/1.2, phi=3/1, lr_attn=.75/.95/, lr_nn=.35/.85, lr_clus=.35/.45, group=.9
+ranges = ([torch.cat([torch.arange(.1, .35, .05),
+                      torch.arange(1.05, 1.25, .05)]),
+          torch.arange(.75, 5.1, .25),
+          torch.arange(.55, .96, .1),
+          torch.cat([torch.arange(.25, .5, .05),
+                     torch.arange(.8, .96, .05)]),
+          torch.tensor([.25, .35, .45]),
+          torch.tensor([.9])]
+          )
+
+# # dist**2 second go
+# # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
+# ranges = ([torch.arange(.1, .45, .05),
+#           torch.arange(.75, 5.6, .25),  # many
+#           torch.arange(.05, .41, .05),
+#           torch.arange(.05, .36, .05),
+#           torch.tensor([.15, .35, .45]),
+#           torch.tensor([.3, .9])]
+#           )
+
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -382,12 +410,23 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # - actually ok - like prev plot, t
 # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
 
 
-# finegsearch 1 - all similar, with type 3 too  fast
+# finegsearch 1 - dist**2 - all similar, with type 3 too  fast
 w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
-w = w / w.sum()
+# finegsearch 2 - dist - v similar to original in plot
+w = torch.tensor([1/5, 1/5, 100/5, 1/5, 1/5])  #  pretty gd, 3 a little fast
+# w = torch.tensor([1/5, 1/5, 500/5, 100/5, 1/5]) # also ok, all slower
 
-sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
+# w = torch.tensor([10/5, 1/5, 1/5, 1/5, 1/5])  # total sse-->all faster, but dominates, nth changes if total sse w is high
+
+w = torch.tensor([10/5, 1/5, 1000/5, 100/5, 1/5])
+
+# finegsearch 2 - dist**2
+
+
+
+w = w / w.sum()
+sses_w = sse * w [0] + torch.sum(sse_diff * w[1:], axis=1)
 ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
 
 
@@ -559,9 +598,9 @@ font = font_manager.FontProperties(family='Tahoma',
 # plt.tight_layout()
 # if saveplots:
 #     figname = os.path.join(figdir,
-#                            'shj_gsearch_n94_subplots_{}units_k{}_w{}_notfitrulexdiffs.pdf'
-#                            .format(
-#                                n_units, k, w))
+#                             'shj_gsearch_n94_subplots_{}units_k{}_w{}_notfitrulexdiffs.pdf'
+#                             .format(
+#                                 n_units, k, w))
 #     plt.savefig(figname)
 # plt.show()
 
