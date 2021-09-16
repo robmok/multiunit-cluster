@@ -19,16 +19,24 @@ figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 k = 0.01
 n_units = 2000
 
-n_sets = 450  # 865  # 250  # gsearch split into how many sets to load in
+# gsearch split into how many sets to load in
+n_sets = 440  # 450 sets. 440 for finegsearch1.
 
-# resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
 #     k, n_units))
 
-resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
-    k, n_units))
-
-# resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
 #     k, n_units))
+
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+#     k, n_units))
+
+resdir = os.path.join(
+    maindir, 'muc-shj-gridsearch/finegsearch_{}_{}units_distsq1'.format(
+        k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -56,6 +64,15 @@ ranges = ([torch.arange(.2, 2.1, .2),
 #           torch.arange(.1, 1., .2)]
 #           )
 
+# finegridsearch distsq 1
+ranges = ([torch.arange(.2, .45, 1/30),
+          torch.arange(1., 5.1, .25),
+          torch.arange(.15, .66, .1),
+          torch.arange(.15, .8, .05),
+          torch.arange(.25, .5, .1),
+          torch.arange(.8, 1.01, .1)]
+          )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
@@ -77,9 +94,13 @@ recs = []
 seeds = []
 
 for iset in sets:  # range(n_sets):
+    # fn = os.path.join(
+    #     resdir,
+    #     'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
     fn = os.path.join(
         resdir,
-        'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+        'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")
@@ -318,7 +339,7 @@ ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
 # tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.2500, 0.9000]])
 w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # - actually ok - like prev plot, type 6 a bit fast
 # tensor([[1.2000, 1.0000, 0.7500, 0.3500, 0.4500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 2/5, 9/5, 1/5])  # v gd but bumpy, redo sims for this? i suspect recruits too many clus?
+# w = torch.tensor([1/5, 1/5, 2/5, 9/5, 1/5])  # v gd but bumpy, redo sims for this? i suspect recruits too many clus?
 
 # tensor([[0.2000, 3.0000, 0.9500, 0.8500, 0.3500, 0.9000]])  # - ok but type 3 fast
 # w = torch.tensor([1/5, 1/5, 300/5, 150/5, 1/5])
@@ -359,6 +380,10 @@ w = torch.tensor([1/5, 1/5, 2/5, 9/5, 1/5])  # v gd but bumpy, redo sims for thi
 # tensor([[0.9000, 3.0000, 0.1500, 0.0500, 0.7500, 0.3000]]) - lr_clus a bit fast?
 
 # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
+
+
+# finegsearch 1 - all similar, with type 3 too  fast
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
 w = w / w.sum()
 

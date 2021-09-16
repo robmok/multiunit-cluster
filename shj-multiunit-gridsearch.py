@@ -240,14 +240,14 @@ if finegsearch:
               )
 
     # dist**2 second go
-    # # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
-    # ranges = ([torch.arange(.1, .45, .05),
-    #           torch.arange(.75, 5.6, .25),  # many
-    #           torch.arange(.05, .41, .05),
-    #           torch.arange(.05, .36, .05),
-    #           torch.tensor([.15, .35, .45]),
-    #           torch.tensor([.3, .9])]
-    #           )
+    # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
+    ranges = ([torch.arange(.1, .45, .05),
+              torch.arange(.75, 5.6, .25),  # many
+              torch.arange(.05, .41, .05),
+              torch.arange(.05, .36, .05),
+              torch.tensor([.15, .35, .45]),
+              torch.tensor([.3, .9])]
+              )
 
 
 param_sets = torch.tensor(list(it.product(*ranges)))
@@ -258,7 +258,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 # finer gsearch
 # sets = torch.arange(0, len(param_sets), 217)
-sets = torch.arange(0, len(param_sets), 63)  # dist
+# sets = torch.arange(0, len(param_sets), 63)  # dist
+sets = torch.arange(0, len(param_sets), 135)  # distsq
 
 # not a great way to add final set on
 sets = torch.cat(
