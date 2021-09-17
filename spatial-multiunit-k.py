@@ -228,9 +228,12 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.02],
           [.8]]
 
-# NEXT: group .06? or .2-3 for gropu=0.8?
+# NEXT: group .6
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
+          [.02],
+          [.6]]
 
-
+# NEXT: or .2-3 for group=0.8/6?
 
 param_sets = torch.tensor(list(it.product(*params)))
 
