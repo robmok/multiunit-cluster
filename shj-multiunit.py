@@ -264,7 +264,7 @@ noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shuffle=True, lesions=lesions,
+    model, inputs, output, n_epochs, lesions=lesions,
     noise=noise, shj_order=True)
 
 
@@ -627,6 +627,23 @@ for i in range(niter):
             'k': k
             }
 
+        # tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])  # finegsearrch dist - same as before type 3 fast
+        # tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])  # finegsearch dist, slightly slower
+        
+        # tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000/0.3000]])  # gsearch dist**2 - slower, gd pattern
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .3,
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 2.5,
+            'beta': 1.,
+            'lr_attn': .95,  # this scales at grad computation now
+            'lr_nn': .35/lr_scale,  # scale by n_units*k
+            'lr_clusters': .45,
+            'lr_clusters_group': .9,
+            'k': k
+            }
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -678,13 +695,13 @@ shj = (
 # ax[1].set_aspect(17)
 # plt.show()
 
-fig, ax = plt.subplots(1, 1)
-ax.plot(shj.T, 'k')
-ax.plot(pt_all.mean(axis=0).T, 'o-')
-# ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
-ax.set_ylim([0., .55])
-ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'),
-          fontsize=7)
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(shj.T, 'k')
+# ax.plot(pt_all.mean(axis=0).T, 'o-')
+# # ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
+# ax.set_ylim([0., .55])
+# ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'),
+#           fontsize=7)
 
 # %% plotting weights to compare to nbank model
 
