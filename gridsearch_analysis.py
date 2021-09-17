@@ -20,19 +20,19 @@ k = 0.01
 n_units = 2000
 
 # gsearch split into how many sets to load in
-n_sets = 348  # 450 sets. 440 for finegsearch1. 348 for finegsearch dist.
+n_sets = 348  # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 fir distsq
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
 #     k, n_units))
 
-# resdir = os.path.join(maindir,
-#                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
-#     k, n_units))
+resdir = os.path.join(maindir,
+                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
+    k, n_units))
 
-# resdir = os.path.join(maindir,
-#                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
-#     k, n_units))
+resdir = os.path.join(maindir,
+                      'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+    k, n_units))
 
 # resdir = os.path.join(
 #     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq1'.format(
@@ -42,6 +42,9 @@ resdir = os.path.join(
     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist'.format(
         k, n_units))
 
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq'.format(
+#         k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -61,22 +64,22 @@ ranges = ([torch.arange(.2, 2.1, .2),
           )
 
 # when changing dist**2, changing c to start from .3, which loses one c value
-# ranges = ([torch.arange(.3, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
-
-# finegridsearch distsq 1
-ranges = ([torch.arange(.2, .45, 1/30),
-          torch.arange(1., 5.1, .25),
-          torch.arange(.15, .66, .1),
-          torch.arange(.15, .8, .05),
-          torch.arange(.25, .5, .1),
-          torch.arange(.8, 1.01, .1)]
+ranges = ([torch.arange(.3, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
           )
+
+# # finegridsearch distsq 1
+# ranges = ([torch.arange(.2, .45, 1/30),
+#           torch.arange(1., 5.1, .25),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.15, .8, .05),
+#           torch.arange(.25, .5, .1),
+#           torch.arange(.8, 1.01, .1)]
+#           )
 
 # dist
 # c=.2/1.2, phi=3/1, lr_attn=.75/.95/, lr_nn=.35/.85, lr_clus=.35/.45, group=.9
@@ -85,7 +88,7 @@ ranges = ([torch.cat([torch.arange(.1, .35, .05),
           torch.arange(.75, 5.1, .25),
           torch.arange(.55, .96, .1),
           torch.cat([torch.arange(.25, .5, .05),
-                     torch.arange(.8, .96, .05)]),
+                      torch.arange(.8, .96, .05)]),
           torch.tensor([.25, .35, .45]),
           torch.tensor([.9])]
           )
@@ -248,7 +251,19 @@ shj_diff = torch.tensor([
 # shj_diff2 = torch.tensor([0, 0, 0])
 
 # separate all, average 3-5
-sse_diff = torch.zeros([len(pts), 4])
+# sse_diff = torch.zeros([len(pts), 4])
+
+
+# separate 2-3 diff, this is key one i can't get
+shj_diff = torch.tensor([
+    torch.sum(torch.square((shj[:, 1] - shj[:, 0]))),
+    torch.sum(torch.square(shj[:, 2] - (shj[:, 1]))),  # new
+    torch.sum(torch.square(shj[:, 2:5].mean(axis=1) - (shj[:, 1]))),
+    torch.sum(torch.square((shj[:, 5] - shj[:, 2:5].mean(axis=1)))),
+    0, 0, 0])
+
+sse_diff = torch.zeros([len(pts), 5])
+
 
 for iparam in range(len(pts)):
 
@@ -303,10 +318,29 @@ for iparam in range(len(pts)):
 
     # sse_diff[iparam] = torch.sum(torch.square(diff - shj_diff))
 
-    # separate all, 3-5 equal
+
+    # # separate all, with 3-5 equal
+    # tmp = torch.square(diff - shj_diff)
+    # sse_diff[iparam] = torch.cat([tmp[0:3].view(3, 1),
+    #                               tmp[-3:].sum().view(1, 1)]).squeeze()
+
+    # add extra diff between type 2 and 3 - difficult to get
+    diff = torch.tensor([
+        torch.sum(torch.square(pts[iparam][1] - pts[iparam][0])),
+        torch.sum(torch.square(pts[iparam][2] - pts[iparam][1])),
+        torch.sum(
+            torch.square(pts[iparam][2:5].mean(axis=0) - pts[iparam][1])),
+        torch.sum(
+            torch.square(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))),
+        torch.sum(torch.square(pts[iparam][2] - pts[iparam][3])),
+        torch.sum(torch.square(pts[iparam][2] - pts[iparam][4])),
+        torch.sum(torch.square(pts[iparam][3] - pts[iparam][4]))
+        ])
+
     tmp = torch.square(diff - shj_diff)
-    sse_diff[iparam] = torch.cat([tmp[0:3].view(3, 1),
-                                  tmp[3:].sum().view(1, 1)]).squeeze()
+    sse_diff[iparam] = torch.cat([tmp[0:4].view(4, 1),
+                                  tmp[-3:].sum().view(1, 1)]).squeeze()
+
 
 
     # # separate 3-5 diffs and other problem diffs
@@ -411,24 +445,55 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # - actually ok - like prev plot, t
 
 
 # finegsearch 1 - dist**2 - all similar, with type 3 too  fast
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
 # finegsearch 2 - dist - v similar to original in plot
-w = torch.tensor([1/5, 1/5, 100/5, 1/5, 1/5])  #  pretty gd, 3 a little fast
+# w = torch.tensor([1/5, 1/5, 100/5, 1/5, 1/5])  #  pretty gd, 3 a little fast
 # w = torch.tensor([1/5, 1/5, 500/5, 100/5, 1/5]) # also ok, all slower
-
 # w = torch.tensor([10/5, 1/5, 1/5, 1/5, 1/5])  # total sse-->all faster, but dominates, nth changes if total sse w is high
 
-w = torch.tensor([10/5, 1/5, 1000/5, 100/5, 1/5])
+# w = torch.tensor([10/5, 1/5, 1000/5, 100/5, 1/5])
 
-# finegsearch 2 - dist**2
+# finegsearch 2 - dist**2. like above dist**2, all v similar, type 3 fast
+# tensor([[0.4000, 1.5000, 0.4000, 0.0500, 0.4500, 0.9000]])
+# tensor([[0.4000, 0.7500, 0.4000, 0.2000, 0.4500, 0.9000]])  # exactly same curve as aboev
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# w = torch.tensor([1/5, 1/5, 1000/5, 100/5, 1/5])
+
+
+# for finegsearch dist these are ok i think
+# tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])
+w = torch.tensor([1/5, 1/5, 100/5, 1/5, 1/5, 1/5])   # same as before
+# tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])
+w = torch.tensor([1/5, 1/5, 1000/5, 1/5, 1/5, 1/5])  # slower, but more separation for 1-2 and 345-6
+
+w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5, 1/5])  # fiting 2-3 / 2-345 the same effect (as above)
+
+
+# NEW - add diff between type 2-3 (3rd value)
+# gsearch dist**2 - these are good patterns, with 3-5 equal, but a bit slow
+# - maybe should do finegsearch from these params?
+# # tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000]])
+# w = torch.tensor([1/5, 1/5, 1000/5, 1/5, 300/5, 1/5])
+# # tensor([[0.7000, 1.0000, 0.1500, 0.4500, 0.7500, 0.3000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 100/5, 1/5])  # sim to above - lr_group = .1/.3
+# w = torch.tensor([1/5, 1/5, 0.01/5, 1000/5, 100/5, 1/5])  # same as above - maybe no need 2-3 diff?
+
+
+# values to play around with:
+# tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])  # finegsearrch dist - same as before type 3 fast
+# tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])  # finegsearch dist, slightly slower
+# tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000/0.3000]])  # gsearch dist**2 - slower, gd pattern
+
 
 
 
 w = w / w.sum()
-sses_w = sse * w [0] + torch.sum(sse_diff * w[1:], axis=1)
+sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
 ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
 
+if len(torch.nonzero(ind_sse_w)) > 1:
+    ind_sse_w[torch.nonzero(ind_sse_w)[1]] = 0
 
 # # RANK
 # # ranked_nll = [sorted(nlls).index(i) for i in nlls]
