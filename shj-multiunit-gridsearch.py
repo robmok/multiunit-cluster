@@ -262,18 +262,18 @@ if finegsearch:
               torch.arange(.1, .5, .1)]
               )
 
-    # # dist 2
-    # # c = .2-.6/8, phi=.75:.25:3.,
-    # # attn=.25-.95, nn=.15-.65
-    # # clus=.15-.55/65, group=.5:.1:.9
-    # # 40320 params
-    # ranges = ([torch.arange(.2, .8, .1),
-    #             torch.arange(.75, 3., .25),
-    #             torch.arange(.25, .96, .1),
-    #             torch.arange(.15, .65, .1),
-    #             torch.arange(.25, .56, .1),
-    #             torch.arange(.6, 1., .1)]
-    #           )
+    # dist 2
+    # c = .2-.6/8, phi=.75:.25:3.,
+    # attn=.25-.95, nn=.15-.65
+    # clus=.15-.55/65, group=.5:.1:.9
+    # 40320 params
+    ranges = ([torch.arange(.2, .8, .1),
+               torch.arange(.75, 3., .25),
+               torch.arange(.25, .96, .1),
+               torch.arange(.15, .65, .1),
+               torch.arange(.25, .56, .1),
+               torch.arange(.6, 1., .1)]
+              )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -286,8 +286,9 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # sets = torch.arange(0, len(param_sets), 63)  # dist
 # sets = torch.arange(0, len(param_sets), 135)  # distsq
 
-sets = torch.arange(0, len(param_sets), 106)  # distsq 3 - 350 sets
-# sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
+# 106*.12=12.72 hours
+# sets = torch.arange(0, len(param_sets), 106)  # distsq 3 - 350 sets
+sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
 
 
 # not a great way to add final set on
