@@ -223,16 +223,15 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
           [.01, .015, .018, .02, .022, .025],  # .02 best .018 same. .22 almost as gd.
           [.8, 1.]] # just 1 for most. 0.8 for [.01, .015]
 
-
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
-           .22, .24, .26, .28, .29, .3],
-          [.02],  #
-          [.8, 1.]] # just 1 for most
+# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
+#            .22, .24, .26, .28, .29, .3],
+#           [.02],  #
+#           [.8, 1.]] # just 1 for most
 
 
 # plot over k first
 # - set lr's for now
-lr = params[1][0]
+lr = params[1][3]
 lr_group = params[2][1]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))

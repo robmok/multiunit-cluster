@@ -275,6 +275,16 @@ if finegsearch:
                torch.arange(.6, 1., .1)]
               )
 
+    # dist**2
+    # tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
+    # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
+    # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
+
+    # dist1
+    # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+
+
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run

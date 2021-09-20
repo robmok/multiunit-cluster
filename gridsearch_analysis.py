@@ -20,7 +20,9 @@ k = 0.01
 n_units = 2000
 
 # gsearch split into how many sets to load in
-n_sets = 348  # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 fir distsq
+# 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
+# finegsearch distsq2 349 sets. finegsearch dist1 400 sets
+n_sets = 349
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -30,21 +32,17 @@ resdir = os.path.join(maindir,
                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
     k, n_units))
 
-resdir = os.path.join(maindir,
-                      'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
-    k, n_units))
-
-# resdir = os.path.join(
-#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq1'.format(
-#         k, n_units))
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
+#     k, n_units))
 
 resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist'.format(
+    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist1'.format(
         k, n_units))
 
-# resdir = os.path.join(
-#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq'.format(
-#         k, n_units))
+resdir = os.path.join(
+    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq2'.format(
+        k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -93,7 +91,7 @@ ranges = ([torch.cat([torch.arange(.1, .35, .05),
           torch.tensor([.9])]
           )
 
-# # dist**2 second go
+# # distsq1
 # # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
 # ranges = ([torch.arange(.1, .45, .05),
 #           torch.arange(.75, 5.6, .25),  # many
@@ -103,6 +101,23 @@ ranges = ([torch.cat([torch.arange(.1, .35, .05),
 #           torch.tensor([.3, .9])]
 #           )
 
+# distsq2
+ranges = ([torch.arange(.4, 1.2, .2),
+          torch.arange(.25, 2., .25),
+          torch.arange(.15, .66, .1),
+          torch.arange(.25, .76, .05),
+          torch.arange(.35, .8, .1),
+          torch.arange(.1, .5, .1)]
+          )
+
+# # dist1
+# ranges = ([torch.arange(.2, .8, .1),
+#             torch.arange(.75, 3., .25),
+#             torch.arange(.25, .96, .1),
+#             torch.arange(.15, .65, .1),
+#             torch.arange(.25, .56, .1),
+#             torch.arange(.6, 1., .1)]
+#           )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -485,7 +500,18 @@ w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5, 1/5])  # fiting 2-3 / 2-345 the sa
 # tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])  # finegsearch dist, slightly slower
 # tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000/0.3000]])  # gsearch dist**2 - slower, gd pattern
 
+# distsq2
+# tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
+w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5, 1/5])  # good pattern and separation, just not big enough sep
+# tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
+w = torch.tensor([1/5, 1/5, 300/5, 200/5, 100/5, 1/5])  # slower but gd pattern
+# tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
+w = torch.tensor([1/5, 1/5, 500/5, 200/5, 50/5, 1/5])  # similar to just above.. but all closer together, not as gd
 
+# dist1
+# - looks like the 1-2 and 2-345 diff is better than above
+# tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+# w = torch.tensor([1/5, 1/5, 100/5, 500/5, 50/5, 1/5])  # pretty good. 3rd param, from 100-400 and 500-600 slightl diff - just lr_group .6 vs .8
 
 
 w = w / w.sum()

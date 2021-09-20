@@ -441,7 +441,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 1
+niter = 100
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -467,10 +467,10 @@ for i in range(niter):
 
         # model details
         attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-        n_units = 1000
+        n_units = 2000
         n_dims = inputs.shape[1]
         loss_type = 'cross_entropy'
-        k = .05  # top k%. so .05 = top 5%
+        k = .01  # top k%. so .05 = top 5%
 
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
         lr_scale = (n_units * k) / 1
@@ -644,6 +644,40 @@ for i in range(niter):
             'k': k
             }
 
+        # finegridsearch
+
+        # distsq2
+        # tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
+        # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
+        # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .8,
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': .25,
+            'beta': 1.,
+            'lr_attn': .25,  # this scales at grad computation now
+            'lr_nn': .5,   # /lr_scale,  # did notscale in gridsearch
+            'lr_clusters': .55,
+            'lr_clusters_group': .2,
+            'k': k
+            }
+
+        # dist1
+        # # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .4,
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': .75,
+        #     'beta': 1.,
+        #     'lr_attn': .95,  # this scales at grad computation now
+        #     'lr_nn': .15,   # /lr_scale,  # did notscale in gridsearch
+        #     'lr_clusters': .55,
+        #     'lr_clusters_group': .8,
+        #     'k': k
+        #     }
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
@@ -659,11 +693,6 @@ for i in range(niter):
 
 # t1 = time.time()
 # print(t1-t0)
-
-plt.plot(np.nanmean(pt_all, axis=0).T)
-plt.ylim([0., 0.55])
-plt.gca().legend(('1', '2', '3', '4', '5', '6'))
-plt.show()
 
 # for i in range(6):
 #     plt.plot(torch.stack(attn_trace[i])[0])
@@ -685,23 +714,58 @@ shj = (
                0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]])
     )
 
-# fig, ax = plt.subplots(2, 1)
-# ax[0].plot(shj.T)
-# ax[0].set_ylim([0., .55])
-# ax[0].set_aspect(17)
-# ax[1].plot(pt_all.mean(axis=0).T)
-# ax[1].set_ylim([0., .55])
-# ax[1].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-# ax[1].set_aspect(17)
-# plt.show()
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(shj.T, 'k')
-# ax.plot(pt_all.mean(axis=0).T, 'o-')
-# # ax.plot(pt_all[0:10].mean(axis=0).T, 'o-')
-# ax.set_ylim([0., .55])
-# ax.legend(('1', '2', '3', '4', '5', '6', '1', '2', '3', '4', '5', '6'),
-#           fontsize=7)
+saveplots = False
+
+fntsiz = 15
+ylims = (0., .55)
+
+import matplotlib.font_manager as font_manager
+# for roman numerals
+font = font_manager.FontProperties(family='Tahoma',
+                                   style='normal', size=fntsiz-2)
+
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(shj.T)
+ax[0].set_ylim(ylims)
+ax[0].set_aspect(17)
+ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
+ax[1].plot(np.nanmean(pt_all, axis=0).T)
+ax[1].set_ylim(ylims)
+ax[1].set_aspect(17)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'shj_gsearchres_n94_subplots_{}units_k{}_lr{}'
+                           '_grouplr{}_c{}_phi{}_attn{}_nn{}_{}iters.pdf'
+                           .format(
+                               n_units, k, params['lr_clusters'],
+                               params['lr_clusters_group'], params['c'],
+                               params['phi'], params['lr_attn'],
+                               params['lr_nn'], niter))
+    plt.savefig(figname)
+plt.show()
+
+# best params by itself
+fig, ax = plt.subplots(1, 1)
+ax.plot(np.nanmean(pt_all, axis=0).T)
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+ax.legend(('I', 'II', 'III', 'IV', 'V', 'VI'), prop=font)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                           'shj_gsearchres_dist_{}units_k{}_lr{}_grouplr{}_c{}'
+                           '_phi{}_attn{}_nn{}_{}iters.pdf'.format(
+                               n_units, k, params['lr_clusters'],
+                               params['lr_clusters_group'], params['c'],
+                               params['phi'], params['lr_attn'],
+                               params['lr_nn'], niter))
+    plt.savefig(figname)
+plt.show()
 
 # %% plotting weights to compare to nbank model
 
