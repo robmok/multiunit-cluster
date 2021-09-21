@@ -315,21 +315,22 @@ for i in range(niter):
             'k': k
             }
 
-        # testing based on single bank gridsearch results
+        # testing based on single bank finegridsearch results
+        # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+
         params = {
             'r': 1,
             # 'c': [.75, 2.5],
-            'c': [.4, 2.4],
-            # 'c': [.2, 2.],
+            'c': [.2, 2.2],
             'p': 1,
             # 'phi': [1., 2.],
-            'phi': [2., 2.5],
-            # 'phi': [2., 2.],
+            'phi': [1.5, 1.5],
             'beta': 1,
-            'lr_attn': [.26, .001],
-            'lr_nn': [.5/lr_scale, .01/lr_scale],
+            'lr_attn': [1.75, .001],
+            'lr_nn': [.75/lr_scale, .01/lr_scale],
+            # 'lr_nn': [.95/lr_scale, .015/lr_scale],
             'lr_clusters': [.3, .3],
-            'lr_clusters_group': [.9, .9],
+            'lr_clusters_group': [.8, .8],
             'k': k
             }
 

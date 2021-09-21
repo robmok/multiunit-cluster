@@ -22,7 +22,7 @@ n_units = 2000
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
-n_sets = 349
+n_sets = 400
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -40,9 +40,9 @@ resdir = os.path.join(
     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist1'.format(
         k, n_units))
 
-resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq2'.format(
-        k, n_units))
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq2'.format(
+#         k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -52,7 +52,7 @@ ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(.1, 1., .2)]
           )
 
-# newer ~August/Sept
+# newer ~August/Sept dist
 ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),
@@ -110,14 +110,14 @@ ranges = ([torch.arange(.4, 1.2, .2),
           torch.arange(.1, .5, .1)]
           )
 
-# # dist1
-# ranges = ([torch.arange(.2, .8, .1),
-#             torch.arange(.75, 3., .25),
-#             torch.arange(.25, .96, .1),
-#             torch.arange(.15, .65, .1),
-#             torch.arange(.25, .56, .1),
-#             torch.arange(.6, 1., .1)]
-#           )
+# dist1
+ranges = ([torch.arange(.2, .8, .1),
+            torch.arange(.75, 3., .25),
+            torch.arange(.25, .96, .1),
+            torch.arange(.15, .65, .1),
+            torch.arange(.25, .56, .1),
+            torch.arange(.6, 1., .1)]
+          )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -511,7 +511,7 @@ w = torch.tensor([1/5, 1/5, 500/5, 200/5, 50/5, 1/5])  # similar to just above..
 # dist1
 # - looks like the 1-2 and 2-345 diff is better than above
 # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
-# w = torch.tensor([1/5, 1/5, 100/5, 500/5, 50/5, 1/5])  # pretty good. 3rd param, from 100-400 and 500-600 slightl diff - just lr_group .6 vs .8
+w = torch.tensor([1/5, 1/5, 100/5, 500/5, 50/5, 1/5])  # pretty good. 3rd param, from 100-400 and 500-600 slightl diff - just lr_group .6 vs .8
 
 
 w = w / w.sum()

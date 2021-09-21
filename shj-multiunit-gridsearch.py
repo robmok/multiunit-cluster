@@ -29,7 +29,7 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = True
+finegsearch = False
 
 
 def negloglik(model_pr, beh_seq):
@@ -164,14 +164,14 @@ lr_scale = (n_units * k) / 1
 #           torch.arange(.1, 1., .2)]
 #           )
 
-# add 1 more c value - previous one, just dist
-# ranges = ([torch.arange(.2, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
+# add 1 more c value - dist
+ranges = ([torch.arange(.2, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(.05, 1., .1),
+          torch.arange(.05, 1., .1) / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
+          )
 
 # when changing dist**2, changing c to start from .3, which loses one c value
 # ranges = ([torch.arange(.3, 2.1, .2),
@@ -181,6 +181,17 @@ lr_scale = (n_units * k) / 1
 #           torch.arange(.05, 1., .1),
 #           torch.arange(.1, 1., .2)]
 #           )
+
+
+# dist - with attn lr > 1., with fewer params - 33600 params
+ranges = ([torch.arange(.2, 1.1, .2),
+          torch.arange(1., 11., 2),
+          torch.arange(1., 2.76, .25),
+          torch.arange(.05, .76, .1) / lr_scale,
+          torch.arange(.15, .76, .1),
+          torch.arange(.5, 1., .2)]
+          )
+
 
 # timing
 # - 160 sets in 8.5 or 11.5 hours
@@ -284,12 +295,13 @@ if finegsearch:
     # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
 
 
-
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
 # sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
 # sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
+# testing attn lr's > 1.0
+sets = torch.arange(0, len(param_sets), 96)  # 350 sets
 
 # finer gsearch
 # sets = torch.arange(0, len(param_sets), 217)
@@ -298,7 +310,7 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 # 106*.12=12.72 hours
 # sets = torch.arange(0, len(param_sets), 106)  # distsq 3 - 350 sets
-sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
+# sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
 
 
 # not a great way to add final set on
