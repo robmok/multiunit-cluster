@@ -251,7 +251,7 @@ plt.show()
 
 saveplots = False
 
-niter = 1
+niter = 10
 
 n_banks = 2
 
@@ -260,9 +260,9 @@ pt_all = torch.zeros([niter, 6, n_banks+1, n_epochs])
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 500
+n_units = 2000
 loss_type = 'cross_entropy'
-k = .05
+k = .01
 lr_scale = (n_units * k)
 
 # fc1 ws - list since diff ntrials (since it appends when recruit & upd)
@@ -317,25 +317,26 @@ for i in range(niter):
 
         # testing based on single bank finegridsearch results
         # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
-
         params = {
             'r': 1,
-            # 'c': [.75, 2.5],
-            'c': [.2, 2.2],
+            # 'c': [.2, 2.2],
+            'c': [.25, 2.],  # .2/.25; 2./2.5
+            # 'c': [.1, 2.2],  # 2.5
             'p': 1,
-            # 'phi': [1., 2.],
-            'phi': [1.5, 1.5],
+            # 'phi': [1.5, 1.5],
+            'phi': [1.8, 2.15],  # 1.9, 2.1
+            # 'phi': [2.5, 1.5],  # meh
             'beta': 1,
-            'lr_attn': [1.75, .001],
-            'lr_nn': [.75/lr_scale, .01/lr_scale],
-            # 'lr_nn': [.95/lr_scale, .015/lr_scale],
+            'lr_attn': [1.5, .001],  # 1.5
+            # 'lr_attn': [2., .001],  # for 3rd c/phi, meh
+            'lr_nn': [.9/lr_scale, .01/lr_scale],  # .75/.85
             'lr_clusters': [.3, .3],
             'lr_clusters_group': [.8, .8],
             'k': k
             }
 
         model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k,
-                                 params=params)
+                                       params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, n_epochs, shj_order=True)
@@ -349,37 +350,43 @@ for i in range(niter):
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
         # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=1), axis=0))
 
-aspect = 40
+
+import matplotlib.font_manager as font_manager
+# for roman numerals
+font = font_manager.FontProperties(family='Tahoma',
+                                   style='normal', size=7)
+
+fntsiz = 15
+ylims = (0., .55)
+
 fig, ax = plt.subplots(1, 3)
 ax[0].plot(pt_all[:, :, 0].mean(axis=0).T)
-ax[0].set_ylim([0., .55])
-# ax[0].set_aspect(aspect)
+ax[0].set_ylim(ylims)
 ax[1].plot(pt_all[:, :, 1].mean(axis=0).T)
-ax[1].set_ylim([0., .55])
-# ax[1].set_aspect(aspect)
+ax[1].set_ylim(ylims)
 ax[2].plot(pt_all[:, :, 2].mean(axis=0).T)
-ax[2].set_ylim([0., .55])
-# ax[2].set_aspect(aspect)
-ax[2].legend(('1', '2', '3', '4', '5', '6'), fontsize=7)
-
+ax[2].set_ylim(ylims)
+ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
+plt.tight_layout()
 if saveplots:
     figname = (
         os.path.join(figdir,
-                      'shj_nbanks{}_curves_k{}_{}units_{}sims.pdf'.format(
-                          n_banks, k, n_units, niter))
+                     'shj_nbanks{}_curves_k{}_{}units_{}sims.pdf'.format(
+                         n_banks, k, n_units, niter))
     )
     plt.savefig(figname)
 plt.show()
 
-# plt.plot(pt_all[:, :, 1].mean(axis=0).T)
-# plt.ylim([0., .55])
-# plt.plot(pt_all[:, :, 2].mean(axis=0).T)
-# plt.ylim([0., .55])
-
 # plot out
-plt.plot(pt_all[:, :, 0].mean(axis=0).T)
-plt.title('full model')
-plt.ylim([0., .55])
+fig, ax = plt.subplots(1, 1)
+ax.plot(pt_all[:, :, 0].mean(axis=0).T)
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+ax.set_title('Full model output', fontsize=fntsiz)
+plt.tight_layout()
 if saveplots:
     figname = (
         os.path.join(figdir,
@@ -392,9 +399,14 @@ plt.show()
 
 # plot single to compare with single bank
 # bank 1
-plt.plot(pt_all[:, :, 1].mean(axis=0).T)
-plt.title('c = {}'.format(params['c'][0]))
-plt.ylim([0., .55])
+fig, ax = plt.subplots(1, 1)
+ax.plot(pt_all[:, :, 1].mean(axis=0).T)
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+ax.set_title('bank 1: c = {}'.format(params['c'][0]), fontsize=fntsiz)
 if saveplots:
     figname = (
         os.path.join(figdir,
@@ -403,10 +415,16 @@ if saveplots:
     )
     plt.savefig(figname)
 plt.show()
+
 # bank 2
-plt.plot(pt_all[:, :, 2].mean(axis=0).T)
-plt.ylim([0., .55])
-plt.title('c = {}'.format(params['c'][1]))
+fig, ax = plt.subplots(1, 1)
+ax.plot(pt_all[:, :, 2].mean(axis=0).T)
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+ax.set_title('bank 2: c = {}'.format(params['c'][1]), fontsize=fntsiz)
 if saveplots:
     figname = (
         os.path.join(figdir,
@@ -415,7 +433,6 @@ if saveplots:
     )
     plt.savefig(figname)
 plt.show()
-
 
 # %%
 

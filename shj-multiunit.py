@@ -56,7 +56,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 4
+problem = 0
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -256,10 +256,10 @@ lesions = None  # if no lesions
 # - with update noise, higher lr_group helps save a lot even with few k units.
 # actually didn't add update2 noise though, test again
 noise = None
-noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
-          'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
-          'recruit': [0., .1],  # .1 recruitment position placement
-          'act': [.5, .1]}  # unit activations (non-negative)
+# noise = {'update1': [0, .15],  # . 1unit position updates 1 & 2
+#           'update2': [0, .0],  # no noise here also makes sense - since there is noise in 1 and you get all that info.
+#           'recruit': [0., .1],  # .1 recruitment position placement
+#           'act': [.5, .1]}  # unit activations (non-negative)
 
 model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -282,13 +282,13 @@ plt.plot(1 - epoch_ptarget.detach())
 plt.ylim([0, .5])
 plt.show()
 
-# # attention weights
-# plt.plot(torch.stack(model.attn_trace, dim=0))
-# # figname = os.path.join(figdir,
-# #                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
-# #                            problem, k, n_units, params['lr_attn'], n_epochs))
-# # plt.savefig(figname)
-# plt.show()
+# attention weights
+plt.plot(torch.stack(model.attn_trace, dim=0))
+# figname = os.path.join(figdir,
+#                        'SHJ_attn_{}_k{}_nunits{}_lra{}_epochs{}.png'.format(
+#                            problem, k, n_units, params['lr_attn'], n_epochs))
+# plt.savefig(figname)
+plt.show()
 
 # # unit positions
 # results = torch.stack(model.units_pos_trace, dim=0)[-1, model.active_units]
@@ -441,7 +441,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 100
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -613,36 +613,22 @@ for i in range(niter):
             'k': k
             }
 
-        # editing above to make better
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .3,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 3.5,
-            'beta': 1.,
-            'lr_attn': .95,  # this scales at grad computation now
-            'lr_nn': .25/lr_scale,  # scale by n_units*k
-            'lr_clusters': .35,  # .075/.1
-            'lr_clusters_group': .9,
-            'k': k
-            }
-
         # tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])  # finegsearrch dist - same as before type 3 fast
         # tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])  # finegsearch dist, slightly slower
         
         # tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000/0.3000]])  # gsearch dist**2 - slower, gd pattern
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .3,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 2.5,
-            'beta': 1.,
-            'lr_attn': .95,  # this scales at grad computation now
-            'lr_nn': .35/lr_scale,  # scale by n_units*k
-            'lr_clusters': .45,
-            'lr_clusters_group': .9,
-            'k': k
-            }
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .3,
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 2.5,
+        #     'beta': 1.,
+        #     'lr_attn': .95,  # this scales at grad computation now
+        #     'lr_nn': .35,  # /lr_scale,  # scale by n_units*k
+        #     'lr_clusters': .45,
+        #     'lr_clusters_group': .9,
+        #     'k': k
+        #     }
 
         # finegridsearch
 
@@ -650,33 +636,74 @@ for i in range(niter):
         # tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
         # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
         # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .8,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': .25,
-            'beta': 1.,
-            'lr_attn': .25,  # this scales at grad computation now
-            'lr_nn': .5,   # /lr_scale,  # did notscale in gridsearch
-            'lr_clusters': .55,
-            'lr_clusters_group': .2,
-            'k': k
-            }
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .8,
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': .25,
+        #     'beta': 1.,
+        #     'lr_attn': .25,  # this scales at grad computation now
+        #     'lr_nn': .5,   # /lr_scale,  # did notscale in gridsearch
+        #     'lr_clusters': .55,
+        #     'lr_clusters_group': .2,
+        #     'k': k
+        #     }
 
         # dist1
-        # # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+        # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
         #     'c': .4,
         #     'p': 1,  # p=1 exp, p=2 gauss
         #     'phi': .75,
         #     'beta': 1.,
-        #     'lr_attn': .95,  # this scales at grad computation now
+        #     'lr_attn': 2.75,  # .95,  # this scales at grad computation now
         #     'lr_nn': .15,   # /lr_scale,  # did notscale in gridsearch
         #     'lr_clusters': .55,
         #     'lr_clusters_group': .8,
         #     'k': k
         #     }
+
+        # testing based on nbanks gd results from bank 1
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .2,  # .15/.2
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 2.5,  # 1.8
+        #     'beta': 1.,
+        #     'lr_attn': 1.5,  # .95,  # this scales at grad computation now
+        #     'lr_nn': .7/lr_scale,  # did notscale in gridsearch
+        #     'lr_clusters': .3,
+        #     'lr_clusters_group': .8,
+        #     'k': k
+        #     }
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .1,  # .2
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 6.5,  # 1.8
+            'beta': 1.,
+            'lr_attn': 2.,  # .95,  # this scales at grad computation now
+            'lr_nn': .7/lr_scale,  # did notscale in gridsearch
+            'lr_clusters': .3,
+            'lr_clusters_group': .8,
+            'k': k
+            }
+
+        # testing sustain lambda value
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .5,
+        #     'p': 1,  # p=1 exp, p=2 gauss
+        #     'phi': 2.,
+        #     'beta': 1.,
+        #     'lr_attn': 3.,  # this scales at grad computation now
+        #     'lr_nn': .75/lr_scale,  # scale by n_units*k
+        #     'lr_clusters': .15,  # .075/.1
+        #     'lr_clusters_group': .5,
+        #     'k': k
+        #     }
+
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
@@ -736,7 +763,7 @@ ax[1].set_aspect(17)
 plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,
-                           'shj_gsearchres_n94_subplots_{}units_k{}_lr{}'
+                           'shj_gsearchres_distsq_n94_subplots_{}units_k{}_lr{}'
                            '_grouplr{}_c{}_phi{}_attn{}_nn{}_{}iters.pdf'
                            .format(
                                n_units, k, params['lr_clusters'],
@@ -758,7 +785,7 @@ ax.legend(('I', 'II', 'III', 'IV', 'V', 'VI'), prop=font)
 plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,
-                           'shj_gsearchres_dist_{}units_k{}_lr{}_grouplr{}_c{}'
+                           'shj_gsearchres_distsq_{}units_k{}_lr{}_grouplr{}_c{}'
                            '_phi{}_attn{}_nn{}_{}iters.pdf'.format(
                                n_units, k, params['lr_clusters'],
                                params['lr_clusters_group'], params['c'],

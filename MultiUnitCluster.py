@@ -78,6 +78,10 @@ class MultiUnitCluster(nn.Module):
         self.attn.data = (
                     self.attn.data / torch.sum(self.attn.data))
 
+        # # testing sustain's lambda
+        # self.attn = (torch.nn.Parameter(
+        #         torch.ones(n_dims, dtype=torch.float)))
+
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
         self.fc1 = nn.Linear(n_units, n_classes, bias=False)
@@ -299,15 +303,12 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
-                # if model.attn_type[0:4] == 'dime':
                 model.attn.data = (
                     model.attn.data / torch.sum(model.attn.data)
                     )
-                # elif model.attn_type[0:4] == 'unit':
-                #     model.attn.data = (
-                #         model.attn.data
-                #         / torch.sum(model.attn.data, dim=1, keepdim=True)
-                #         )
+
+                # # testing sustain's lambda
+                # model.attn.data = torch.clamp(model.attn.data, min=1.)
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())

@@ -22,7 +22,7 @@ n_units = 2000
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
-n_sets = 400
+n_sets = 350
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -43,6 +43,12 @@ resdir = os.path.join(
 # resdir = os.path.join(
 #     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq2'.format(
 #         k, n_units))
+
+
+# large attn - 350 sets
+resdir = os.path.join(maindir,
+                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist_large_attn'.format(
+    k, n_units))
 
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -119,6 +125,16 @@ ranges = ([torch.arange(.2, .8, .1),
             torch.arange(.6, 1., .1)]
           )
 
+# dist - with attn lr > 1., with fewer params
+ranges = ([torch.arange(.2, 1.1, .2),
+          torch.arange(1., 11., 2),
+          torch.arange(1., 2.76, .25),
+          torch.arange(.05, .76, .1),
+          torch.arange(.15, .76, .1),
+          torch.arange(.5, 1., .2)]
+          )
+
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
@@ -140,13 +156,13 @@ recs = []
 seeds = []
 
 for iset in sets:  # range(n_sets):
-    # fn = os.path.join(
-    #     resdir,
-    #     'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
-
     fn = os.path.join(
         resdir,
-        'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+        'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
+    # fn = os.path.join(
+    #     resdir,
+    #     'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")
@@ -266,18 +282,18 @@ shj_diff = torch.tensor([
 # shj_diff2 = torch.tensor([0, 0, 0])
 
 # separate all, average 3-5
-# sse_diff = torch.zeros([len(pts), 4])
+sse_diff = torch.zeros([len(pts), 4])
 
 
-# separate 2-3 diff, this is key one i can't get
-shj_diff = torch.tensor([
-    torch.sum(torch.square((shj[:, 1] - shj[:, 0]))),
-    torch.sum(torch.square(shj[:, 2] - (shj[:, 1]))),  # new
-    torch.sum(torch.square(shj[:, 2:5].mean(axis=1) - (shj[:, 1]))),
-    torch.sum(torch.square((shj[:, 5] - shj[:, 2:5].mean(axis=1)))),
-    0, 0, 0])
+# # separate 2-3 diff, this is key one i can't get
+# shj_diff = torch.tensor([
+#     torch.sum(torch.square((shj[:, 1] - shj[:, 0]))),
+#     torch.sum(torch.square(shj[:, 2] - (shj[:, 1]))),  # new
+#     torch.sum(torch.square(shj[:, 2:5].mean(axis=1) - (shj[:, 1]))),
+#     torch.sum(torch.square((shj[:, 5] - shj[:, 2:5].mean(axis=1)))),
+#     0, 0, 0])
 
-sse_diff = torch.zeros([len(pts), 5])
+# sse_diff = torch.zeros([len(pts), 5])
 
 
 for iparam in range(len(pts)):
@@ -331,30 +347,30 @@ for iparam in range(len(pts)):
         torch.sum(torch.square(pts[iparam][3] - pts[iparam][4]))
         ])
 
-    # sse_diff[iparam] = torch.sum(torch.square(diff - shj_diff))
+    sse_diff[iparam] = torch.sum(torch.square(diff - shj_diff))
 
 
-    # # separate all, with 3-5 equal
-    # tmp = torch.square(diff - shj_diff)
-    # sse_diff[iparam] = torch.cat([tmp[0:3].view(3, 1),
-    #                               tmp[-3:].sum().view(1, 1)]).squeeze()
-
-    # add extra diff between type 2 and 3 - difficult to get
-    diff = torch.tensor([
-        torch.sum(torch.square(pts[iparam][1] - pts[iparam][0])),
-        torch.sum(torch.square(pts[iparam][2] - pts[iparam][1])),
-        torch.sum(
-            torch.square(pts[iparam][2:5].mean(axis=0) - pts[iparam][1])),
-        torch.sum(
-            torch.square(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))),
-        torch.sum(torch.square(pts[iparam][2] - pts[iparam][3])),
-        torch.sum(torch.square(pts[iparam][2] - pts[iparam][4])),
-        torch.sum(torch.square(pts[iparam][3] - pts[iparam][4]))
-        ])
-
+    # separate all, with 3-5 equal
     tmp = torch.square(diff - shj_diff)
-    sse_diff[iparam] = torch.cat([tmp[0:4].view(4, 1),
+    sse_diff[iparam] = torch.cat([tmp[0:3].view(3, 1),
                                   tmp[-3:].sum().view(1, 1)]).squeeze()
+
+    # # add extra diff between type 2 and 3 - difficult to get
+    # diff = torch.tensor([
+    #     torch.sum(torch.square(pts[iparam][1] - pts[iparam][0])),
+    #     torch.sum(torch.square(pts[iparam][2] - pts[iparam][1])),
+    #     torch.sum(
+    #         torch.square(pts[iparam][2:5].mean(axis=0) - pts[iparam][1])),
+    #     torch.sum(
+    #         torch.square(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))),
+    #     torch.sum(torch.square(pts[iparam][2] - pts[iparam][3])),
+    #     torch.sum(torch.square(pts[iparam][2] - pts[iparam][4])),
+    #     torch.sum(torch.square(pts[iparam][3] - pts[iparam][4]))
+    #     ])
+
+    # tmp = torch.square(diff - shj_diff)
+    # sse_diff[iparam] = torch.cat([tmp[0:4].view(4, 1),
+    #                               tmp[-3:].sum().view(1, 1)]).squeeze()
 
 
 
@@ -477,12 +493,12 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # - actually ok - like prev plot, t
 
 
 # for finegsearch dist these are ok i think
-# tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 100/5, 1/5, 1/5, 1/5])   # same as before
-# tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 1000/5, 1/5, 1/5, 1/5])  # slower, but more separation for 1-2 and 345-6
+# # tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 100/5, 1/5, 1/5, 1/5])   # same as before
+# # tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1000/5, 1/5, 1/5, 1/5])  # slower, but more separation for 1-2 and 345-6
 
-w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5, 1/5])  # fiting 2-3 / 2-345 the same effect (as above)
+# w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5, 1/5])  # fiting 2-3 / 2-345 the same effect (as above)
 
 
 # NEW - add diff between type 2-3 (3rd value)
@@ -500,18 +516,37 @@ w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5, 1/5])  # fiting 2-3 / 2-345 the sa
 # tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])  # finegsearch dist, slightly slower
 # tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000/0.3000]])  # gsearch dist**2 - slower, gd pattern
 
-# distsq2
-# tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
-w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5, 1/5])  # good pattern and separation, just not big enough sep
-# tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
-w = torch.tensor([1/5, 1/5, 300/5, 200/5, 100/5, 1/5])  # slower but gd pattern
-# tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
-w = torch.tensor([1/5, 1/5, 500/5, 200/5, 50/5, 1/5])  # similar to just above.. but all closer together, not as gd
 
-# dist1
-# - looks like the 1-2 and 2-345 diff is better than above
-# tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
-w = torch.tensor([1/5, 1/5, 100/5, 500/5, 50/5, 1/5])  # pretty good. 3rd param, from 100-400 and 500-600 slightl diff - just lr_group .6 vs .8
+# ****
+# these fingesearch might not be right - didn't scale lr_nn
+
+# distsq2
+# # tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5, 1/5])  # good pattern and separation, just not big enough sep
+# # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
+# w = torch.tensor([1/5, 1/5, 300/5, 200/5, 100/5, 1/5])  # slower but gd pattern
+# # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
+# w = torch.tensor([1/5, 1/5, 500/5, 200/5, 50/5, 1/5])  # similar to just above.. but all closer together, not as gd
+
+# # dist1
+# # - looks like the 1-2 and 2-345 diff is better than above
+# # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+# w = torch.tensor([1/5, 1/5, 100/5, 500/5, 50/5, 1/5])  # pretty good. 3rd param, from 100-400 and 500-600 slightl diff - just lr_group .6 vs .8
+
+
+
+# gsearch attn > 1 = looks great
+# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5, 1/5])  # v gd
+# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 100/5, 100/5])  # v sim
+
+
+# with just diffs and assume all 0s
+# tensor([[1.0000, 3.0000, 2.7500, 0.0500, 0.2500, 0.7000]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
+w = torch.tensor([1/5, 1/5, 1/5, 3/5, 1/5])  # this is like above, gd
 
 
 w = w / w.sum()
@@ -668,6 +703,13 @@ ind = ind_sse_w
 
 print(len(param_sets))
 
+
+w_str = ""
+for iw in w[:-1]:
+    w_str += str(np.around(iw.item(), decimals=3)) + '-'
+# last one no '-'
+w_str += str(np.around(w[-1].item(), decimals=3))
+
 saveplots = False
 
 fntsiz = 15
@@ -689,9 +731,9 @@ font = font_manager.FontProperties(family='Tahoma',
 # plt.tight_layout()
 # if saveplots:
 #     figname = os.path.join(figdir,
-#                             'shj_gsearch_n94_subplots_{}units_k{}_w{}_notfitrulexdiffs.pdf'
+#                             'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
 #                             .format(
-#                                 n_units, k, w))
+#                                 n_units, k, w_str))
 #     plt.savefig(figname)
 # plt.show()
 
@@ -707,8 +749,8 @@ ax.legend(('I', 'II', 'III', 'IV', 'V', 'VI'), prop=font)
 plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,
-                           'shj_gsearch_{}units_k{}_w{}_notfitrulexdiffs.pdf'.format(
-                               n_units, k, w))
+                           'shj_gsearch_{}units_k{}_w{}.pdf'.format(
+                               n_units, k, w_str))
     plt.savefig(figname)
 plt.show()
 

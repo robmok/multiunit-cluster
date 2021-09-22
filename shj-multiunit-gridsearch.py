@@ -29,7 +29,7 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = False
+finegsearch = True
 
 
 def negloglik(model_pr, beh_seq):
@@ -295,13 +295,26 @@ if finegsearch:
     # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
 
 
+    # high attn  - 35280 sets. 350 ets
+    # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
+    # tensor([[1.0000, 3.0000, 2.7500, 0.0500, 0.2500, 0.7000]])  - this was meh but not too bad. get a range
+    ranges = ([torch.arange(.2, .8, .1),
+          torch.arange(3., 10., 1),
+          torch.arange(2., 4.01, .25),
+          torch.arange(.005, .15, .02) / lr_scale,
+          torch.arange(.25, .66, .1),
+          torch.arange(.7, 1., .2)]
+          )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
 # sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
 # sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
 # testing attn lr's > 1.0
-sets = torch.arange(0, len(param_sets), 96)  # 350 sets
+# sets = torch.arange(0, len(param_sets), 96)  # 350 sets. 96*.12=11.52 hours
+# finegsearch high attn
+sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
 
 # finer gsearch
 # sets = torch.arange(0, len(param_sets), 217)
