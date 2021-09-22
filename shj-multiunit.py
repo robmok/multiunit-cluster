@@ -684,7 +684,7 @@ for i in range(niter):
             'phi': 6.5,  # 1.8
             'beta': 1.,
             'lr_attn': 2.,  # .95,  # this scales at grad computation now
-            'lr_nn': .7/lr_scale,  # did notscale in gridsearch
+            'lr_nn': .7/lr_scale,  # did notscale in gridsearch?
             'lr_clusters': .3,
             'lr_clusters_group': .8,
             'k': k
@@ -704,6 +704,20 @@ for i in range(niter):
         #     'k': k
         #     }
 
+        # high attn gridsearch
+        # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .4,  # .2
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 7.,  # 1.8
+            'beta': 1.,
+            'lr_attn': 2.75,  # .95,  # this scales at grad computation now
+            'lr_nn': .05/lr_scale,  # did notscale in gridsearch?
+            'lr_clusters': .15,
+            'lr_clusters_group': .5,
+            'k': k
+            }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
