@@ -719,6 +719,35 @@ for i in range(niter):
             'k': k
             }
 
+        # attn finegsearch
+        # tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])  # 20/5 - type 3 pops down a little
+        # tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])  # 35/5.
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .2,  # .2
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 8.,  # 1.8
+            'beta': 1.,
+            'lr_attn': 3.75,  # .95,  # this scales at grad computation now
+            'lr_nn': .145/lr_scale,  # did notscale in gridsearch?
+            'lr_clusters': .55,
+            'lr_clusters_group': .9,
+            'k': k
+            }
+
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .2,  # .2
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 8.,  # 1.8
+            'beta': 1.,
+            'lr_attn': 3.25,  # .95,  # this scales at grad computation now
+            'lr_nn': .145/lr_scale,  # did notscale in gridsearch?
+            'lr_clusters': .65,
+            'lr_clusters_group': .7,
+            'k': k
+            }
+
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(

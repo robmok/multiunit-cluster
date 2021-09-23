@@ -15,7 +15,7 @@ import time
 from scipy import stats
 import pickle
 
-location = 'mbp'  # 'mbp' or 'cluster' (cbu cluster - unix)
+location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
 
 if location == 'mbp':
     maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
@@ -127,7 +127,7 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-# iset = int(sys.argv[-1])
+iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -217,26 +217,82 @@ ranges = ([torch.arange(.1, 1.1, .3),
 # - lr_clus and lr_group can keep same
 # - attn no need to go to 1. 2nd bank can be lower - bt should i enforce ths?
 
-# 360000
-ranges = ([torch.arange(.2, 1.2, .2),
-          torch.arange(1., 4., .5),
-          torch.arange(.01, 1., .25),
-          torch.arange(.01, .7, .15) / lr_scale,
-          torch.tensor([.3]),
-          torch.tensor([.9]),
+# # 360000
+# ranges = ([torch.arange(.2, 1.2, .2),
+#           torch.arange(1., 4., .5),
+#           torch.arange(.01, 1., .25),
+#           torch.arange(.01, .7, .15) / lr_scale,
+#           torch.tensor([.3]),
+#           torch.tensor([.9]),
 
-          torch.arange(2., 3., .2),
-          torch.arange(1., 4., .5),
-          torch.arange(.01, 1., .25),
-          torch.arange(.01, .7, .15) / lr_scale,
+#           torch.arange(2., 3., .2),
+#           torch.arange(1., 4., .5),
+#           torch.arange(.01, 1., .25),
+#           torch.arange(.01, .7, .15) / lr_scale,
+#           torch.tensor([.3]),
+#           torch.tensor([.9])]
+#           )
+
+# new calc -
+# finalized (for now) single bank gsearch gd params (high attn)
+# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
+# tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])
+# tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])
+# - main update is lr_clus maybe need 2 vals (.3, .5)?, and group - could keep to .8...
+
+# tested nbanks some ok gd patterns
+# - c/phi values pretty sensitive, need small-ish steps
+# - attn bank 2 always small..
+# - nn bank 1 needs large range, bank 2 small
+# params = {
+#     # 'c': [.2, 2.2],
+#     'c': [.25, 2.],  # .2/.25; 2./2.5
+#     # 'c': [.1, 2.2],  # 2.5
+#     # 'phi': [1.5, 1.5],
+#     'phi': [1.8, 2.15],  # 1.9, 2.1
+#     'lr_attn': [1.5, .001],  # 1.5
+#     # 'lr_attn': [2., .001],  # for 3rd c/phi, meh
+#     'lr_nn': [.9/lr_scale, .01/lr_scale],  # .75/.85
+#     }
+
+# 352800
+# - 352800/2000 psets = 176.4 sets
+# - 352800/1000 psets = 352.8 sets
+# - 352800/800 = 441 sets
+# - 352800/784 = 450 sets
+
+# 358s / 5.9667 min / 0.09944 hours per set
+# 0.09944*800=79.552 hours = 3.3146 days. seems doable.
+# if assume cores a bit slower e.g. 8-10 mins (.133/.166 hours):
+# .1333*800=106.64 hrs, 4.44 days
+# .1666*800=133.28 hrs, 5.55 days
+# 784 sets
+# 0.09944*784=77.96/24=3.24 days
+# 0.1333*784=104.51/24=4.35 days
+# 0.1666*784=130.6/24=5.442 days
+
+# test this first, see everything ok, script up analysis
+# - should be able to see how off these are, and which params need to extend
+
+ranges = ([torch.arange(.1, .7, .1),
+          torch.arange(.75, 2.5, .375),
+          torch.arange(.01, 3., .4),
+          torch.arange(.01, 1., .15) / lr_scale,
           torch.tensor([.3]),
-          torch.tensor([.9])]
+          torch.tensor([.8]),
+
+          torch.arange(1.8, 2.5, .1),
+          torch.arange(.75, 2.5, .375),
+          torch.arange(.001, .1, .05),  # 2 vals only
+          torch.arange(.01, .4, .15) / lr_scale,
+          torch.tensor([.3]),
+          torch.tensor([.8])]
           )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
-sets = torch.arange(0, len(param_sets)+1, 778)  # 2200 for nbanks
+sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -245,7 +301,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
 # testing speed
-param_sets_curr = param_sets_curr[0:1]
+# param_sets_curr = param_sets_curr[0:1]
 
 # use list, so can combine later
 pt_all = [[] for i in range(len(param_sets_curr))]
@@ -289,7 +345,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
         fit_params, sim_info, six_problems, beh_seq, seeds=seeds)
 
     # save at certain points and at the end
-    if (np.mod(i + start, 100) == 0) | (i + start == len(param_sets_curr)-1):
+    if (np.mod(i + start, 50) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)

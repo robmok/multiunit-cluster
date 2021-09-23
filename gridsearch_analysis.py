@@ -50,6 +50,10 @@ resdir = os.path.join(maindir,
                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist_large_attn'.format(
     k, n_units))
 
+resdir = os.path.join(
+    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist3_attn'.format(
+        k, n_units))
+
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),
@@ -134,6 +138,14 @@ ranges = ([torch.arange(.2, 1.1, .2),
           torch.arange(.5, 1., .2)]
           )
 
+# finegsearch attn
+ranges = ([torch.arange(.2, .8, .1),
+      torch.arange(3., 10., 1),
+      torch.arange(2., 4.01, .25),
+      torch.arange(.005, .15, .02),
+      torch.arange(.25, .66, .1),
+      torch.arange(.7, 1., .2)]
+      )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -160,9 +172,9 @@ for iset in sets:  # range(n_sets):
         resdir,
         'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    # fn = os.path.join(
-    #     resdir,
-    #     'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+    fn = os.path.join(
+        resdir,
+        'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")
@@ -233,25 +245,6 @@ ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
 
 # criterion 2 (quantitative - shj curves difference magnitude)
 sse_diff = torch.zeros(len(pts))
-shj_diff = torch.tensor([
-    torch.sum((shj[:, 1] - shj[:, 0])),
-    torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
-    torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1)))])
-
-# # include types 3-5 differences? should be low.. lower but not nth..
-# shj_diff = torch.tensor([
-#     torch.sum((shj[:, 1] - shj[:, 0])),
-#     torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
-#     torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
-#     torch.sum(torch.abs(shj[:, 2] - shj[:, 3])),
-#     torch.sum(torch.abs(shj[:, 2] - shj[:, 4])),
-#     torch.sum(torch.abs(shj[:, 3] - shj[:, 4]))])
-# # or assume diffs between them 0
-# shj_diff = torch.tensor([
-#     torch.sum((shj[:, 1] - shj[:, 0])),
-#     torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
-#     torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1))),
-#     0, 0, 0])
 
 # squared diffs
 # shj_diff = torch.tensor([
@@ -272,18 +265,8 @@ shj_diff = torch.tensor([
     torch.sum(torch.square((shj[:, 5] - shj[:, 2:5].mean(axis=1)))),
     0, 0, 0])
 
-# # separate 3-5 diffs and other problem diffs
-# sse_diff1 = torch.zeros(len(pts))
-# sse_diff2 = torch.zeros(len(pts))
-# shj_diff1 = torch.tensor([
-#     torch.sum((shj[:, 1] - shj[:, 0])),
-#     torch.sum(shj[:, 2:5].mean(axis=1) - (shj[:, 1])),
-#     torch.sum((shj[:, 5] - shj[:, 2:5].mean(axis=1)))])
-# shj_diff2 = torch.tensor([0, 0, 0])
-
 # separate all, average 3-5
 sse_diff = torch.zeros([len(pts), 4])
-
 
 # # separate 2-3 diff, this is key one i can't get
 # shj_diff = torch.tensor([
@@ -294,7 +277,6 @@ sse_diff = torch.zeros([len(pts), 4])
 #     0, 0, 0])
 
 # sse_diff = torch.zeros([len(pts), 5])
-
 
 for iparam in range(len(pts)):
 
@@ -312,22 +294,7 @@ for iparam in range(len(pts)):
 
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
-    # difference between curves magnitude
-    # diff = torch.tensor([
-    #     torch.sum(pts[iparam][1] - pts[iparam][0]),
-    #     torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
-    #     torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))])
-    # include diffs of 3-5
-    # diff = torch.tensor([
-    #     torch.sum(pts[iparam][1] - pts[iparam][0]),
-    #     torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
-    #     torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0)),
-    #     torch.sum(torch.abs(pts[iparam][2] - pts[iparam][3])),
-    #     torch.sum(torch.abs(pts[iparam][2] - pts[iparam][4])),
-    #     torch.sum(torch.abs(pts[iparam][3] - pts[iparam][4]))
-    #     ])
-
-    # # should it be squared (abs) differences for all?
+    # # squared (abs) differences
     # diff = torch.tensor([
     #     torch.sum(torch.square(pts[iparam][1] - pts[iparam][0])),
     #     torch.sum(
@@ -372,22 +339,6 @@ for iparam in range(len(pts)):
     # sse_diff[iparam] = torch.cat([tmp[0:4].view(4, 1),
     #                               tmp[-3:].sum().view(1, 1)]).squeeze()
 
-
-
-    # # separate 3-5 diffs and other problem diffs
-    # diff1 = torch.tensor([
-    #     torch.sum(pts[iparam][1] - pts[iparam][0]),
-    #     torch.sum(pts[iparam][2:5].mean(axis=0) - pts[iparam][1]),
-    #     torch.sum(pts[iparam][5] - pts[iparam][2:5].mean(axis=0))
-    #     ])
-    # diff2 = torch.tensor([
-    #     torch.sum(torch.abs(pts[iparam][2] - pts[iparam][3])),
-    #     torch.sum(torch.abs(pts[iparam][2] - pts[iparam][4])),
-    #     torch.sum(torch.abs(pts[iparam][3] - pts[iparam][4]))
-    #     ])
-
-    # sse_diff1[iparam] = torch.sum(torch.square(diff1 - shj_diff1))
-    # sse_diff2[iparam] = torch.sum(torch.square(diff2 - shj_diff2))
 
 # criteria 1 already reduces to <12% of the params
 
@@ -541,13 +492,32 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # - actually ok - like prev plot, t
 # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 100/5, 100/5])  # v sim
 
-
 # with just diffs and assume all 0s
 # tensor([[1.0000, 3.0000, 2.7500, 0.0500, 0.2500, 0.7000]])
 w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
 w = torch.tensor([1/5, 1/5, 1/5, 3/5, 1/5])  # this is like above, gd
 
+
+# finegsearch attn
+# with just diffs and assume all 0s - i think this is enough
+# tensor([[0.4000, 5.0000, 2.7500, 0.1050, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks gd already
+# gd ones - weighting 3rd val
+# tensor([[0.5000, 4.0000, 2.0000, 0.1050, 0.4500, 0.7000]])  # 3rd: 15/5 - ok but 2-345 a lil bit close
+# tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])  # 20/5 - type 3 pops down a little
+# tensor([[0.2000, 9.0000, 3.2500, 0.1250, 0.6500, 0.7000]])  # 25/5
+# tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])  # 35/5. above this is same
+w = torch.tensor([1/5, 1/5, 35/5, 1/5, 1/5])  # probably 25 or 35/5?
+# w = torch.tensor([1/5, 1/5, 50/5, 10/5, 10/5])  # same as 20/5 above
+
+# with nans - gd ones end up similar
+# # tensor([[0.4000, 5.0000, 2.7500, 0.1050, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 20/5, 20/5, 1/5])
+# # tensor([[0.2000, 8.0000, 2.2500, 0.1450, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 50/5, 20/5, 1/5])  # type 3 a lil slow
+# tensor([[0.4000, 4.0000, 2.7500, 0.1450, 0.4500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 50/5, 30/5, 1/5])  # type 2-345 closer
 
 w = w / w.sum()
 sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
@@ -720,22 +690,22 @@ import matplotlib.font_manager as font_manager
 font = font_manager.FontProperties(family='Tahoma',
                                    style='normal', size=fntsiz-2)
 
-# fig, ax = plt.subplots(2, 1)
-# ax[0].plot(shj)
-# ax[0].set_ylim(ylims)
-# ax[0].set_aspect(17)
-# ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
-# ax[1].plot(pts[ind].T.squeeze())
-# ax[1].set_ylim(ylims)
-# ax[1].set_aspect(17)
-# plt.tight_layout()
-# if saveplots:
-#     figname = os.path.join(figdir,
-#                             'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
-#                             .format(
-#                                 n_units, k, w_str))
-#     plt.savefig(figname)
-# plt.show()
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(shj)
+ax[0].set_ylim(ylims)
+ax[0].set_aspect(17)
+ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
+ax[1].plot(pts[ind].T.squeeze())
+ax[1].set_ylim(ylims)
+ax[1].set_aspect(17)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                            'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
+                            .format(
+                                n_units, k, w_str))
+    plt.savefig(figname)
+plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
@@ -769,16 +739,16 @@ plt.show()
 # #     plt.savefig(figname)
 # plt.show()
 
-# # plot on top of each other
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(shj, 'k')
-# ax.plot(pts[ind].T.squeeze(), 'o-')
-# ax.tick_params(axis='x', labelsize=fntsiz-3)
-# ax.tick_params(axis='y', labelsize=fntsiz-3)
-# ax.set_ylim(ylims)
-# ax.set_xlabel('Learning Block', fontsize=fntsiz)
-# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-# plt.show()
+# plot on top of each other
+fig, ax = plt.subplots(1, 1)
+ax.plot(shj, 'k')
+ax.plot(pts[ind].T.squeeze(), 'o-')
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+plt.show()
 
 
  # %% run MLE after gridsearch
