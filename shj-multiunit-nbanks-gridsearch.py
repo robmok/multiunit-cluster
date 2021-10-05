@@ -341,7 +341,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
     print('Running param set {}/{} in set {}'.format(
         i + 1 + start, len(param_sets_curr), iset))
 
-    nlls[i], pt_all[i], rec_all[i], _ = run_shj_muc(
+    nlls[i + start], pt_all[i + start], rec_all[i + start], _ = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq, seeds=seeds)
 
     # save at certain points and at the end

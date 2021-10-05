@@ -508,7 +508,7 @@ w = torch.tensor([1/5, 1/5, 1/5, 3/5, 1/5])  # this is like above, gd
 # tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])  # 20/5 - type 3 pops down a little
 # tensor([[0.2000, 9.0000, 3.2500, 0.1250, 0.6500, 0.7000]])  # 25/5
 # tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])  # 35/5. above this is same
-w = torch.tensor([1/5, 1/5, 35/5, 1/5, 1/5])  # probably 25 or 35/5?
+w = torch.tensor([1/5, 1/5, 35/5, 1/5, 1/5])  # probably 20 or 35/5
 # w = torch.tensor([1/5, 1/5, 50/5, 10/5, 10/5])  # same as 20/5 above
 
 # with nans - gd ones end up similar
