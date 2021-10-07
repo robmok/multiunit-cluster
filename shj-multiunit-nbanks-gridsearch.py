@@ -127,7 +127,7 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-# iset = int(sys.argv[-1])
+iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01

@@ -502,8 +502,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 recruit_ind_flat = torch.tensor(recruit_ind_flat)
 
                 # recruit n_mispredicted units
-                if len(recruit_ind_flat):  # if none, skip
-                    model.active_units[recruit_ind_flat] = True  # set ws to active
+                if len(recruit_ind_flat):  # if none (e.g. no more units), skip
+                    model.active_units[recruit_ind_flat] = True  # activate ws
                     model.winning_units[:] = 0  # clear
                     model.winning_units[recruit_ind_flat] = True
                     # keep units that predicted correctly
