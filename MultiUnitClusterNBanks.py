@@ -499,7 +499,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                     recruit_ind_flat = [item for sublist in recruit_ind
                                         for item in sublist]
 
-                recruit_ind_flat = torch.tensor([])
+                recruit_ind_flat = torch.tensor(recruit_ind_flat)
 
                 # recruit n_mispredicted units
                 if len(recruit_ind_flat):  # if none, skip
