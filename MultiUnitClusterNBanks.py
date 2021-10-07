@@ -247,11 +247,11 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
         for x, target in zip(inputs_, output_):
 
-            # testing
-            x=inputs_[np.mod(itrl-8, 8)]
-            target=output_[np.mod(itrl-8, 8)]
-            x=inputs_[itrl]
-            target=output_[itrl]
+            # # testing
+            # x=inputs_[np.mod(itrl-8, 8)]
+            # target=output_[np.mod(itrl-8, 8)]
+            # x=inputs_[itrl]
+            # target=output_[itrl]
 
             # # lesion trials
             # if lesions:
