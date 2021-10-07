@@ -127,7 +127,7 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-iset = int(sys.argv[-1])
+# iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -301,7 +301,7 @@ sets = torch.tensor(sets, dtype=torch.long)
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
 # testing speed
-# param_sets_curr = param_sets_curr[0:1]
+# param_sets_curr = param_sets_curr[0:3]
 
 # use list, so can combine later
 pt_all = [[] for i in range(len(param_sets_curr))]
@@ -335,8 +335,9 @@ else:
     start = 0
 
 # grid search
-t0 = time.time()
+# t0 = time.time()
 for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
+    t0 = time.time()
 
     print('Running param set {}/{} in set {}'.format(
         i + 1 + start, len(param_sets_curr), iset))
@@ -344,12 +345,15 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
     nlls[i + start], pt_all[i + start], rec_all[i + start], _ = run_shj_muc(
         fit_params, sim_info, six_problems, beh_seq, seeds=seeds)
 
+    t1 = time.time()
+    print(t1-t0)
+
     # save at certain points and at the end
-    if (np.mod(i + start, 20) == 0) | (i + start == len(param_sets_curr)-1):
+    if (np.mod(i + start, 2) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
         open_file.close()
 
-t1 = time.time()
-print(t1-t0)
+# t1 = time.time()
+# print(t1-t0)

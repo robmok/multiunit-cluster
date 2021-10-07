@@ -54,6 +54,12 @@ resdir = os.path.join(
     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist3_attn'.format(
         k, n_units))
 
+
+
+resdir = os.path.join(
+    maindir, 'muc-shj-gridsearch/gsearch_nbanks')
+
+
 ranges = ([torch.arange(.4, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(.05, 1., .1),
@@ -175,6 +181,11 @@ for iset in sets:  # range(n_sets):
     fn = os.path.join(
         resdir,
         'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
+    fn = os.path.join(
+        resdir,
+        'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")

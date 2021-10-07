@@ -248,10 +248,10 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
         for x, target in zip(inputs_, output_):
 
             # testing
-            # x=inputs_[np.mod(itrl-8, 8)]
-            # target=output_[np.mod(itrl-8, 8)]
-            # x=inputs_[itrl]
-            # target=output_[itrl]
+            x=inputs_[np.mod(itrl-8, 8)]
+            target=output_[np.mod(itrl-8, 8)]
+            x=inputs_[itrl]
+            target=output_[itrl]
 
             # # lesion trials
             # if lesions:
@@ -499,22 +499,23 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                     recruit_ind_flat = [item for sublist in recruit_ind
                                         for item in sublist]
 
-                recruit_ind_flat = torch.tensor(recruit_ind_flat)
+                recruit_ind_flat = torch.tensor([])
 
                 # recruit n_mispredicted units
-                model.active_units[recruit_ind_flat] = True  # set ws to active
-                model.winning_units[:] = 0  # clear
-                model.winning_units[recruit_ind_flat] = True
-                # keep units that predicted correctly
-                if itrl > 0:
-                    # for ibank in range(model.n_banks):
-                    for i, ibank in enumerate(rec_banks):
-                        not_mispred = (
-                            torch.tensor(win_ind[ibank])[~mispred_units[i]]
-                            )
-                        model.winning_units[not_mispred] = True
+                if len(recruit_ind_flat):  # if none, skip
+                    model.active_units[recruit_ind_flat] = True  # set ws to active
+                    model.winning_units[:] = 0  # clear
+                    model.winning_units[recruit_ind_flat] = True
+                    # keep units that predicted correctly
+                    if itrl > 0:
+                        # for ibank in range(model.n_banks):
+                        for i, ibank in enumerate(rec_banks):
+                            not_mispred = (
+                                torch.tensor(win_ind[ibank])[~mispred_units[i]]
+                                )
+                            model.winning_units[not_mispred] = True
 
-                model.units_pos[recruit_ind_flat] = x  # place at curr stim
+                    model.units_pos[recruit_ind_flat] = x  # place at curr stim
 
                 for ibank in rec_banks:
                     model.recruit_units_trl[ibank].append(itrl)
