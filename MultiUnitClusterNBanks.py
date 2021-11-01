@@ -45,7 +45,7 @@ class MultiUnitClusterNBanks(nn.Module):
                 'phi': [1.3, 1.2],
                 'beta': 1,
                 'lr_attn': [.2, .002],
-                'lr_nn': [.05/lr_scale, .01/lr_scale],
+                'lr_nn': [.05, .01],
                 'lr_clusters': [.05, .05],
                 'lr_clusters_group': [.1, .1],
                 'k': k
@@ -59,7 +59,7 @@ class MultiUnitClusterNBanks(nn.Module):
                 'phi': [start_params[1], start_params[7]],
                 'beta': 1,
                 'lr_attn': [start_params[2], start_params[8]],
-                'lr_nn': [start_params[3]/lr_scale, start_params[9]/lr_scale],
+                'lr_nn': [start_params[3], start_params[9]],
                 'lr_clusters': [start_params[4], start_params[10]],
                 'lr_clusters_group': [start_params[5], start_params[11]],
                 'k': k

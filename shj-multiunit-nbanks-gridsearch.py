@@ -23,6 +23,8 @@ if location == 'mbp':
 elif location == 'cluster':
     maindir = '/imaging/duncan/users/rm05/'
     sys.path.append('/home/rm05/Documents/multiunit-cluster')
+    # set threads to 1 - can't do this on mac for some reason...
+    torch.set_num_threads(1)
 
 from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
@@ -127,7 +129,7 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-iset = int(sys.argv[-1])
+# iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -274,6 +276,9 @@ ranges = ([torch.arange(.1, 1.1, .3),
 # test this first, see everything ok, script up analysis
 # - should be able to see how off these are, and which params need to extend
 
+# 352800 params,784 sets, 784*5=3920/60=65.4hrs=2.72 days
+# 352800/400=882 sets. 882*5=4410/60/24=3.06 days
+# 352800/360=980 sets. 980*5=4900/60/24=3.40277 days
 ranges = ([torch.arange(.1, .7, .1),
           torch.arange(.75, 2.5, .375),
           torch.arange(.01, 3., .4),
@@ -289,10 +294,32 @@ ranges = ([torch.arange(.1, .7, .1),
           torch.tensor([.8])]
           )
 
+# 2nd go - STOP - redoing above as scaled twice..
+
+# # 25 iters, 3-6 min per sim now
+# # - higher phi's, nn's? not sure why plots are different to
+# # just give this a try - 147456 params
+# # 147456/400=368.64. 368.64*5=1843.19/60/24=1.2798 days
+# ranges = ([torch.arange(.1, .5, .15),
+#           torch.arange(.75, 3.5, .5),
+#           torch.arange(.01, 3., .4),
+#           torch.arange(.01, 1., .25) / lr_scale,
+#           torch.tensor([.3]),
+#           torch.tensor([.8]),
+
+#           torch.arange(1.8, 3., .15),
+#           torch.arange(.75, 6.25, .75),
+#           torch.arange(.001, .1, .05),  # 2 vals only
+#           torch.arange(.01, .4, .2) / lr_scale,
+#           torch.tensor([.3]),
+#           torch.tensor([.8])]
+#           )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
 sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
+# sets = torch.arange(0, len(param_sets), 369)  # 400 sets for nbanks2 - not run
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -314,7 +341,7 @@ seeds = torch.arange(sim_info['niter'])*10
 
 # fname to save to
 fn = os.path.join(datadir,
-                  'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
+                  'shj_nbanks1_gsearch_k{}_{}units_set{}.pkl'.format(
                       k, n_units, iset))
 
 # if file exists, load up and rerun
@@ -349,7 +376,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
     print(t1-t0)
 
     # save at certain points and at the end
-    if (np.mod(i + start, 2) == 0) | (i + start == len(param_sets_curr)-1):
+    if (np.mod(i + start, 10) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)

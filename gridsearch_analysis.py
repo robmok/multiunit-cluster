@@ -12,6 +12,7 @@ import torch
 import matplotlib.pyplot as plt
 import pickle
 import itertools as it
+import time
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
@@ -22,7 +23,8 @@ n_units = 2000
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
-n_sets = 350
+# nbanks 450
+n_sets = 450
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -53,7 +55,6 @@ resdir = os.path.join(maindir,
 resdir = os.path.join(
     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist3_attn'.format(
         k, n_units))
-
 
 
 resdir = os.path.join(
@@ -153,6 +154,22 @@ ranges = ([torch.arange(.2, .8, .1),
       torch.arange(.7, 1., .2)]
       )
 
+# nbanks
+ranges = ([torch.arange(.1, .7, .1),
+          torch.arange(.75, 2.5, .375),
+          torch.arange(.01, 3., .4),
+          torch.arange(.01, 1., .15),
+          torch.tensor([.3]),
+          torch.tensor([.8]),
+
+          torch.arange(1.8, 2.5, .1),
+          torch.arange(.75, 2.5, .375),
+          torch.arange(.001, .1, .05),  # 2 vals only
+          torch.arange(.01, .4, .15),
+          torch.tensor([.3]),
+          torch.tensor([.8])]
+          )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
@@ -205,16 +222,21 @@ for iset in sets:  # range(n_sets):
     # seeds.extend(loaded_list[3])
 
 
-# pts = torch.stack(pts)
-# nlls = torch.stack(nlls)
+pts = torch.stack(pts)
+nlls = torch.stack(nlls)
 # recs = torch.stack(recs)
 # seeds = torch.stack(seeds)
 
 # after doing nan mean, these are now numpy arrays for dist. will change later (changed for dist**2)
-pts = torch.tensor(np.stack(pts))
-nlls = torch.tensor(np.stack(nlls))
+# pts = torch.tensor(np.stack(pts))
+# nlls = torch.tensor(np.stack(nlls))
 
+# nbanks - just get full model output for now
+pts_banks = pts[:, :, 1:]  # get banks
+pts = pts[:, :, 0]  # full model - so can keep script like orig
 # %% fit
+
+t0 = time.time()
 
 # the human data from nosofsky, et al. replication
 shj = (
@@ -256,6 +278,10 @@ ptn_criteria_1 = torch.zeros(len(pts), dtype=torch.bool)
 
 # criterion 2 (quantitative - shj curves difference magnitude)
 sse_diff = torch.zeros(len(pts))
+
+# nbanks pattern
+ptn_criteria_1_nbanks = torch.zeros(len(pts), 2, dtype=torch.bool)
+ptn_criteria_2_nbanks = torch.zeros(len(pts), dtype=torch.bool)
 
 # squared diffs
 # shj_diff = torch.tensor([
@@ -305,6 +331,49 @@ for iparam in range(len(pts)):
 
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
+    # nbanks -set some critiera
+    # - all same, apart for 345 - thresh=if diff <.005 per blk, same
+    thr_bs = .01  # .005
+    for ibank in range(2):
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][0]
+                         - pts_banks[iparam, :, ibank][1]) < thr_bs)
+        ptn_bs_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        # 2 vs 3,4,5 same
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+                         - pts_banks[iparam, :, ibank][2]) < thr_bs)
+        ptn_bs_c2 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+                         - pts_banks[iparam, :, ibank][3]) < thr_bs)
+        ptn_bs_c3 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+                         - pts_banks[iparam, :, ibank][4]) < thr_bs)
+        ptn_bs_c4 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        # 3, 4, 5 vs 6 same
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][2]
+                         - pts_banks[iparam, :, ibank][5]) < thr_bs)
+        ptn_bs_c5 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][3]
+                         - pts_banks[iparam, :, ibank][5]) < thr_bs)
+        ptn_bs_c6 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        ptn = (torch.abs(pts_banks[iparam, :, ibank][4]
+                         - pts_banks[iparam, :, ibank][5]) < thr_bs)
+        ptn_bs_c7 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+
+        ptn_criteria_1_nbanks[iparam, ibank] = (
+            ptn_bs_c1 & ptn_bs_c2 & ptn_bs_c3 & ptn_bs_c4 & ptn_bs_c5 &
+            ptn_bs_c6 & ptn_bs_c7
+            )
+
+    # params where bank 2 has it flipped for 1 and 6
+    ptn = pts_banks[iparam, :, 1][5] < pts_banks[iparam, :, 1][:5]  # VI fastst
+    ptn_bs_c8 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][1:5]  # type II 2nd slowest
+    # ptn_bs_c9 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][:5]  # type I slowest
+    ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+
+    ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
+
     # # squared (abs) differences
     # diff = torch.tensor([
     #     torch.sum(torch.square(pts[iparam][1] - pts[iparam][0])),
@@ -350,6 +419,8 @@ for iparam in range(len(pts)):
     # sse_diff[iparam] = torch.cat([tmp[0:4].view(4, 1),
     #                               tmp[-3:].sum().view(1, 1)]).squeeze()
 
+t1 = time.time()
+print(t1-t0)
 
 # criteria 1 already reduces to <12% of the params
 
@@ -359,12 +430,21 @@ nlls[ind_nan] = np.inf
 sse[ind_nan] = np.inf
 sse_diff[ind_nan] = np.inf
 
-ind_nll = nlls == nlls[ptn_criteria_1].min()
-ind_sse = sse == sse[ptn_criteria_1].min()
-ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
+# pattern criteria
+ptn_criteria = ptn_criteria_1  # standard
+ptn_criteria = (
+    ptn_criteria_1
+    & ~torch.all(ptn_criteria_1_nbanks, axis=1)  # nbanks - rmv if all same
+    & ptn_criteria_2_nbanks  # 2nd bank flipped
+    )
 
-# ind_sse_diff1 = sse_diff1 == sse_diff1[ptn_criteria_1].min()
-# ind_sse_diff2 = sse_diff2 == sse_diff2[ptn_criteria_1].min()
+ind_nll = nlls == nlls[ptn_criteria].min()
+ind_sse = sse == sse[ptn_criteria].min()
+ind_sse_diff = sse_diff == sse_diff[ptn_criteria].min()
+
+# ind_sse_diff1 = sse_diff1 == sse_diff1[ptn_criteria].min()
+# ind_sse_diff2 = sse_diff2 == sse_diff2[ptn_criteria].min()
+
 
 # %%
 
@@ -374,7 +454,7 @@ ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
 # w = .5  # larger = weight total more, smaller = weight differences more
 # sses_w = sse * w + sse_diff * (1-w)
 # # ind_sse_w = sses_w == sses_w[~sses_w.isnan()].min()  # ignore qual pattern
-# ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
+# ind_sse_w = sses_w == sses_w[ptn_criteria].min()
 
 # # 3 sses weighted - sse, sse_diff1 (1-2, 2-345, 345-6), sse_diff2 (3-5 equal)
 # w = [1/3, 1/3, 1/3]
@@ -385,7 +465,7 @@ ind_sse_diff = sse_diff == sse_diff[ptn_criteria_1].min()
 # # w = np.array(w)/np.array(w).sum()
 
 # sses_w = sse * w[0] + sse_diff1 * w[1] + sse_diff * w[2]
-# ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
+# ind_sse_w = sses_w == sses_w[ptn_criteria].min()
 
 
 # separate all - 4 diffs. 1st is total sse, last is 3-5 equality
@@ -513,13 +593,13 @@ w = torch.tensor([1/5, 1/5, 1/5, 3/5, 1/5])  # this is like above, gd
 # finegsearch attn
 # with just diffs and assume all 0s - i think this is enough
 # tensor([[0.4000, 5.0000, 2.7500, 0.1050, 0.4500, 0.9000]])
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks gd already
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks gd already
 # gd ones - weighting 3rd val
 # tensor([[0.5000, 4.0000, 2.0000, 0.1050, 0.4500, 0.7000]])  # 3rd: 15/5 - ok but 2-345 a lil bit close
 # tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])  # 20/5 - type 3 pops down a little
 # tensor([[0.2000, 9.0000, 3.2500, 0.1250, 0.6500, 0.7000]])  # 25/5
 # tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])  # 35/5. above this is same
-w = torch.tensor([1/5, 1/5, 35/5, 1/5, 1/5])  # probably 20 or 35/5
+# w = torch.tensor([1/5, 1/5, 20/5, 1/5, 1/5])  # probably 20 or 35/5
 # w = torch.tensor([1/5, 1/5, 50/5, 10/5, 10/5])  # same as 20/5 above
 
 # with nans - gd ones end up similar
@@ -530,9 +610,29 @@ w = torch.tensor([1/5, 1/5, 35/5, 1/5, 1/5])  # probably 20 or 35/5
 # tensor([[0.4000, 4.0000, 2.7500, 0.1450, 0.4500, 0.9000]])
 # w = torch.tensor([1/5, 1/5, 50/5, 30/5, 1/5])  # type 2-345 closer
 
+# nbanks
+# tensor([[0.6000, 2.2500, 1.6100, 0.9100, 0.3000, 0.8000,
+#          1.8000, 1.8750, 0.0510, 0.3100, 0.3000, 0.8000]])
+# - banks 1 and 2 same-ish order
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # 345-6 stuck together
+
+# tensor([[0.6000, 2.2500, 1.6100, 0.9100, 0.3000, 0.8000,
+#          2.0000, 0.7500,0.0510, 0.0100, 0.3000, 0.8000]])
+# - looks better, BUT bank 2 all same or close to flat
+w = torch.tensor([1/5, 1/5, 1/5, 550/5, 1/5])  # but slow. 550+ for these
+
+# adding qualitative pattern criteria
+# w = torch.tensor([1/5, 1/5, 1/5, 600/5, 1/5])
+
+
+
+
+
+
+
 w = w / w.sum()
 sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
-ind_sse_w = sses_w == sses_w[ptn_criteria_1].min()
+ind_sse_w = sses_w == sses_w[ptn_criteria].min()
 
 if len(torch.nonzero(ind_sse_w)) > 1:
     ind_sse_w[torch.nonzero(ind_sse_w)[1]] = 0
@@ -546,9 +646,9 @@ if len(torch.nonzero(ind_sse_w)) > 1:
 # ranked_sse = rankdata(sse, method='min')
 # ranked_sse_diff = rankdata(sse_diff, method='min')
 # # ignore
-# ranked_nll[~ptn_criteria_1] = 10**6
-# ranked_sse[~ptn_criteria_1] = 10**6
-# ranked_sse_diff[~ptn_criteria_1] = 10**6
+# ranked_nll[~ptn_criteria] = 10**6
+# ranked_sse[~ptn_criteria] = 10**6
+# ranked_sse_diff[~ptn_criteria] = 10**6
 
 # # since there are ties, get the first n values
 # irank = 0 # start from 0
@@ -561,7 +661,7 @@ if len(torch.nonzero(ind_sse_w)) > 1:
 # ind_sse_diff = ranked_sse_diff == ranks[irank]
 # # use ranks
 # ranked_sse_w = rankdata(sses_w, method='min')
-# ranked_sse_w[~ptn_criteria_1] = 10**6  # ignore
+# ranked_sse_w[~ptn_criteria] = 10**6  # ignore
 # ranks = np.sort(ranked_sse_w)
 # ind_sse_w = ranked_sse_w == ranks[irank]
 
@@ -575,13 +675,13 @@ if len(torch.nonzero(ind_sse_w)) > 1:
 
 print(param_sets[ind_sse_w])
 
-# plt.plot(nlls[ptn_criteria_1])
+# plt.plot(nlls[ptn_criteria])
 # # plt.ylim([88, 97])
 # plt.show()
-# plt.plot(sse[ptn_criteria_1])
+# plt.plot(sse[ptn_criteria])
 # # plt.ylim([0, 9])
 # plt.show()
-# plt.plot(sses_w[ptn_criteria_1])
+# plt.plot(sses_w[ptn_criteria])
 # plt.show()
 
 # select which to use
@@ -632,53 +732,15 @@ ind = ind_sse_w
 
 # check best params to do a finer gridsearch
 
-# new - dist**2
-# note: not sqdiff for fitting
-
-# assume 3-5's are 0, BEST params:
-# sse, sse_diff (though prob don't want to do this):
-# tensor([[0.3000, 9.0000, 0.7500, 0.0500, 0.4500, 0.9000]])
-# tensor([[0.3000, 1.0000, 0.1500, 0.8500, 0.6500, 0.1000]])
-# weighted sse
-# - .5: tensor([[0.3000, 3.0000, 0.6500, 0.3500, 0.4500, 0.9000]])
-# - .75: tensor([[0.3000, 5.0000, 0.6500, 0.1500, 0.4500, 0.9000]])
-# - .95: tensor([[0.3000, 3.0000, 0.7500, 0.4500, 0.4500, 0.9000]])
-
-# 2nd best params
-# sse, sse_diff
-# tensor([[0.3000, 3.0000, 0.7500, 0.4500, 0.4500, 0.9000]])
-# tensor([[0.3000, 1.0000, 0.1500, 0.9500, 0.6500, 0.1000]])
-# weighted sse
-# - .5: tensor([[0.7000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
-# - .75: tensor([[0.3000, 5.0000, 0.7500, 0.1500, 0.4500, 0.9000]])
-# - .95: tensor([[0.3000, 9.0000, 0.7500, 0.0500, 0.4500, 0.9000]])
-
-# 3 weights
-# w = [1/3, 1/3, 1/3]
-# tensor([[0.3000, 3.0000, 0.6500, 0.3500, 0.4500, 0.9000]])
-# w = [2/6, 1/6, 3/6]
-# tensor([[0.3000, 5.0000, 0.6500, 0.1500, 0.4500, 0.9000]])
-# w = [1/6, 0/6, 5/6]
-# tensor([[0.3000, 9.0000, 0.7500, 0.0500, 0.4500, 0.9000]])
-
-# REDOING this - sqdiff for matching
-
-
-
 # new - squared differences for matching the differences
-
 # dist
 # - basically all w's give the same: 345 together, but also close to 6
 # tensor([[2.0000, 1.0000, 0.8500, 0.1500, 0.2500, 0.9000]])
 # - but with all separate, this gives more varied curves
 
-
-
 # dist**2 with sqdiff for fitting
 # - also not a lot of range. 3 a bit slow
 # - with all separate
-
-
 
 # param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -701,22 +763,22 @@ import matplotlib.font_manager as font_manager
 font = font_manager.FontProperties(family='Tahoma',
                                    style='normal', size=fntsiz-2)
 
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj)
-ax[0].set_ylim(ylims)
-ax[0].set_aspect(17)
-ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
-ax[1].plot(pts[ind].T.squeeze())
-ax[1].set_ylim(ylims)
-ax[1].set_aspect(17)
-plt.tight_layout()
-if saveplots:
-    figname = os.path.join(figdir,
-                            'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
-                            .format(
-                                n_units, k, w_str))
-    plt.savefig(figname)
-plt.show()
+# fig, ax = plt.subplots(2, 1)
+# ax[0].plot(shj)
+# ax[0].set_ylim(ylims)
+# ax[0].set_aspect(17)
+# ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
+# ax[1].plot(pts[ind].T.squeeze())
+# ax[1].set_ylim(ylims)
+# ax[1].set_aspect(17)
+# plt.tight_layout()
+# if saveplots:
+#     figname = os.path.join(figdir,
+#                             'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
+#                             .format(
+#                                 n_units, k, w_str))
+#     plt.savefig(figname)
+# plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
@@ -735,6 +797,40 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(pts_banks[ind, :, 0].T.squeeze())
+# ax.tick_params(axis='x', labelsize=fntsiz-3)
+# ax.tick_params(axis='y', labelsize=fntsiz-3)
+# ax.set_ylim(ylims)
+# ax.set_title('Module 1', fontsize=fntsiz)
+# ax.set_xlabel('Learning Block', fontsize=fntsiz)
+# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+# plt.tight_layout()
+# plt.show()
+
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(pts_banks[ind, :, 1].T.squeeze())
+# ax.tick_params(axis='x', labelsize=fntsiz-3)
+# ax.tick_params(axis='y', labelsize=fntsiz-3)
+# ax.set_ylim(ylims)
+# ax.set_title('Module 2', fontsize=fntsiz)
+# ax.set_xlabel('Learning Block', fontsize=fntsiz)
+# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+# plt.tight_layout()
+# plt.show()
+
+fig, ax = plt.subplots(1, 3)
+ax[0].plot(pts[ind].T.squeeze())
+ax[0].set_ylim(ylims)
+ax[1].plot(pts_banks[ind, :, 0].T.squeeze())
+ax[1].set_ylim(ylims)
+ax[2].plot(pts_banks[ind, :, 1].T.squeeze())
+ax[2].set_ylim(ylims)
+ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
+plt.tight_layout()
+plt.show()
+
+
 # # nosofsky '94 by itself
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(shj)
@@ -750,16 +846,16 @@ plt.show()
 # #     plt.savefig(figname)
 # plt.show()
 
-# plot on top of each other
-fig, ax = plt.subplots(1, 1)
-ax.plot(shj, 'k')
-ax.plot(pts[ind].T.squeeze(), 'o-')
-ax.tick_params(axis='x', labelsize=fntsiz-3)
-ax.tick_params(axis='y', labelsize=fntsiz-3)
-ax.set_ylim(ylims)
-ax.set_xlabel('Learning Block', fontsize=fntsiz)
-ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-plt.show()
+# # plot on top of each other
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(shj, 'k')
+# ax.plot(pts[ind].T.squeeze(), 'o-')
+# ax.tick_params(axis='x', labelsize=fntsiz-3)
+# ax.tick_params(axis='y', labelsize=fntsiz-3)
+# ax.set_ylim(ylims)
+# ax.set_xlabel('Learning Block', fontsize=fntsiz)
+# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+# plt.show()
 
 
  # %% run MLE after gridsearch
