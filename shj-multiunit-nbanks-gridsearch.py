@@ -129,7 +129,7 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-# iset = int(sys.argv[-1])
+iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -318,7 +318,9 @@ ranges = ([torch.arange(.1, .7, .1),
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
-sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
+# sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
+# sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks
+sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks
 # sets = torch.arange(0, len(param_sets), 369)  # 400 sets for nbanks2 - not run
 # not a great way to add final set on
 sets = torch.cat(
@@ -341,7 +343,7 @@ seeds = torch.arange(sim_info['niter'])*10
 
 # fname to save to
 fn = os.path.join(datadir,
-                  'shj_nbanks1_gsearch_k{}_{}units_set{}.pkl'.format(
+                  'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
                       k, n_units, iset))
 
 # if file exists, load up and rerun
@@ -376,7 +378,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
     print(t1-t0)
 
     # save at certain points and at the end
-    if (np.mod(i + start, 10) == 0) | (i + start == len(param_sets_curr)-1):
+    if (np.mod(i + start, 2) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
