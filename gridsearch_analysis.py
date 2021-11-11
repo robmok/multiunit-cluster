@@ -23,8 +23,8 @@ n_units = 2000
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
-# nbanks 450
-n_sets = 450
+# nbanks 360
+n_sets = 360
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -176,6 +176,12 @@ sets = torch.arange(n_sets)
 
 # TMP
 # sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
+# sets = sets[(sets != 57)]
+# sets = sets[(sets != 57) & (sets != 75)]
+#
+# sets = sets[77:]
+#
+# sets = range(76,77)  # set 57 has 10 left. set 75 has 231 left.
 
 # # TMP - remove some sets if incomplete - 80, 109
 # sets = torch.arange(0, len(param_sets)+1, 700)
@@ -212,9 +218,9 @@ for iset in sets:  # range(n_sets):
     # if not loaded_list[1]:
     #     print(iset)
 
-    # if not np.any(loaded_list[0][-1]):  # check last one
-    # # if not torch.tensor(loaded_list[0][-1], dtype=torch.bool):  # check last one
-    #     print(iset)
+    if not loaded_list[0][-1]:  # check last one
+    # if not torch.tensor(loaded_list[0][-1], dtype=torch.bool):  # check last one
+        print(iset)
 
     nlls.extend(loaded_list[0])
     pts.extend(loaded_list[1])
@@ -282,6 +288,7 @@ sse_diff = torch.zeros(len(pts))
 # nbanks pattern
 ptn_criteria_1_nbanks = torch.zeros(len(pts), 2, dtype=torch.bool)
 ptn_criteria_2_nbanks = torch.zeros(len(pts), dtype=torch.bool)
+ptn_criteria_3_nbanks = torch.zeros(len(pts), dtype=torch.bool)
 
 # squared diffs
 # shj_diff = torch.tensor([
@@ -367,12 +374,26 @@ for iparam in range(len(pts)):
     # params where bank 2 has it flipped for 1 and 6
     ptn = pts_banks[iparam, :, 1][5] < pts_banks[iparam, :, 1][:5]  # VI fastst
     ptn_bs_c8 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][1:5]  # type II 2nd slowest
+    # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][2:6]  # type II 2nd slowest - maybe not nec
     # ptn_bs_c9 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][:5]  # type I slowest
+    ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][1:6]  # type I slowest
     ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
 
     ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
+
+    # cross bank differences
+    # type I, bank 1 faster than bank 2
+    ptn = pts_banks[iparam, :, 0][0] < pts_banks[iparam, :, 1][0]
+    ptn_bs_c11 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # type VI, bank 2 faster than bank 1
+    ptn = pts_banks[iparam, :, 0][5] > pts_banks[iparam, :, 1][5]
+    ptn_bs_c12 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+
+    # type 345 bank 2 faster
+    ptn = pts_banks[iparam, :, 0][2:5] > pts_banks[iparam, :, 1][2:5]
+    ptn_bs_c13 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+
+    ptn_criteria_3_nbanks[iparam] = ptn_bs_c11 & ptn_bs_c12 & ptn_bs_c13
 
     # # squared (abs) differences
     # diff = torch.tensor([
@@ -436,6 +457,7 @@ ptn_criteria = (
     ptn_criteria_1
     & ~torch.all(ptn_criteria_1_nbanks, axis=1)  # nbanks - rmv if all same
     & ptn_criteria_2_nbanks  # 2nd bank flipped
+    & ptn_criteria_3_nbanks   # across banks - type 1<1 and 6>6 for banks 1vs2
     )
 
 ind_nll = nlls == nlls[ptn_criteria].min()
@@ -611,22 +633,28 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks gd already
 # w = torch.tensor([1/5, 1/5, 50/5, 30/5, 1/5])  # type 2-345 closer
 
 # nbanks
-# tensor([[0.6000, 2.2500, 1.6100, 0.9100, 0.3000, 0.8000,
-#          1.8000, 1.8750, 0.0510, 0.3100, 0.3000, 0.8000]])
-# - banks 1 and 2 same-ish order
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # 345-6 stuck together
 
-# tensor([[0.6000, 2.2500, 1.6100, 0.9100, 0.3000, 0.8000,
-#          2.0000, 0.7500,0.0510, 0.0100, 0.3000, 0.8000]])
-# - looks better, BUT bank 2 all same or close to flat
-w = torch.tensor([1/5, 1/5, 1/5, 550/5, 1/5])  # but slow. 550+ for these
+# just type 1 and 6 - flipped and should be faster across banks
+# tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
+#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already OK
 
-# adding qualitative pattern criteria
-# w = torch.tensor([1/5, 1/5, 1/5, 600/5, 1/5])
+# similar, but shift up  bit - lines a little more different, type 6 bank 2-1 difference slightly more
+# tensor([[5.0000e-01, 1.5000e+00, 2.0100e+00, 4.6000e-01, 3.0000e-01, 8.0000e-01,
+#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 500/5, 500/5, 1/5])
 
 
+# include rulex types - should be faster in bank 2
+# - standard OK except 345 and 6 too close
+# tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 8.0000e-01,
+#          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
-
+# a bit more separated than above
+# tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
+         # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
 
 
 
@@ -822,13 +850,44 @@ plt.show()
 fig, ax = plt.subplots(1, 3)
 ax[0].plot(pts[ind].T.squeeze())
 ax[0].set_ylim(ylims)
+# ax[0].set_box_aspect(1)
 ax[1].plot(pts_banks[ind, :, 0].T.squeeze())
 ax[1].set_ylim(ylims)
+# ax[1].set_box_aspect(1)
 ax[2].plot(pts_banks[ind, :, 1].T.squeeze())
 ax[2].set_ylim(ylims)
 ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
+# ax[2].set_box_aspect(1)
 plt.tight_layout()
 plt.show()
+
+# compare 2 banks
+# fig, ax = plt.subplots(1, 2)
+# ax[0].plot(pts_banks[ind, :, 0].T.squeeze())
+# ax[0].set_ylim(ylims)
+# ax[1].plot(pts_banks[ind, :, 1].T.squeeze())
+# ax[1].set_ylim(ylims)
+# ax[1].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
+# plt.tight_layout()
+# plt.show()
+
+# # compare type 6 across banks - since small difference
+# plt.plot(torch.stack([pts_banks[ind, 5, 0], pts_banks[ind, 5, 1]]).squeeze().T)
+# plt.show()
+
+# compare rulex across banks
+# plt.plot((pts_banks[ind, 2:5, 0]-pts_banks[ind, 2:5, 1]).squeeze().T)
+# plt.show()
+
+# plt.plot(torch.stack([pts_banks[ind, 2, 0], pts_banks[ind, 2, 1]]).squeeze().T)
+# plt.title('type III')
+# plt.show()
+# plt.plot(torch.stack([pts_banks[ind, 3, 0], pts_banks[ind, 3, 1]]).squeeze().T)
+# plt.title('type IV')
+# plt.show()
+# plt.plot(torch.stack([pts_banks[ind, 4, 0], pts_banks[ind, 4, 1]]).squeeze().T)
+# plt.title('type V')
+# plt.show()
 
 
 # # nosofsky '94 by itself
