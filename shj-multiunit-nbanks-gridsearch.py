@@ -294,34 +294,61 @@ ranges = ([torch.arange(.1, .7, .1),
           torch.tensor([.8])]
           )
 
-# 2nd go - STOP - redoing above as scaled twice..
+# finegsearch nbanks
 
-# # 25 iters, 3-6 min per sim now
-# # - higher phi's, nn's? not sure why plots are different to
-# # just give this a try - 147456 params
-# # 147456/400=368.64. 368.64*5=1843.19/60/24=1.2798 days
-# ranges = ([torch.arange(.1, .5, .15),
-#           torch.arange(.75, 3.5, .5),
-#           torch.arange(.01, 3., .4),
-#           torch.arange(.01, 1., .25) / lr_scale,
+# [0.6, 1.125, 0.81, 0.61, .3, .8,
+#  2, 2.25, 0.001, 0.01, .3, .8]
+
+# [0.5, 1.125, 2.01, 0.76, .3, .8,
+#  1.8, 2.25, 0.001, 0.01, .3, .8]
+
+
+# 12960 params
+# 12960/128 = 102 sets. 5 min per set, 102*5=510/60=8.5 hours
+# ranges = ([torch.arange(.5, .9, .1),
+#           torch.arange(1., 1.251, .125),  # or just stick to 1.125
+#           torch.arange(.8, 2.2, .25),  # 6 rather than 8
+#           torch.arange(.55, .81, .05) / lr_scale,  # 6 rather than 7
 #           torch.tensor([.3]),
 #           torch.tensor([.8]),
 
-#           torch.arange(1.8, 3., .15),
-#           torch.arange(.75, 6.25, .75),
-#           torch.arange(.001, .1, .05),  # 2 vals only
-#           torch.arange(.01, .4, .2) / lr_scale,
+#           torch.arange(1.7, 2.2, .1), # 6 rather than 8
+#           torch.arange(2, 3.1, .25),  # 5 as before
+#           torch.tensor([.001]), # 1 instead of 2
+#           torch.tensor([.01]) / lr_scale,  # 1 instead of 3
 #           torch.tensor([.3]),
 #           torch.tensor([.8])]
 #           )
+
+
+# more
+# 86400 params
+# 86400/128=675*5=3375/60=56.25/24=2.34 days - run thurs night, done sunday.
+ranges = ([torch.arange(.5, .9, .1),
+          torch.arange(.75, 1.251, .125), #  2 more than above
+          torch.arange(.8, 2.2, .25),
+          torch.arange(.55, .81, .05) / lr_scale,  #
+          torch.tensor([.3]),
+          torch.tensor([.5, .8]),  # group lr
+
+          torch.arange(1.7, 2.2, .1),
+          torch.arange(2, 3.1, .25),
+          torch.tensor([.001]),
+          torch.tensor([.01]) / lr_scale,
+          torch.tensor([.3]),
+          torch.tensor([.5, .8])]
+          )
+
+# next try lr clus too?
+
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
 # sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
 # sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks
-sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks
-# sets = torch.arange(0, len(param_sets), 369)  # 400 sets for nbanks2 - not run
+# sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks
+sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -342,9 +369,14 @@ rec_all = [[] for i in range(len(param_sets_curr))]
 seeds = torch.arange(sim_info['niter'])*10
 
 # fname to save to
+# fn = os.path.join(datadir,
+#                   'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
+#                       k, n_units, iset))
+
 fn = os.path.join(datadir,
-                  'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
+                  'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(
                       k, n_units, iset))
+
 
 # if file exists, load up and rerun
 if os.path.exists(fn):
@@ -378,7 +410,7 @@ for i, fit_params in enumerate(param_sets_curr[start:len(param_sets_curr)]):
     print(t1-t0)
 
     # save at certain points and at the end
-    if (np.mod(i + start, 2) == 0) | (i + start == len(param_sets_curr)-1):
+    if (np.mod(i + start, 5) == 0) | (i + start == len(param_sets_curr)-1):
         shj_gs_res = [nlls, pt_all, rec_all]  # seeds_all
         open_file = open(fn, "wb")
         pickle.dump(shj_gs_res, open_file)
