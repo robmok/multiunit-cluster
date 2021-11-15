@@ -23,8 +23,8 @@ n_units = 2000
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
-# nbanks 360
-n_sets = 360
+# nbanks 360, fine 128
+n_sets = 128
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -59,6 +59,10 @@ resdir = os.path.join(
 
 resdir = os.path.join(
     maindir, 'muc-shj-gridsearch/gsearch_nbanks')
+
+
+resdir = os.path.join(
+    maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
 
 
 ranges = ([torch.arange(.4, 2.1, .2),
@@ -170,6 +174,22 @@ ranges = ([torch.arange(.1, .7, .1),
           torch.tensor([.8])]
           )
 
+# finegsearch nbanks
+ranges = ([torch.arange(.5, .9, .1),
+          torch.arange(.75, 1.251, .125), #  2 more than above
+          torch.arange(.8, 2.2, .25),
+          torch.arange(.55, .81, .05),  #
+          torch.tensor([.3]),
+          torch.tensor([.5, .8]),  # group lr
+
+          torch.arange(1.7, 2.2, .1),
+          torch.arange(2, 3.1, .25),
+          torch.tensor([.001]),
+          torch.tensor([.01]),
+          torch.tensor([.3]),
+          torch.tensor([.5, .8])]
+          )
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
@@ -177,17 +197,17 @@ sets = torch.arange(n_sets)
 # TMP
 # sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
 # sets = sets[(sets != 57)]
-# sets = sets[(sets != 57) & (sets != 75)]
+sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
 #
 # sets = sets[77:]
 #
 # sets = range(76,77)  # set 57 has 10 left. set 75 has 231 left.
 
-# # TMP - remove some sets if incomplete - 80, 109
+# # TMP - remove some sets if incomplete
 # sets = torch.arange(0, len(param_sets)+1, 700)
 # ind = torch.ones(len(param_sets), dtype=torch.bool)
-# ind[sets[80]:sets[81]] = False
-# ind[sets[109]:sets[110]] = False
+# ind[sets[68]:sets[70]] = False
+# ind[sets[116]:sets[117]] = False
 # param_sets = param_sets[ind]
 
 # load in
@@ -209,6 +229,10 @@ for iset in sets:  # range(n_sets):
         resdir,
         'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
+    fn = os.path.join(
+        resdir,
+        'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
+                                                              iset))
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")
@@ -644,8 +668,7 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already OK
 #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
 # w = torch.tensor([1/5, 1/5, 500/5, 500/5, 1/5])
 
-
-# include rulex types - should be faster in bank 2
+# final and works - include rulex types - should be faster in bank 2
 # - standard OK except 345 and 6 too close
 # tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 8.0000e-01,
 #          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
@@ -655,6 +678,13 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 # tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
          # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
 # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
+
+
+# finegsearch - testing without 3 sets
+w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
+# w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though.
+
+
 
 
 
@@ -701,7 +731,7 @@ if len(torch.nonzero(ind_sse_w)) > 1:
 # print(param_sets[ind_sse_diff1])
 # print(param_sets[ind_sse_diff2])
 
-print(param_sets[ind_sse_w])
+# print(param_sets[ind_sse_w])
 
 # plt.plot(nlls[ptn_criteria])
 # # plt.ylim([88, 97])
