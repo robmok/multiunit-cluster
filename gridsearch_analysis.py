@@ -879,7 +879,9 @@ plt.show()
 
 aspect = 1.5
 linewidth = 1.
-gridalpha = .5
+gridalpha = .75
+bgcol1 = np.array([31, 119, 180])/255  # blue
+bgcol2 = np.array([255, 240, 0])/255  # yellow
 fig, ax = plt.subplots(1, 3)
 ax[0].plot(pts[ind].T.squeeze(), linewidth=linewidth)
 ax[0].set_ylim(ylims)
@@ -898,6 +900,7 @@ labels = ['', '', '', '', '', '']
 ax[1].set_yticklabels(labels)
 ax[1].tick_params(axis='x', labelsize=fntsiz-2)
 ax[1].grid(linestyle='--', alpha=gridalpha)
+ax[1].set_facecolor(np.append(bgcol1, 0.25))  # add alpha
 ax[2].plot(pts_banks[ind, :, 1].T.squeeze(), linewidth=linewidth)
 ax[2].set_ylim(ylims)
 ax[2].set_box_aspect(aspect)
@@ -907,7 +910,12 @@ ax[2].tick_params(axis='x', labelsize=fntsiz-2)
 ax[2].set_title('Posterior HPC', fontsize=fntsiz)
 ax[2].grid(linestyle='--', alpha=gridalpha)
 ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
+ax[2].set_facecolor(np.append(bgcol2, 0.15))  # add alpha
 plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,'shj_nbanks_curves_sep_b12_gsearch_cols.pdf')
+    plt.savefig(figname)
+plt.show()
 plt.show()
 
 # compare 2 banks
