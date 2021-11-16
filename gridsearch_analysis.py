@@ -682,7 +682,7 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
 # finegsearch - testing without 3 sets
 w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
-# w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though.
+w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though.
 
 
 
@@ -877,17 +877,36 @@ plt.show()
 # plt.tight_layout()
 # plt.show()
 
+aspect = 1.5
+linewidth = 1.
+gridalpha = .5
 fig, ax = plt.subplots(1, 3)
-ax[0].plot(pts[ind].T.squeeze())
+ax[0].plot(pts[ind].T.squeeze(), linewidth=linewidth)
 ax[0].set_ylim(ylims)
-# ax[0].set_box_aspect(1)
-ax[1].plot(pts_banks[ind, :, 0].T.squeeze())
+ax[0].set_box_aspect(aspect)
+ax[0].set_title('Output', fontsize=fntsiz)
+ax[0].set_ylabel('Probability of Error', fontsize=fntsiz)
+ax[0].tick_params(axis='x', labelsize=fntsiz-2)
+ax[0].tick_params(axis='y', labelsize=fntsiz-2)
+ax[0].grid(linestyle='--', alpha=gridalpha)
+ax[1].plot(pts_banks[ind, :, 0].T.squeeze(), linewidth=linewidth)
 ax[1].set_ylim(ylims)
-# ax[1].set_box_aspect(1)
-ax[2].plot(pts_banks[ind, :, 1].T.squeeze())
+ax[1].set_xlabel('Block', fontsize=fntsiz)
+ax[1].set_box_aspect(aspect)
+ax[1].set_title('Anterior HPC', fontsize=fntsiz)
+labels = ['', '', '', '', '', '']
+ax[1].set_yticklabels(labels)
+ax[1].tick_params(axis='x', labelsize=fntsiz-2)
+ax[1].grid(linestyle='--', alpha=gridalpha)
+ax[2].plot(pts_banks[ind, :, 1].T.squeeze(), linewidth=linewidth)
 ax[2].set_ylim(ylims)
+ax[2].set_box_aspect(aspect)
+labels = ['', '', '', '', '', '']
+ax[2].set_yticklabels(labels)
+ax[2].tick_params(axis='x', labelsize=fntsiz-2)
+ax[2].set_title('Posterior HPC', fontsize=fntsiz)
+ax[2].grid(linestyle='--', alpha=gridalpha)
 ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
-# ax[2].set_box_aspect(1)
 plt.tight_layout()
 plt.show()
 
