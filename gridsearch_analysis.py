@@ -197,11 +197,7 @@ sets = torch.arange(n_sets)
 # TMP
 # sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
 # sets = sets[(sets != 57)]
-sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
-#
-# sets = sets[77:]
-#
-# sets = range(76,77)  # set 57 has 10 left. set 75 has 231 left.
+# sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
 
 # # TMP - remove some sets if incomplete
 # sets = torch.arange(0, len(param_sets)+1, 700)
@@ -285,7 +281,7 @@ shj = (
           0.172, 0.128, 0.139, 0.117, 0.103, 0.098, 0.106, 0.106]]).T
     )
 
-# criteria for fit:
+# criteria for fit:x
 
 # quantitative:
 # - compute SSE for each fit (already have nll)
@@ -681,12 +677,12 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
 
 # finegsearch - testing without 3 sets
+# tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+         # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
 w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
+# tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+#          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
 w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though.
-
-
-
-
 
 w = w / w.sum()
 sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
@@ -731,7 +727,7 @@ if len(torch.nonzero(ind_sse_w)) > 1:
 # print(param_sets[ind_sse_diff1])
 # print(param_sets[ind_sse_diff2])
 
-# print(param_sets[ind_sse_w])
+print(param_sets[ind_sse_w])
 
 # plt.plot(nlls[ptn_criteria])
 # # plt.ylim([88, 97])
@@ -821,22 +817,22 @@ import matplotlib.font_manager as font_manager
 font = font_manager.FontProperties(family='Tahoma',
                                    style='normal', size=fntsiz-2)
 
-# fig, ax = plt.subplots(2, 1)
-# ax[0].plot(shj)
-# ax[0].set_ylim(ylims)
-# ax[0].set_aspect(17)
-# ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
-# ax[1].plot(pts[ind].T.squeeze())
-# ax[1].set_ylim(ylims)
-# ax[1].set_aspect(17)
-# plt.tight_layout()
-# if saveplots:
-#     figname = os.path.join(figdir,
-#                             'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
-#                             .format(
-#                                 n_units, k, w_str))
-#     plt.savefig(figname)
-# plt.show()
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(shj)
+ax[0].set_ylim(ylims)
+ax[0].set_aspect(17)
+ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
+ax[1].plot(pts[ind].T.squeeze())
+ax[1].set_ylim(ylims)
+ax[1].set_aspect(17)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                            'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
+                            .format(
+                                n_units, k, w_str))
+    plt.savefig(figname)
+plt.show()
 
 # best params by itself
 fig, ax = plt.subplots(1, 1)
@@ -900,7 +896,7 @@ labels = ['', '', '', '', '', '']
 ax[1].set_yticklabels(labels)
 ax[1].tick_params(axis='x', labelsize=fntsiz-2)
 ax[1].grid(linestyle='--', alpha=gridalpha)
-ax[1].set_facecolor(np.append(bgcol1, 0.25))  # add alpha
+ax[1].set_facecolor(np.append(bgcol1, 0.15))  # add alpha
 ax[2].plot(pts_banks[ind, :, 1].T.squeeze(), linewidth=linewidth)
 ax[2].set_ylim(ylims)
 ax[2].set_box_aspect(aspect)
@@ -915,7 +911,6 @@ plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,'shj_nbanks_curves_sep_b12_gsearch_cols.pdf')
     plt.savefig(figname)
-plt.show()
 plt.show()
 
 # compare 2 banks
