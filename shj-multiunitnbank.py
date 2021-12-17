@@ -251,7 +251,7 @@ plt.show()
 
 saveplots = False
 
-niter = 10
+niter = 1
 
 n_banks = 2
 
@@ -287,51 +287,67 @@ for i in range(niter):
         output = output.repeat(2).T
         n_dims = inputs.shape[1]
 
-        # not bad
-        params = {
-            'r': 1,
-            'c': [.75, 2.6],  # c=.8/1. for type I. c=1. works better for II.
-            'p': 1,
-            'phi': [1.3, 1.1],  # 1.2/1.1 for latter atm
-            'beta': 1,
-            'lr_attn': [.2, .002],  # [.25, .02]
-            'lr_nn': [.05/lr_scale, .02/lr_scale],  # latter: .01. if latter: .02, type 6 larger fc1 weights than low c. otherwise smaller if lr_nn too small.
-            'lr_clusters': [.05, .05],
-            'lr_clusters_group': [.1, .1],
-            'k': k
-            }
+        # # not bad
+        # params = {
+        #     'r': 1,
+        #     'c': [.75, 2.6],  # c=.8/1. for type I. c=1. works better for II.
+        #     'p': 1,
+        #     'phi': [1.3, 1.1],  # 1.2/1.1 for latter atm
+        #     'beta': 1,
+        #     'lr_attn': [.2, .002],  # [.25, .02]
+        #     'lr_nn': [.05/lr_scale, .02/lr_scale],  # latter: .01. if latter: .02, type 6 larger fc1 weights than low c. otherwise smaller if lr_nn too small.
+        #     'lr_clusters': [.05, .05],
+        #     'lr_clusters_group': [.1, .1],
+        #     'k': k
+        #     }
 
-        # try more - looking good
-        params = {
-            'r': 1,
-            'c': [.75, 2.5],
-            'p': 1,
-            'phi': [1., 2.],
-            'beta': 1,
-            'lr_attn': [.2, .005],
-            'lr_nn': [.1/lr_scale, .002/lr_scale],
-            'lr_clusters': [.05, .05],
-            'lr_clusters_group': [.1, .1],
-            'k': k
-            }
+        # # try more - looking good
+        # params = {
+        #     'r': 1,
+        #     'c': [.75, 2.5],
+        #     'p': 1,
+        #     'phi': [1., 2.],
+        #     'beta': 1,
+        #     'lr_attn': [.2, .005],
+        #     'lr_nn': [.1/lr_scale, .002/lr_scale],
+        #     'lr_clusters': [.05, .05],
+        #     'lr_clusters_group': [.1, .1],
+        #     'k': k
+        #     }
 
         # testing based on single bank finegridsearch results
         # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
+        # params = {
+        #     'r': 1,
+        #     # 'c': [.2, 2.2],
+        #     'c': [.25, 2.],  # .2/.25; 2./2.5
+        #     # 'c': [.1, 2.2],  # 2.5
+        #     'p': 1,
+        #     # 'phi': [1.5, 1.5],
+        #     'phi': [1.8, 2.15],  # 1.9, 2.1
+        #     # 'phi': [2.5, 1.5],  # meh
+        #     'beta': 1,
+        #     'lr_attn': [1.5, .001],  # 1.5
+        #     # 'lr_attn': [2., .001],  # for 3rd c/phi, meh
+        #     'lr_nn': [.9/lr_scale, .01/lr_scale],  # .75/.85
+        #     'lr_clusters': [.3, .3],
+        #     'lr_clusters_group': [.8, .8],
+        #     'k': k
+        #     }
+
+        # gridsearch + fgsearch
+        # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+#                  1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
         params = {
             'r': 1,
-            # 'c': [.2, 2.2],
-            'c': [.25, 2.],  # .2/.25; 2./2.5
-            # 'c': [.1, 2.2],  # 2.5
+            'c': [.6, 1.7],
             'p': 1,
-            # 'phi': [1.5, 1.5],
-            'phi': [1.8, 2.15],  # 1.9, 2.1
-            # 'phi': [2.5, 1.5],  # meh
+            'phi': [1., 2.25],
             'beta': 1,
-            'lr_attn': [1.5, .001],  # 1.5
-            # 'lr_attn': [2., .001],  # for 3rd c/phi, meh
-            'lr_nn': [.9/lr_scale, .01/lr_scale],  # .75/.85
+            'lr_attn': [1.55, .001],
+            'lr_nn': [.7/lr_scale, .01/lr_scale],
             'lr_clusters': [.3, .3],
-            'lr_clusters_group': [.8, .8],
+            'lr_clusters_group': [.8, .5],
             'k': k
             }
 

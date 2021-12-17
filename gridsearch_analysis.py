@@ -400,6 +400,7 @@ for iparam in range(len(pts)):
     ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
 
     ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
+    # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c9 & ptn_bs_c10
 
     # cross bank differences
     # type I, bank 1 faster than bank 2
@@ -682,7 +683,13 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
 # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
 #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though.
+w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
+
+# with type II as 2nd slower in bank 2
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
+# w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
+
 
 w = w / w.sum()
 sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
