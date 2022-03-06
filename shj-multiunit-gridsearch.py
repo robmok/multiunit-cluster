@@ -23,13 +23,15 @@ if location == 'mbp':
 elif location == 'cluster':
     maindir = '/imaging/duncan/users/rm05/'
     sys.path.append('/home/rm05/Documents/multiunit-cluster')
+    # set threads to 1 - can't do this on mac for some reason...
+    torch.set_num_threads(1)
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = True
+finegsearch = False
 
 
 def negloglik(model_pr, beh_seq):
@@ -139,7 +141,7 @@ sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
     'k': k,
-    'niter': 50  # niter
+    'niter': 25  # niter
     }
 
 lr_scale = (n_units * k) / 1
