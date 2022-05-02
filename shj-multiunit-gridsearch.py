@@ -15,7 +15,7 @@ import time
 from scipy import stats
 import pickle
 
-location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
+location = 'mbp'  # 'mbp' or 'cluster' (cbu cluster - unix)
 
 if location == 'mbp':
     maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
@@ -29,7 +29,7 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = True
+finegsearch = False
 
 
 def negloglik(model_pr, beh_seq):
@@ -131,7 +131,8 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-iset = int(sys.argv[-1])
+if location == 'cluster':
+    iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -139,7 +140,7 @@ sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
     'k': k,
-    'niter': 50  # niter
+    'niter': 25  # niter
     }
 
 lr_scale = (n_units * k) / 1
@@ -164,17 +165,8 @@ lr_scale = (n_units * k) / 1
 #           torch.arange(.1, 1., .2)]
 #           )
 
-# add 1 more c value - dist
-ranges = ([torch.arange(.2, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1) / lr_scale,
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
-
-# when changing dist**2, changing c to start from .3, which loses one c value
-# ranges = ([torch.arange(.3, 2.1, .2),
+# # add 1 more c value - dist
+# ranges = ([torch.arange(.2, 2.1, .2),
 #           torch.arange(1., 15., 2),
 #           torch.arange(.05, 1., .1),
 #           torch.arange(.05, 1., .1) / lr_scale,
@@ -182,15 +174,24 @@ ranges = ([torch.arange(.2, 2.1, .2),
 #           torch.arange(.1, 1., .2)]
 #           )
 
+# # when changing dist**2, changing c to start from .3, which loses one c value
+# # ranges = ([torch.arange(.3, 2.1, .2),
+# #           torch.arange(1., 15., 2),
+# #           torch.arange(.05, 1., .1),
+# #           torch.arange(.05, 1., .1) / lr_scale,
+# #           torch.arange(.05, 1., .1),
+# #           torch.arange(.1, 1., .2)]
+# #           )
 
-# dist - with attn lr > 1., with fewer params - 33600 params
-ranges = ([torch.arange(.2, 1.1, .2),
-          torch.arange(1., 11., 2),
-          torch.arange(1., 2.76, .25),
-          torch.arange(.05, .76, .1) / lr_scale,
-          torch.arange(.15, .76, .1),
-          torch.arange(.5, 1., .2)]
-          )
+
+# # dist - with attn lr > 1., with fewer params - 33600 params
+# ranges = ([torch.arange(.2, 1.1, .2),
+#           torch.arange(1., 11., 2),
+#           torch.arange(1., 2.76, .25),
+#           torch.arange(.05, .76, .1) / lr_scale,
+#           torch.arange(.15, .76, .1),
+#           torch.arange(.5, 1., .2)]
+#           )
 
 
 # timing
@@ -227,6 +228,21 @@ ranges = ([torch.arange(.2, 1.1, .2),
 
 # dist**2 second go
 # 47040 params - 350 sets, 135 psets per set; 135*.12=16.2 hours
+
+
+
+# 2022 new - shj_order now correct, do lr_attn > 1 possible, 25 iters (so 0.12-->0.06 for timing)
+# - first, just dist (not dist**2)
+
+# 224000 params - 400 sets, 560psets per set; 560*.06=33.6=1.4 days
+ranges = ([torch.arange(.2, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(1., 2.76, .25),
+          torch.arange(.05, .76, .1) / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
+          )
+
 
 if finegsearch:
     # # dist**2 initial
@@ -313,8 +329,15 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
 # testing attn lr's > 1.0
 # sets = torch.arange(0, len(param_sets), 96)  # 350 sets. 96*.12=11.52 hours
-# finegsearch high attn
-sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
+
+
+# 2022
+# - 224000 param sets
+sets = torch.arange(0, len(param_sets), 560) # dist, 400 sets
+
+
+# # finegsearch high attn
+# sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
 
 # finer gsearch
 # sets = torch.arange(0, len(param_sets), 217)
@@ -324,6 +347,8 @@ sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
 # 106*.12=12.72 hours
 # sets = torch.arange(0, len(param_sets), 106)  # distsq 3 - 350 sets
 # sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
+
+
 
 
 # not a great way to add final set on

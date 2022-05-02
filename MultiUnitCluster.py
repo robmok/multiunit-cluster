@@ -188,24 +188,24 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
         # 1st block, show 8 unique stim, then 8 again. after, shuffle 16
         if shj_order:
-            shuffle_ind = torch.cat(
-                [torch.randperm(len(inputs)//2),
-                  torch.randperm(len(inputs)//2) + len(inputs)//2])
-            inputs_ = inputs[shuffle_ind]
-            output_ = output[shuffle_ind]
+            # shuffle_ind = torch.cat(
+            #     [torch.randperm(len(inputs)//2),
+            #       torch.randperm(len(inputs)//2) + len(inputs)//2])
+            # inputs_ = inputs[shuffle_ind]
+            # output_ = output[shuffle_ind]
 
-            # # previously just did above - effectively shuffling 8, for 8/blk
-            # # if follow SHJ/Nosofsky, could remove above:
-            # if epoch == 0:
-            #     shuffle_ind = torch.cat(
-            #         [torch.randperm(len(inputs)//2),
-            #          torch.randperm(len(inputs)//2) + len(inputs)//2])
-            #     inputs_ = inputs[shuffle_ind]
-            #     output_ = output[shuffle_ind]
-            # else:
-            #     shuffle_ind = torch.randperm(len(inputs))
-            #     inputs_ = inputs[shuffle_ind]
-            #     output_ = output[shuffle_ind]
+            # previously just did above - effectively shuffling 8, for 8/blk
+            # if follow SHJ/Nosofsky, could remove above:
+            if epoch == 0:
+                shuffle_ind = torch.cat(
+                    [torch.randperm(len(inputs)//2),
+                      torch.randperm(len(inputs)//2) + len(inputs)//2])
+                inputs_ = inputs[shuffle_ind]
+                output_ = output[shuffle_ind]
+            else:
+                shuffle_ind = torch.randperm(len(inputs))
+                inputs_ = inputs[shuffle_ind]
+                output_ = output[shuffle_ind]
 
         for x, target in zip(inputs_, output_):
 
