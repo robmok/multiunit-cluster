@@ -23,6 +23,8 @@ if location == 'mbp':
 elif location == 'cluster':
     maindir = '/imaging/duncan/users/rm05/'
     sys.path.append('/home/rm05/Documents/multiunit-cluster')
+    # set threads to 1 - can't do this on mac for some reason...
+    torch.set_num_threads(1)
 
 from MultiUnitCluster import (MultiUnitCluster, train)
 
