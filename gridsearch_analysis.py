@@ -377,63 +377,68 @@ for iparam in range(len(pts)):
 
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
-    # nbanks -set some critiera
-    # - all same, apart for 345 - thresh=if diff <.005 per blk, same
-    thr_bs = .01  # .005
-    for ibank in range(2):
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][0]
-                         - pts_banks[iparam, :, ibank][1]) < thr_bs)
-        ptn_bs_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-        # 2 vs 3,4,5 same
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
-                         - pts_banks[iparam, :, ibank][2]) < thr_bs)
-        ptn_bs_c2 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
-                         - pts_banks[iparam, :, ibank][3]) < thr_bs)
-        ptn_bs_c3 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
-                         - pts_banks[iparam, :, ibank][4]) < thr_bs)
-        ptn_bs_c4 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-        # 3, 4, 5 vs 6 same
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][2]
-                         - pts_banks[iparam, :, ibank][5]) < thr_bs)
-        ptn_bs_c5 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][3]
-                         - pts_banks[iparam, :, ibank][5]) < thr_bs)
-        ptn_bs_c6 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-        ptn = (torch.abs(pts_banks[iparam, :, ibank][4]
-                         - pts_banks[iparam, :, ibank][5]) < thr_bs)
-        ptn_bs_c7 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # # nbanks -set some critiera
+    # # - all same, apart for 345 - thresh=if diff <.005 per blk, same
+    # thr_bs = .01  # .005
+    # for ibank in range(2):
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][0]
+    #                      - pts_banks[iparam, :, ibank][1]) < thr_bs)
+    #     ptn_bs_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    #     # 2 vs 3,4,5 same
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+    #                      - pts_banks[iparam, :, ibank][2]) < thr_bs)
+    #     ptn_bs_c2 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+    #                      - pts_banks[iparam, :, ibank][3]) < thr_bs)
+    #     ptn_bs_c3 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+    #                      - pts_banks[iparam, :, ibank][4]) < thr_bs)
+    #     ptn_bs_c4 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    #     # 3, 4, 5 vs 6 same
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][2]
+    #                      - pts_banks[iparam, :, ibank][5]) < thr_bs)
+    #     ptn_bs_c5 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][3]
+    #                      - pts_banks[iparam, :, ibank][5]) < thr_bs)
+    #     ptn_bs_c6 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][4]
+    #                      - pts_banks[iparam, :, ibank][5]) < thr_bs)
+    #     ptn_bs_c7 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
 
-        ptn_criteria_1_nbanks[iparam, ibank] = (
-            ptn_bs_c1 & ptn_bs_c2 & ptn_bs_c3 & ptn_bs_c4 & ptn_bs_c5 &
-            ptn_bs_c6 & ptn_bs_c7
-            )
+    #     ptn_criteria_1_nbanks[iparam, ibank] = (
+    #         ptn_bs_c1 & ptn_bs_c2 & ptn_bs_c3 & ptn_bs_c4 & ptn_bs_c5 &
+    #         ptn_bs_c6 & ptn_bs_c7
+    #         )
 
-    # params where bank 2 has it flipped for 1 and 6
-    ptn = pts_banks[iparam, :, 1][5] < pts_banks[iparam, :, 1][:5]  # VI fastst
-    ptn_bs_c8 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][2:6]  # type II 2nd slowest - maybe not nec
-    # ptn_bs_c9 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][1:6]  # type I slowest
-    ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # # params where bank 2 has it flipped for 1 and 6
+    # ptn = pts_banks[iparam, :, 1][5] < pts_banks[iparam, :, 1][:5]  # VI fastst
+    # ptn_bs_c8 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][2:6]  # type II 2nd slowest - maybe not nec
+    # # ptn_bs_c9 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][1:6]  # type I slowest
+    # ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
 
-    ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
-    # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c9 & ptn_bs_c10
+    # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
+    # # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c9 & ptn_bs_c10
 
-    # cross bank differences
-    # type I, bank 1 faster than bank 2
-    ptn = pts_banks[iparam, :, 0][0] < pts_banks[iparam, :, 1][0]
-    ptn_bs_c11 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    # type VI, bank 2 faster than bank 1
-    ptn = pts_banks[iparam, :, 0][5] > pts_banks[iparam, :, 1][5]
-    ptn_bs_c12 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # # cross bank differences
+    # # type I, bank 1 faster than bank 2
+    # ptn = pts_banks[iparam, :, 0][0] < pts_banks[iparam, :, 1][0]
+    # ptn_bs_c11 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # # type VI, bank 2 faster than bank 1
+    # ptn = pts_banks[iparam, :, 0][5] > pts_banks[iparam, :, 1][5]
+    # ptn_bs_c12 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
 
-    # type 345 bank 2 faster
-    ptn = pts_banks[iparam, :, 0][2:5] > pts_banks[iparam, :, 1][2:5]
-    ptn_bs_c13 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    # # type 345 bank 2 faster
+    # ptn = pts_banks[iparam, :, 0][2:5] > pts_banks[iparam, :, 1][2:5]
+    # ptn_bs_c13 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
 
-    ptn_criteria_3_nbanks[iparam] = ptn_bs_c11 & ptn_bs_c12 & ptn_bs_c13
+    # ptn_criteria_3_nbanks[iparam] = ptn_bs_c11 & ptn_bs_c12 & ptn_bs_c13
+
+
+
+
+
 
     # # squared (abs) differences
     # diff = torch.tensor([
@@ -493,12 +498,14 @@ sse_diff[ind_nan] = np.inf
 
 # pattern criteria
 ptn_criteria = ptn_criteria_1  # standard
-ptn_criteria = (
-    ptn_criteria_1
-    & ~torch.all(ptn_criteria_1_nbanks, axis=1)  # nbanks - rmv if all same
-    & ptn_criteria_2_nbanks  # 2nd bank flipped
-    & ptn_criteria_3_nbanks   # across banks - type 1<1 and 6>6 for banks 1vs2
-    )
+
+# nbanks
+# ptn_criteria = (
+#     ptn_criteria_1
+#     & ~torch.all(ptn_criteria_1_nbanks, axis=1)  # nbanks - rmv if all same
+#     & ptn_criteria_2_nbanks  # 2nd bank flipped
+#     & ptn_criteria_3_nbanks   # across banks - type 1<1 and 6>6 for banks 1vs2
+#     )
 
 ind_nll = nlls == nlls[ptn_criteria].min()
 ind_sse = sse == sse[ptn_criteria].min()
