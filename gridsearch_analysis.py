@@ -22,9 +22,10 @@ n_units = 2000
 
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
+# new 2022: 400 sets
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
 # nbanks 360, fine 128
-n_sets = 128
+n_sets = 400
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -48,21 +49,27 @@ resdir = os.path.join(
 
 
 # large attn - 350 sets
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist_large_attn'.format(
+#     k, n_units))
+
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist3_attn'.format(
+#         k, n_units))
+
+# large attn redo, shj order
 resdir = os.path.join(maindir,
-                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist_large_attn'.format(
+                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist_final'.format(
     k, n_units))
 
-resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist3_attn'.format(
-        k, n_units))
+
+# # nbanks
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/gsearch_nbanks')
 
 
-resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/gsearch_nbanks')
-
-
-resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
 
 
 ranges = ([torch.arange(.4, 2.1, .2),
@@ -158,37 +165,46 @@ ranges = ([torch.arange(.2, .8, .1),
       torch.arange(.7, 1., .2)]
       )
 
-# nbanks
-ranges = ([torch.arange(.1, .7, .1),
-          torch.arange(.75, 2.5, .375),
-          torch.arange(.01, 3., .4),
-          torch.arange(.01, 1., .15),
-          torch.tensor([.3]),
-          torch.tensor([.8]),
-
-          torch.arange(1.8, 2.5, .1),
-          torch.arange(.75, 2.5, .375),
-          torch.arange(.001, .1, .05),  # 2 vals only
-          torch.arange(.01, .4, .15),
-          torch.tensor([.3]),
-          torch.tensor([.8])]
+# redo with shj order - final
+ranges = ([torch.arange(.2, 2.1, .2),
+          torch.arange(1., 15., 2),
+          torch.arange(1., 2.76, .25),
+          torch.arange(.05, .76, .1),  # / lr_scale,
+          torch.arange(.05, 1., .1),
+          torch.arange(.1, 1., .2)]
           )
 
-# finegsearch nbanks
-ranges = ([torch.arange(.5, .9, .1),
-          torch.arange(.75, 1.251, .125), #  2 more than above
-          torch.arange(.8, 2.2, .25),
-          torch.arange(.55, .81, .05),  #
-          torch.tensor([.3]),
-          torch.tensor([.5, .8]),  # group lr
+# # nbanks
+# ranges = ([torch.arange(.1, .7, .1),
+#           torch.arange(.75, 2.5, .375),
+#           torch.arange(.01, 3., .4),
+#           torch.arange(.01, 1., .15),
+#           torch.tensor([.3]),
+#           torch.tensor([.8]),
 
-          torch.arange(1.7, 2.2, .1),
-          torch.arange(2, 3.1, .25),
-          torch.tensor([.001]),
-          torch.tensor([.01]),
-          torch.tensor([.3]),
-          torch.tensor([.5, .8])]
-          )
+#           torch.arange(1.8, 2.5, .1),
+#           torch.arange(.75, 2.5, .375),
+#           torch.arange(.001, .1, .05),  # 2 vals only
+#           torch.arange(.01, .4, .15),
+#           torch.tensor([.3]),
+#           torch.tensor([.8])]
+#           )
+
+# # finegsearch nbanks
+# ranges = ([torch.arange(.5, .9, .1),
+#           torch.arange(.75, 1.251, .125), #  2 more than above
+#           torch.arange(.8, 2.2, .25),
+#           torch.arange(.55, .81, .05),  #
+#           torch.tensor([.3]),
+#           torch.tensor([.5, .8]),  # group lr
+
+#           torch.arange(1.7, 2.2, .1),
+#           torch.arange(2, 3.1, .25),
+#           torch.tensor([.001]),
+#           torch.tensor([.01]),
+#           torch.tensor([.3]),
+#           torch.tensor([.5, .8])]
+#           )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -197,6 +213,7 @@ sets = torch.arange(n_sets)
 # TMP
 # sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
 # sets = sets[(sets != 57)]
+# sets = sets[(sets != 156)]
 # sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
 
 # # TMP - remove some sets if incomplete
@@ -217,23 +234,25 @@ for iset in sets:  # range(n_sets):
         resdir,
         'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    fn = os.path.join(
-        resdir,
-        'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+    # fn = os.path.join(
+    #     resdir,
+    #     'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    fn = os.path.join(
-        resdir,
-        'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+    # fn = os.path.join(
+    #     resdir,
+    #     'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    fn = os.path.join(
-        resdir,
-        'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
-                                                              iset))
+    # fn = os.path.join(
+    #     resdir,
+    #     'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
+    #                                                           iset))
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")
     loaded_list = pickle.load(open_file)
     open_file.close()
+
+    # print(loaded_list[0])  # check whats in them, any missing
 
     # if not loaded_list[1]:
     #     print(iset)
@@ -257,9 +276,9 @@ nlls = torch.stack(nlls)
 # pts = torch.tensor(np.stack(pts))
 # nlls = torch.tensor(np.stack(nlls))
 
-# nbanks - just get full model output for now
-pts_banks = pts[:, :, 1:]  # get banks
-pts = pts[:, :, 0]  # full model - so can keep script like orig
+# # nbanks - just get full model output for now
+# pts_banks = pts[:, :, 1:]  # get banks
+# pts = pts[:, :, 0]  # full model - so can keep script like orig
 # %% fit
 
 t0 = time.time()

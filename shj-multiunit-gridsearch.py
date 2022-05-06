@@ -237,6 +237,7 @@ lr_scale = (n_units * k) / 1
 # - first, just dist (not dist**2)
 
 # 224000 params - 400 sets, 560psets per set; 560*.06=33.6=1.4 days
+# -350 sets, 640psets per set; 640*.06=38.4=1.59 days
 ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
           torch.arange(1., 2.76, .25),
@@ -335,8 +336,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 # 2022
 # - 224000 param sets
-sets = torch.arange(0, len(param_sets), 560) # dist, 400 sets
-
+# sets = torch.arange(0, len(param_sets), 560) # dist, 400 sets
+sets = torch.arange(0, len(param_sets), 640) # dist, 350 sets
 
 # # finegsearch high attn
 # sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
