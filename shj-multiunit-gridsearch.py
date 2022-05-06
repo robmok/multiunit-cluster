@@ -15,7 +15,7 @@ import time
 from scipy import stats
 import pickle
 
-location = 'mbp'  # 'mbp' or 'cluster' (cbu cluster - unix)
+location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
 
 if location == 'mbp':
     maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
@@ -31,8 +31,7 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = False
-
+finegsearch = True
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -325,6 +324,23 @@ if finegsearch:
           torch.arange(.7, 1., .2)]
           )
 
+    # 2022
+    # tensor([[0.6000, 5.0000, 1.5000, 0.0500, 0.0500, 0.9000]])
+    # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.9000]])
+    # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.7000]])
+    # tensor([[ 0.2000, 13.0000,  1.7500,  0.0500,  0.0500,  0.9000]])
+    # tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
+    # - 0.2 / 0.6; 5 / 13; 1, 1.5, 2.5, 1.75; .05, .35; .05, .35; .7, .9
+    # 80640 sets
+    ranges = ([torch.arange(.2, .8, .1),
+          torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
+          torch.arange(.75, 3.01, .25),
+          torch.arange(.025, .4, .05) / lr_scale,
+          torch.arange(.025, .4, .05) ,
+          torch.arange(.7, 1., .2)]
+          )
+
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
@@ -337,7 +353,7 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # 2022
 # - 224000 param sets
 # sets = torch.arange(0, len(param_sets), 560) # dist, 400 sets
-sets = torch.arange(0, len(param_sets), 640) # dist, 350 sets
+
 
 # # finegsearch high attn
 # sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
@@ -351,8 +367,9 @@ sets = torch.arange(0, len(param_sets), 640) # dist, 350 sets
 # sets = torch.arange(0, len(param_sets), 106)  # distsq 3 - 350 sets
 # sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
 
-
-
+# 2022 finegsearch
+# - 80640 - 280 sets (288 psets within each sets)
+sets = torch.arange(0, len(param_sets), 288)
 
 # not a great way to add final set on
 sets = torch.cat(

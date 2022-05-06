@@ -679,42 +679,60 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks gd already
 # tensor([[0.4000, 4.0000, 2.7500, 0.1450, 0.4500, 0.9000]])
 # w = torch.tensor([1/5, 1/5, 50/5, 30/5, 1/5])  # type 2-345 closer
 
-# nbanks
 
-# just type 1 and 6 - flipped and should be faster across banks
-# tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
-#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already OK
 
-# similar, but shift up  bit - lines a little more different, type 6 bank 2-1 difference slightly more
-# tensor([[5.0000e-01, 1.5000e+00, 2.0100e+00, 4.6000e-01, 3.0000e-01, 8.0000e-01,
-#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 500/5, 500/5, 1/5])
-
-# final and works - include rulex types - should be faster in bank 2
-# - standard OK except 345 and 6 too close
-# tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 8.0000e-01,
-#          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# 2022 redo, shj order
+# tensor([[0.6000, 5.0000, 1.5000, 0.0500, 0.0500, 0.9000]])
 w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 100/5])  # 10/5, 100/5, same
 
-# a bit more separated than above
-# tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
-         # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
+# tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.9000]])
+w = torch.tensor([1/5, 1/5, 1/5, 10/5, 100/5])  # type 3 a bit slower
+# tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.7000]])
+w = torch.tensor([1/5, 1/5, 10/5, 10/5, 200/5])  # type 3 a bit slower - but faster than above
+
+# tensor([[ 0.2000, 13.0000,  1.7500,  0.0500,  0.0500,  0.9000]])
+w = torch.tensor([1/5, 1/5, 50/5, 50/5, 300/5]) # overall slower, but 2-345 sep not great
+# tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
+# w = torch.tensor([1/5, 1/5, 10/5, 50/5, 300/5])  # as above, 3 slightly worse
 
 
-# finegsearch - testing without 3 sets
-# tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-         # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
-# tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-#          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
+# # nbanks
 
-# with type II as 2nd slower in bank 2
+# # just type 1 and 6 - flipped and should be faster across banks
+# # tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
+# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already OK
+
+# # similar, but shift up  bit - lines a little more different, type 6 bank 2-1 difference slightly more
+# # tensor([[5.0000e-01, 1.5000e+00, 2.0100e+00, 4.6000e-01, 3.0000e-01, 8.0000e-01,
+# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 500/5, 500/5, 1/5])
+
+# # final and works - include rulex types - should be faster in bank 2
+# # - standard OK except 345 and 6 too close
+# # tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 8.0000e-01,
+# #          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
-# w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
+
+# # a bit more separated than above
+# # tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
+#          # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
+
+
+# # finegsearch - testing without 3 sets
+# # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+#          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
+# # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+# #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
+
+# # with type II as 2nd slower in bank 2
+# # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
+# # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
 
 
 w = w / w.sum()
@@ -883,6 +901,8 @@ if saveplots:
                                n_units, k, w_str))
     plt.savefig(figname)
 plt.show()
+
+# %% nbanks plt? separated for now
 
 # fig, ax = plt.subplots(1, 1)
 # ax.plot(pts_banks[ind, :, 0].T.squeeze())

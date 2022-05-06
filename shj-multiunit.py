@@ -441,7 +441,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 15
+niter = 1
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_epochs])
 w_trace = [[] for i in range(6)]
@@ -749,6 +749,19 @@ for i in range(niter):
         #     }
 
 
+        # 2022 - gsearch planning for fgsearch
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .2,  # .2
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 8.,  # 1.8
+            'beta': 1.,
+            'lr_attn': 2,  # .95,  # this scales at grad computation now
+            'lr_nn': .225/lr_scale,  # did notscale in gridsearch?
+            'lr_clusters': .255,
+            'lr_clusters_group': .9,
+            'k': k
+            }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 
