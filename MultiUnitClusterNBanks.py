@@ -32,8 +32,6 @@ class MultiUnitClusterNBanks(nn.Module):
         self.fc1_w_trace = []
         self.fc1_act_trace = []
 
-        lr_scale = (self.n_units * k) / 1
-
         # free params
         if params:
             self.params = params
