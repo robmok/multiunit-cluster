@@ -25,7 +25,10 @@ n_units = 2000
 # new 2022: 400 sets
 # finegsearch distsq2 349 sets. finegsearch dist1 400 sets
 # nbanks 360, fine 128
-n_sets = 400
+
+# 2022
+n_sets = 400  # gsearch
+n_sets = 280  # finegsearch
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -39,9 +42,9 @@ resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
 #     k, n_units))
 
-resdir = os.path.join(
-    maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist1'.format(
-        k, n_units))
+# resdir = os.path.join(
+#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist1'.format(
+#         k, n_units))
 
 # resdir = os.path.join(
 #     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq2'.format(
@@ -61,7 +64,10 @@ resdir = os.path.join(
 resdir = os.path.join(maindir,
                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist_final'.format(
     k, n_units))
-
+# finegsearch
+resdir = os.path.join(maindir,
+                      'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
+    k, n_units))
 
 # # nbanks
 # resdir = os.path.join(
@@ -72,31 +78,31 @@ resdir = os.path.join(maindir,
 #     maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
 
 
-ranges = ([torch.arange(.4, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
+# ranges = ([torch.arange(.4, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
-# newer ~August/Sept dist
-ranges = ([torch.arange(.2, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
+# # newer ~August/Sept dist
+# ranges = ([torch.arange(.2, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
-# when changing dist**2, changing c to start from .3, which loses one c value
-ranges = ([torch.arange(.3, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
+# # when changing dist**2, changing c to start from .3, which loses one c value
+# ranges = ([torch.arange(.3, 2.1, .2),
+#           torch.arange(1., 15., 2),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.05, 1., .1),
+#           torch.arange(.1, 1., .2)]
+#           )
 
 # # finegridsearch distsq 1
 # ranges = ([torch.arange(.2, .45, 1/30),
@@ -130,41 +136,42 @@ ranges = ([torch.cat([torch.arange(.1, .35, .05),
 #           )
 
 # distsq2
-ranges = ([torch.arange(.4, 1.2, .2),
-          torch.arange(.25, 2., .25),
-          torch.arange(.15, .66, .1),
-          torch.arange(.25, .76, .05),
-          torch.arange(.35, .8, .1),
-          torch.arange(.1, .5, .1)]
-          )
+# ranges = ([torch.arange(.4, 1.2, .2),
+#           torch.arange(.25, 2., .25),
+#           torch.arange(.15, .66, .1),
+#           torch.arange(.25, .76, .05),
+#           torch.arange(.35, .8, .1),
+#           torch.arange(.1, .5, .1)]
+#           )
 
-# dist1
-ranges = ([torch.arange(.2, .8, .1),
-            torch.arange(.75, 3., .25),
-            torch.arange(.25, .96, .1),
-            torch.arange(.15, .65, .1),
-            torch.arange(.25, .56, .1),
-            torch.arange(.6, 1., .1)]
-          )
+# # dist1
+# ranges = ([torch.arange(.2, .8, .1),
+#             torch.arange(.75, 3., .25),
+#             torch.arange(.25, .96, .1),
+#             torch.arange(.15, .65, .1),
+#             torch.arange(.25, .56, .1),
+#             torch.arange(.6, 1., .1)]
+#           )
 
-# dist - with attn lr > 1., with fewer params
-ranges = ([torch.arange(.2, 1.1, .2),
-          torch.arange(1., 11., 2),
-          torch.arange(1., 2.76, .25),
-          torch.arange(.05, .76, .1),
-          torch.arange(.15, .76, .1),
-          torch.arange(.5, 1., .2)]
-          )
+# # dist - with attn lr > 1., with fewer params
+# ranges = ([torch.arange(.2, 1.1, .2),
+#           torch.arange(1., 11., 2),
+#           torch.arange(1., 2.76, .25),
+#           torch.arange(.05, .76, .1),
+#           torch.arange(.15, .76, .1),
+#           torch.arange(.5, 1., .2)]
+#           )
 
-# finegsearch attn
-ranges = ([torch.arange(.2, .8, .1),
-      torch.arange(3., 10., 1),
-      torch.arange(2., 4.01, .25),
-      torch.arange(.005, .15, .02),
-      torch.arange(.25, .66, .1),
-      torch.arange(.7, 1., .2)]
-      )
+# # finegsearch attn
+# ranges = ([torch.arange(.2, .8, .1),
+#       torch.arange(3., 10., 1),
+#       torch.arange(2., 4.01, .25),
+#       torch.arange(.005, .15, .02),
+#       torch.arange(.25, .66, .1),
+#       torch.arange(.7, 1., .2)]
+      # )
 
+# 2022
 # redo with shj order - final
 ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
@@ -173,6 +180,14 @@ ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(.05, 1., .1),
           torch.arange(.1, 1., .2)]
           )
+# finegsearch
+ranges = ([torch.arange(.2, .8, .1),
+      torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
+      torch.arange(.75, 3.01, .25),
+      torch.arange(.025, .4, .05),  # / lr_scale,
+      torch.arange(.025, .4, .05) ,
+      torch.arange(.7, 1., .2)]
+      )
 
 # # nbanks
 # ranges = ([torch.arange(.1, .7, .1),
@@ -234,9 +249,9 @@ for iset in sets:  # range(n_sets):
         resdir,
         'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    # fn = os.path.join(
-    #     resdir,
-    #     'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+    fn = os.path.join(
+        resdir,
+        'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
     # fn = os.path.join(
     #     resdir,
@@ -695,6 +710,30 @@ w = torch.tensor([1/5, 1/5, 10/5, 10/5, 200/5])  # type 3 a bit slower - but fas
 w = torch.tensor([1/5, 1/5, 50/5, 50/5, 300/5]) # overall slower, but 2-345 sep not great
 # tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
 # w = torch.tensor([1/5, 1/5, 10/5, 50/5, 300/5])  # as above, 3 slightly worse
+
+# finegsearch
+# tensor([[0.8000, 3.0000, 1.0000, 0.0750, 0.1750, 0.7000]]) - looks gd already
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# w = torch.tensor([1/5, 1/5, 5/5, 1/5, 1/5])  # all a bit slower (gd), more sep
+# best atm:
+# tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
+w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # best
+# # tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
+# w = torch.tensor([1/5, 1/5, 35/5, 1/5, 250/5])  # v sim , above 3-5 tighter
+# tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# w = torch.tensor([1/5, 1/5, 15/5, 1/5, 250/5])  # a bit faster (worse i tihnk)
+# type 4 a bit slower here - meh
+# tensor([[0.7000, 6.0000, 1.2500, 0.0250, 0.0250, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 50/5, 1/5, 500/5])
+
+# RESULT: best params in order
+# - tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
+# - tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
+# - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# equal weights  also ok - gd but a bit tight together
+# - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
 
 
 # # nbanks

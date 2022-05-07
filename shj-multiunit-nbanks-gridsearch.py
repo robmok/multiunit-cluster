@@ -30,6 +30,7 @@ from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
+finegsearch = False
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -129,7 +130,8 @@ beh_seq = shj.T
 iset = 0
 
 # for cbu-cluster
-iset = int(sys.argv[-1])
+if location == 'cluster':
+    iset = int(sys.argv[-1])
 
 n_units = 2000
 k = .01
@@ -294,6 +296,30 @@ ranges = ([torch.arange(.1, .7, .1),
           torch.tensor([.8])]
           )
 
+# 2022 - slightly edited based on single-bank gsearch results
+# single bank: ([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
+# - 352800 as before, 400 sets, just over 3 days?
+ranges = ([torch.arange(.1, .7, .1),
+          torch.arange(.75, 2.5, .375),  # phi diff as 2 banks, no need so big
+          torch.arange(.01, 3., .4),
+          torch.arange(.01, 1., .15) / lr_scale,
+          torch.tensor([.3]),
+          torch.tensor([.7]),  # .8 before
+
+          torch.arange(1.8, 2.5, .1),
+          torch.arange(.75, 2.5, .375),
+          torch.arange(.001, .1, .05),  # 2 vals only
+          torch.arange(.01, .4, .15) / lr_scale,
+          torch.tensor([.3]),
+          torch.tensor([.7])]
+          )
+
+# params to check if re-run:
+# - bank 1:attn go up to / over 3, as single bank 3 is gd (might check this for single bank too - go >3)
+# - cluster lr - maybe check .5, .8/,9?
+
+
+
 # finegsearch nbanks
 
 # [0.6, 1.125, 0.81, 0.61, .3, .8,
@@ -301,7 +327,6 @@ ranges = ([torch.arange(.1, .7, .1),
 
 # [0.5, 1.125, 2.01, 0.76, .3, .8,
 #  1.8, 2.25, 0.001, 0.01, .3, .8]
-
 
 # 12960 params
 # 12960/128 = 102 sets. 5 min per set, 102*5=510/60=8.5 hours
@@ -321,23 +346,23 @@ ranges = ([torch.arange(.1, .7, .1),
 #           )
 
 
-# more
-# 86400 params
-# 86400/128=675*5=3375/60=56.25/24=2.34 days - run thurs night, done sunday.
-ranges = ([torch.arange(.5, .9, .1),
-          torch.arange(.75, 1.251, .125), #  2 more than above
-          torch.arange(.8, 2.2, .25),
-          torch.arange(.55, .81, .05) / lr_scale,  #
-          torch.tensor([.3]),
-          torch.tensor([.5, .8]),  # group lr
+# # more
+# # 86400 params
+# # 86400/128=675*5=3375/60=56.25/24=2.34 days - run thurs night, done sunday.
+# ranges = ([torch.arange(.5, .9, .1),
+#           torch.arange(.75, 1.251, .125), #  2 more than above
+#           torch.arange(.8, 2.2, .25),
+#           torch.arange(.55, .81, .05) / lr_scale,  #
+#           torch.tensor([.3]),
+#           torch.tensor([.5, .8]),  # group lr
 
-          torch.arange(1.7, 2.2, .1),
-          torch.arange(2, 3.1, .25),
-          torch.tensor([.001]),
-          torch.tensor([.01]) / lr_scale,
-          torch.tensor([.3]),
-          torch.tensor([.5, .8])]
-          )
+#           torch.arange(1.7, 2.2, .1),
+#           torch.arange(2, 3.1, .25),
+#           torch.tensor([.001]),
+#           torch.tensor([.01]) / lr_scale,
+#           torch.tensor([.3]),
+#           torch.tensor([.5, .8])]
+#           )
 
 # next try lr clus too?
 
@@ -346,9 +371,11 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
 # sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
-# sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks
-# sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks
-sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
+sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks - 2022 try this
+# sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks - initially used this as
+
+# sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
+
 # not a great way to add final set on
 sets = torch.cat(
     [sets.unsqueeze(1), torch.ones([1, 1]) * len(param_sets)]).squeeze()
@@ -369,13 +396,14 @@ rec_all = [[] for i in range(len(param_sets_curr))]
 seeds = torch.arange(sim_info['niter'])*10
 
 # fname to save to
-# fn = os.path.join(datadir,
-#                   'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
-#                       k, n_units, iset))
-
 fn = os.path.join(datadir,
-                  'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(
+                  'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(
                       k, n_units, iset))
+
+if finegsearch:
+    fn = os.path.join(datadir,
+                      'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(
+                          k, n_units, iset))
 
 
 # if file exists, load up and rerun
