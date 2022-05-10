@@ -17,6 +17,9 @@ import time
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
+finegsearch = False
+nbanks = True
+
 k = 0.01
 n_units = 2000
 
@@ -27,8 +30,14 @@ n_units = 2000
 # nbanks 360, fine 128
 
 # 2022
-n_sets = 400  # gsearch
-n_sets = 280  # finegsearch
+if not nbanks and not finegsearch:
+    n_sets = 400  # gsearch
+elif not nbanks and finegsearch:
+    n_sets = 280  # finegsearch
+elif nbanks and not finegsearch:
+    n_sets = 400
+elif nbanks and finegsearch:
+    pass
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -41,15 +50,6 @@ resdir = os.path.join(maindir,
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
 #     k, n_units))
-
-# resdir = os.path.join(
-#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist1'.format(
-#         k, n_units))
-
-# resdir = os.path.join(
-#     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_distsq2'.format(
-#         k, n_units))
-
 
 # large attn - 350 sets
 # resdir = os.path.join(maindir,
@@ -69,13 +69,21 @@ resdir = os.path.join(maindir,
                       'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
     k, n_units))
 
-# # nbanks
-# resdir = os.path.join(
-#     maindir, 'muc-shj-gridsearch/gsearch_nbanks')
 
 
-# resdir = os.path.join(
-#     maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
+
+# nbanks
+if nbanks:
+    # resdir = os.path.join(
+    #     maindir, 'muc-shj-gridsearch/gsearch_nbanks')
+    
+    resdir = os.path.join(
+        maindir, 'muc-shj-gridsearch/gsearch_nbanks_final')
+
+    if finegsearch:
+        pass
+        # resdir = os.path.join(
+        #     maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
 
 
 # ranges = ([torch.arange(.4, 2.1, .2),
@@ -173,23 +181,25 @@ ranges = ([torch.cat([torch.arange(.1, .35, .05),
 
 # 2022
 # redo with shj order - final
-ranges = ([torch.arange(.2, 2.1, .2),
-          torch.arange(1., 15., 2),
-          torch.arange(1., 2.76, .25),
-          torch.arange(.05, .76, .1),  # / lr_scale,
-          torch.arange(.05, 1., .1),
-          torch.arange(.1, 1., .2)]
-          )
+if not nbanks and not finegsearch:
+    ranges = ([torch.arange(.2, 2.1, .2),
+              torch.arange(1., 15., 2),
+              torch.arange(1., 2.76, .25),
+              torch.arange(.05, .76, .1),  # / lr_scale,
+              torch.arange(.05, 1., .1),
+              torch.arange(.1, 1., .2)]
+              )
 # finegsearch
-ranges = ([torch.arange(.2, .8, .1),
-      torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
-      torch.arange(.75, 3.01, .25),
-      torch.arange(.025, .4, .05),  # / lr_scale,
-      torch.arange(.025, .4, .05) ,
-      torch.arange(.7, 1., .2)]
-      )
+elif not nbanks and finegsearch:
+    ranges = ([torch.arange(.2, .8, .1),
+          torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
+          torch.arange(.75, 3.01, .25),
+          torch.arange(.025, .4, .05),  # / lr_scale,
+          torch.arange(.025, .4, .05) ,
+          torch.arange(.7, 1., .2)]
+          )
 
-# # nbanks
+# nbanks
 # ranges = ([torch.arange(.1, .7, .1),
 #           torch.arange(.75, 2.5, .375),
 #           torch.arange(.01, 3., .4),
@@ -221,6 +231,25 @@ ranges = ([torch.arange(.2, .8, .1),
 #           torch.tensor([.5, .8])]
 #           )
 
+# 2022
+# redo with shj order - final
+if nbanks and not finegsearch:
+    ranges = ([torch.arange(.1, .7, .1),
+          torch.arange(.75, 2.5, .375),  # phi diff as 2 banks, no need so big
+          torch.arange(.01, 3., .4),
+          torch.arange(.01, 1., .15),
+          torch.tensor([.3]),
+          torch.tensor([.7]),  # .8 before
+
+          torch.arange(1.8, 2.5, .1),
+          torch.arange(.75, 2.5, .375),
+          torch.arange(.001, .1, .05),  # 2 vals only
+          torch.arange(.01, .4, .15),
+          torch.tensor([.3]),
+          torch.tensor([.7])]
+          )
+
+
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
@@ -245,18 +274,24 @@ recs = []
 seeds = []
 
 for iset in sets:  # range(n_sets):
-    fn = os.path.join(
-        resdir,
-        'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    fn = os.path.join(
-        resdir,
-        'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+    if not nbanks and not finegsearch:
+        fn = os.path.join(
+            resdir,
+            'shj_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
-    # fn = os.path.join(
-    #     resdir,
-    #     'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+    elif not nbanks and finegsearch:
+        fn = os.path.join(
+            resdir,
+            'shj_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
 
+    elif nbanks and not finegsearch:
+        fn = os.path.join(
+            resdir,
+            'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+
+    elif nbanks and finegsearch:
+        pass
     # fn = os.path.join(
     #     resdir,
     #     'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
@@ -291,9 +326,10 @@ nlls = torch.stack(nlls)
 # pts = torch.tensor(np.stack(pts))
 # nlls = torch.tensor(np.stack(nlls))
 
-# # nbanks - just get full model output for now
-# pts_banks = pts[:, :, 1:]  # get banks
-# pts = pts[:, :, 0]  # full model - so can keep script like orig
+# nbanks - just get full model output for now
+if nbanks:
+    pts_banks = pts[:, :, 1:]  # get banks
+    pts = pts[:, :, 0]  # full model - so can keep script like orig
 # %% fit
 
 t0 = time.time()
@@ -392,66 +428,64 @@ for iparam in range(len(pts)):
 
     ptn_criteria_1[iparam] = ptn_c1 & ptn_c2 & ptn_c3
 
-    # # nbanks -set some critiera
-    # # - all same, apart for 345 - thresh=if diff <.005 per blk, same
-    # thr_bs = .01  # .005
-    # for ibank in range(2):
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][0]
-    #                      - pts_banks[iparam, :, ibank][1]) < thr_bs)
-    #     ptn_bs_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    #     # 2 vs 3,4,5 same
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
-    #                      - pts_banks[iparam, :, ibank][2]) < thr_bs)
-    #     ptn_bs_c2 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
-    #                      - pts_banks[iparam, :, ibank][3]) < thr_bs)
-    #     ptn_bs_c3 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
-    #                      - pts_banks[iparam, :, ibank][4]) < thr_bs)
-    #     ptn_bs_c4 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    #     # 3, 4, 5 vs 6 same
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][2]
-    #                      - pts_banks[iparam, :, ibank][5]) < thr_bs)
-    #     ptn_bs_c5 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][3]
-    #                      - pts_banks[iparam, :, ibank][5]) < thr_bs)
-    #     ptn_bs_c6 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    #     ptn = (torch.abs(pts_banks[iparam, :, ibank][4]
-    #                      - pts_banks[iparam, :, ibank][5]) < thr_bs)
-    #     ptn_bs_c7 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-
-    #     ptn_criteria_1_nbanks[iparam, ibank] = (
-    #         ptn_bs_c1 & ptn_bs_c2 & ptn_bs_c3 & ptn_bs_c4 & ptn_bs_c5 &
-    #         ptn_bs_c6 & ptn_bs_c7
-    #         )
-
-    # # params where bank 2 has it flipped for 1 and 6
-    # ptn = pts_banks[iparam, :, 1][5] < pts_banks[iparam, :, 1][:5]  # VI fastst
-    # ptn_bs_c8 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    # # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][2:6]  # type II 2nd slowest - maybe not nec
-    # # ptn_bs_c9 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    # ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][1:6]  # type I slowest
-    # ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-
-    # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
-    # # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c9 & ptn_bs_c10
-
-    # # cross bank differences
-    # # type I, bank 1 faster than bank 2
-    # ptn = pts_banks[iparam, :, 0][0] < pts_banks[iparam, :, 1][0]
-    # ptn_bs_c11 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-    # # type VI, bank 2 faster than bank 1
-    # ptn = pts_banks[iparam, :, 0][5] > pts_banks[iparam, :, 1][5]
-    # ptn_bs_c12 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-
-    # # type 345 bank 2 faster
-    # ptn = pts_banks[iparam, :, 0][2:5] > pts_banks[iparam, :, 1][2:5]
-    # ptn_bs_c13 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
-
-    # ptn_criteria_3_nbanks[iparam] = ptn_bs_c11 & ptn_bs_c12 & ptn_bs_c13
-
-
-
+    # nbanks -set some critiera
+    # - all same, apart for 345 - thresh=if diff <.005 per blk, same
+    if nbanks:
+        thr_bs = .01  # .005
+        for ibank in range(2):
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][0]
+                              - pts_banks[iparam, :, ibank][1]) < thr_bs)
+            ptn_bs_c1 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+            # 2 vs 3,4,5 same
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+                              - pts_banks[iparam, :, ibank][2]) < thr_bs)
+            ptn_bs_c2 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+                              - pts_banks[iparam, :, ibank][3]) < thr_bs)
+            ptn_bs_c3 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][1]
+                              - pts_banks[iparam, :, ibank][4]) < thr_bs)
+            ptn_bs_c4 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+            # 3, 4, 5 vs 6 same
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][2]
+                              - pts_banks[iparam, :, ibank][5]) < thr_bs)
+            ptn_bs_c5 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][3]
+                              - pts_banks[iparam, :, ibank][5]) < thr_bs)
+            ptn_bs_c6 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+            ptn = (torch.abs(pts_banks[iparam, :, ibank][4]
+                              - pts_banks[iparam, :, ibank][5]) < thr_bs)
+            ptn_bs_c7 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    
+            ptn_criteria_1_nbanks[iparam, ibank] = (
+                ptn_bs_c1 & ptn_bs_c2 & ptn_bs_c3 & ptn_bs_c4 & ptn_bs_c5 &
+                ptn_bs_c6 & ptn_bs_c7
+                )
+    
+        # params where bank 2 has it flipped for 1 and 6
+        ptn = pts_banks[iparam, :, 1][5] < pts_banks[iparam, :, 1][:5]  # VI fastst
+        ptn_bs_c8 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        # ptn = pts_banks[iparam, :, 1][1] > pts_banks[iparam, :, 1][2:6]  # type II 2nd slowest - maybe not nec
+        # ptn_bs_c9 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        ptn = pts_banks[iparam, :, 1][0] > pts_banks[iparam, :, 1][1:6]  # type I slowest
+        ptn_bs_c10 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    
+        ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c10
+        # ptn_criteria_2_nbanks[iparam] = ptn_bs_c8 & ptn_bs_c9 & ptn_bs_c10
+    
+        # cross bank differences
+        # type I, bank 1 faster than bank 2
+        ptn = pts_banks[iparam, :, 0][0] < pts_banks[iparam, :, 1][0]
+        ptn_bs_c11 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+        # type VI, bank 2 faster than bank 1
+        ptn = pts_banks[iparam, :, 0][5] > pts_banks[iparam, :, 1][5]
+        ptn_bs_c12 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    
+        # type 345 bank 2 faster
+        ptn = pts_banks[iparam, :, 0][2:5] > pts_banks[iparam, :, 1][2:5]
+        ptn_bs_c13 = torch.sum(ptn) / torch.numel(ptn) >= match_thresh
+    
+        ptn_criteria_3_nbanks[iparam] = ptn_bs_c11 & ptn_bs_c12 & ptn_bs_c13
 
 
 
@@ -515,12 +549,13 @@ sse_diff[ind_nan] = np.inf
 ptn_criteria = ptn_criteria_1  # standard
 
 # nbanks
-# ptn_criteria = (
-#     ptn_criteria_1
-#     & ~torch.all(ptn_criteria_1_nbanks, axis=1)  # nbanks - rmv if all same
-#     & ptn_criteria_2_nbanks  # 2nd bank flipped
-#     & ptn_criteria_3_nbanks   # across banks - type 1<1 and 6>6 for banks 1vs2
-#     )
+if nbanks:
+    ptn_criteria = (
+        ptn_criteria_1
+        & ~torch.all(ptn_criteria_1_nbanks, axis=1)  # nbanks - rmv if all same
+        & ptn_criteria_2_nbanks  # 2nd bank flipped
+        & ptn_criteria_3_nbanks   # across banks - type 1<1 and 6>6 for banks 1vs2
+        )
 
 ind_nll = nlls == nlls[ptn_criteria].min()
 ind_sse = sse == sse[ptn_criteria].min()
@@ -736,6 +771,9 @@ w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # best
 # --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
 
 
+
+
+
 # # nbanks
 
 # # just type 1 and 6 - flipped and should be faster across banks
@@ -758,6 +796,30 @@ w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # best
 # # tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
 #          # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
 # # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
+
+
+# 2022
+# tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 7.0000e-01,
+#          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+
+# tensor([[5.0000e-01, 1.1250e+00, 2.4100e+00, 7.6000e-01, 3.0000e-01, 7.0000e-01,
+#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1100/5, 1/5])  # pretty good
+# - different variations of above gd one
+# tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 6.1000e-01, 3.0000e-01, 7.0000e-01,
+#          1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
+
+w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
+
+# params to check:
+# [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
+#  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
+
+
+
+
 
 
 # # finegsearch - testing without 3 sets
@@ -842,55 +904,13 @@ ind = ind_sse_w
 # - types III-V need to be more similar (e.g. within some range)
 # - type I, II and the III-V's need to be larger differences
 
-# % plot
-
-# matching differences, fitting differences of 3-5. w=.5
-# - similar to .9 curve
-# tensor([[0.4000, 3.0000, 0.4500, 0.2500, 0.3500, 0.9000]])
-# matching differences, fitting differences of 3-5. w=.9
-# - type 3 faster, 4 is slower - fitting curve more
-# tensor([[0.4000, 7.0000, 0.5500, 0.0500, 0.4500, 0.9000]])
-# matching differences, fitting differences of 3-5. w=.95
-# tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
-
-# matching differences, with equality of 3-5 (assuming 0). w=.5
-# - type 3 is faster here
-# tensor([[0.4000, 3.0000, 0.6500, 0.2500, 0.4500, 0.9000]])
-# matching differences, with equality of 3-5 (assuming 0). w=.8
-# - similar to above
-# tensor([[0.4000, 7.0000, 0.9500, 0.0500, 0.3500, 0.9000]])
-# matching differences, with equality of 3-5 (assuming 0). w=.9
-# tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
-
-# matching differences, not equality of 3-5. w=.25
-# - less than .5 is too slow and 2 and 3 stuck together
-# tensor([[0.4000, 3.0000, 0.1500, 0.1500, 0.1500, 0.9000]])
-# matching differences, not equality of 3-5. w=.5 - gd, with type 3 faster
-# tensor([[0.4000, 3.0000, 0.6500, 0.2500, 0.4500, 0.9000]])
-# matching differences, not equality of 3-5. w=.95
-# - needs to be .95 for 3-5 to stick together
-# tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
-
-
-
-
-# check best params to do a finer gridsearch
-
-# new - squared differences for matching the differences
-# dist
-# - basically all w's give the same: 345 together, but also close to 6
-# tensor([[2.0000, 1.0000, 0.8500, 0.1500, 0.2500, 0.9000]])
-# - but with all separate, this gives more varied curves
-
-# dist**2 with sqdiff for fitting
-# - also not a lot of range. 3 a bit slow
-# - with all separate
 
 # param_sets = torch.tensor(list(it.product(*ranges)))
 
-print(len(param_sets))
+# print(len(param_sets))
 
 
+# plot
 w_str = ""
 for iw in w[:-1]:
     w_str += str(np.around(iw.item(), decimals=3)) + '-'
@@ -904,106 +924,122 @@ ylims = (0., .55)
 
 import matplotlib.font_manager as font_manager
 # for roman numerals
-font = font_manager.FontProperties(family='Tahoma',
-                                   style='normal', size=fntsiz-2)
+font = font_manager.FontProperties(family='Tahoma', style='normal',
+                                   size=fntsiz-2)
 
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(shj)
-ax[0].set_ylim(ylims)
-ax[0].set_aspect(17)
-ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
-ax[1].plot(pts[ind].T.squeeze())
-ax[1].set_ylim(ylims)
-ax[1].set_aspect(17)
-plt.tight_layout()
-if saveplots:
-    figname = os.path.join(figdir,
-                            'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
-                            .format(
-                                n_units, k, w_str))
-    plt.savefig(figname)
-plt.show()
 
-# best params by itself
-fig, ax = plt.subplots(1, 1)
-ax.plot(pts[ind].T.squeeze())
-ax.tick_params(axis='x', labelsize=fntsiz-3)
-ax.tick_params(axis='y', labelsize=fntsiz-3)
-ax.set_ylim(ylims)
-ax.set_xlabel('Learning Block', fontsize=fntsiz)
-ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-ax.legend(('I', 'II', 'III', 'IV', 'V', 'VI'), prop=font)
-plt.tight_layout()
-if saveplots:
-    figname = os.path.join(figdir,
-                           'shj_gsearch_{}units_k{}_w{}.pdf'.format(
-                               n_units, k, w_str))
-    plt.savefig(figname)
-plt.show()
+# single bank plot
+if not nbanks:
+    fig, ax = plt.subplots(2, 1)
+    ax[0].plot(shj)
+    ax[0].set_ylim(ylims)
+    ax[0].set_aspect(17)
+    ax[0].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=7)
+    ax[1].plot(pts[ind].T.squeeze())
+    ax[1].set_ylim(ylims)
+    ax[1].set_aspect(17)
+    plt.tight_layout()
+    if saveplots:
+        figname = os.path.join(figdir,
+                                'shj_gsearch_n94_subplots_{}units_k{}_w{}.pdf'
+                                .format(
+                                    n_units, k, w_str))
+        plt.savefig(figname)
+    plt.show()
 
-# %% nbanks plt? separated for now
+    # best params by itself
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(pts[ind].T.squeeze())
+    ax.tick_params(axis='x', labelsize=fntsiz-3)
+    ax.tick_params(axis='y', labelsize=fntsiz-3)
+    ax.set_ylim(ylims)
+    ax.set_xlabel('Learning Block', fontsize=fntsiz)
+    ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+    ax.legend(('I', 'II', 'III', 'IV', 'V', 'VI'), prop=font)
+    plt.tight_layout()
+    if saveplots:
+        figname = os.path.join(figdir,
+                               'shj_gsearch_{}units_k{}_w{}.pdf'.format(
+                                   n_units, k, w_str))
+        plt.savefig(figname)
+    plt.show()
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(pts_banks[ind, :, 0].T.squeeze())
-# ax.tick_params(axis='x', labelsize=fntsiz-3)
-# ax.tick_params(axis='y', labelsize=fntsiz-3)
-# ax.set_ylim(ylims)
-# ax.set_title('Module 1', fontsize=fntsiz)
-# ax.set_xlabel('Learning Block', fontsize=fntsiz)
-# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-# plt.tight_layout()
-# plt.show()
+# nbanks plt
+else:
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(pts_banks[ind, :, 1].T.squeeze())
-# ax.tick_params(axis='x', labelsize=fntsiz-3)
-# ax.tick_params(axis='y', labelsize=fntsiz-3)
-# ax.set_ylim(ylims)
-# ax.set_title('Module 2', fontsize=fntsiz)
-# ax.set_xlabel('Learning Block', fontsize=fntsiz)
-# ax.set_ylabel('Probability of Error', fontsize=fntsiz)
-# plt.tight_layout()
-# plt.show()
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(pts[ind].T.squeeze())
+    ax.tick_params(axis='x', labelsize=fntsiz-3)
+    ax.tick_params(axis='y', labelsize=fntsiz-3)
+    ax.set_ylim(ylims)
+    ax.set_title('Full Model Output', fontsize=fntsiz)
+    ax.set_xlabel('Learning Block', fontsize=fntsiz)
+    ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+    plt.tight_layout()
+    plt.show()
 
-aspect = 1.5
-linewidth = 1.
-gridalpha = .75
-bgcol1 = np.array([31, 119, 180])/255  # blue
-bgcol2 = np.array([255, 240, 0])/255  # yellow
-fig, ax = plt.subplots(1, 3)
-ax[0].plot(pts[ind].T.squeeze(), linewidth=linewidth)
-ax[0].set_ylim(ylims)
-ax[0].set_box_aspect(aspect)
-ax[0].set_title('Output', fontsize=fntsiz)
-ax[0].set_ylabel('Probability of Error', fontsize=fntsiz)
-ax[0].tick_params(axis='x', labelsize=fntsiz-2)
-ax[0].tick_params(axis='y', labelsize=fntsiz-2)
-ax[0].grid(linestyle='--', alpha=gridalpha)
-ax[1].plot(pts_banks[ind, :, 0].T.squeeze(), linewidth=linewidth)
-ax[1].set_ylim(ylims)
-ax[1].set_xlabel('Block', fontsize=fntsiz)
-ax[1].set_box_aspect(aspect)
-ax[1].set_title('Anterior HPC', fontsize=fntsiz)
-labels = ['', '', '', '', '', '']
-ax[1].set_yticklabels(labels)
-ax[1].tick_params(axis='x', labelsize=fntsiz-2)
-ax[1].grid(linestyle='--', alpha=gridalpha)
-ax[1].set_facecolor(np.append(bgcol1, 0.15))  # add alpha
-ax[2].plot(pts_banks[ind, :, 1].T.squeeze(), linewidth=linewidth)
-ax[2].set_ylim(ylims)
-ax[2].set_box_aspect(aspect)
-labels = ['', '', '', '', '', '']
-ax[2].set_yticklabels(labels)
-ax[2].tick_params(axis='x', labelsize=fntsiz-2)
-ax[2].set_title('Posterior HPC', fontsize=fntsiz)
-ax[2].grid(linestyle='--', alpha=gridalpha)
-ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
-ax[2].set_facecolor(np.append(bgcol2, 0.15))  # add alpha
-plt.tight_layout()
-if saveplots:
-    figname = os.path.join(figdir,'shj_nbanks_curves_sep_b12_gsearch_cols.pdf')
-    plt.savefig(figname)
-plt.show()
+# %%
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(pts_banks[ind, :, 0].T.squeeze())
+    ax.tick_params(axis='x', labelsize=fntsiz-3)
+    ax.tick_params(axis='y', labelsize=fntsiz-3)
+    ax.set_ylim(ylims)
+    ax.set_title('Module 1', fontsize=fntsiz)
+    ax.set_xlabel('Learning Block', fontsize=fntsiz)
+    ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+    plt.tight_layout()
+    plt.show()
+    
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(pts_banks[ind, :, 1].T.squeeze())
+    ax.tick_params(axis='x', labelsize=fntsiz-3)
+    ax.tick_params(axis='y', labelsize=fntsiz-3)
+    ax.set_ylim(ylims)
+    ax.set_title('Module 2', fontsize=fntsiz)
+    ax.set_xlabel('Learning Block', fontsize=fntsiz)
+    ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+    plt.tight_layout()
+    plt.show()
+    
+    aspect = 1.5
+    linewidth = 1.
+    gridalpha = .75
+    bgcol1 = np.array([31, 119, 180])/255  # blue
+    bgcol2 = np.array([255, 240, 0])/255  # yellow
+    fig, ax = plt.subplots(1, 3)
+    ax[0].plot(pts[ind].T.squeeze(), linewidth=linewidth)
+    ax[0].set_ylim(ylims)
+    ax[0].set_box_aspect(aspect)
+    ax[0].set_title('Output', fontsize=fntsiz)
+    ax[0].set_ylabel('Probability of Error', fontsize=fntsiz)
+    ax[0].tick_params(axis='x', labelsize=fntsiz-2)
+    ax[0].tick_params(axis='y', labelsize=fntsiz-2)
+    ax[0].grid(linestyle='--', alpha=gridalpha)
+    ax[1].plot(pts_banks[ind, :, 0].T.squeeze(), linewidth=linewidth)
+    ax[1].set_ylim(ylims)
+    ax[1].set_xlabel('Block', fontsize=fntsiz)
+    ax[1].set_box_aspect(aspect)
+    ax[1].set_title('Anterior HPC', fontsize=fntsiz)
+    labels = ['', '', '', '', '', '']
+    ax[1].set_yticklabels(labels)
+    ax[1].tick_params(axis='x', labelsize=fntsiz-2)
+    ax[1].grid(linestyle='--', alpha=gridalpha)
+    ax[1].set_facecolor(np.append(bgcol1, 0.15))  # add alpha
+    ax[2].plot(pts_banks[ind, :, 1].T.squeeze(), linewidth=linewidth)
+    ax[2].set_ylim(ylims)
+    ax[2].set_box_aspect(aspect)
+    labels = ['', '', '', '', '', '']
+    ax[2].set_yticklabels(labels)
+    ax[2].tick_params(axis='x', labelsize=fntsiz-2)
+    ax[2].set_title('Posterior HPC', fontsize=fntsiz)
+    ax[2].grid(linestyle='--', alpha=gridalpha)
+    ax[2].legend(('I', 'II', 'III', 'IV', 'V', 'VI'), fontsize=10)
+    ax[2].set_facecolor(np.append(bgcol2, 0.15))  # add alpha
+    plt.tight_layout()
+    if saveplots:
+        figname = os.path.join(figdir,'shj_nbanks_curves_sep_b12_gsearch_cols.pdf')
+        plt.savefig(figname)
+    plt.show()
 
 # compare 2 banks
 # fig, ax = plt.subplots(1, 2)
