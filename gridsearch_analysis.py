@@ -17,7 +17,7 @@ import time
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-finegsearch = False
+finegsearch = True
 nbanks = True
 
 k = 0.01
@@ -37,7 +37,7 @@ elif not nbanks and finegsearch:
 elif nbanks and not finegsearch:
     n_sets = 400
 elif nbanks and finegsearch:
-    pass
+    n_sets = 400
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
@@ -81,9 +81,8 @@ if nbanks:
         maindir, 'muc-shj-gridsearch/gsearch_nbanks_final')
 
     if finegsearch:
-        pass
-        # resdir = os.path.join(
-        #     maindir, 'muc-shj-gridsearch/finegsearch_nbanks')
+        resdir = os.path.join(
+            maindir, 'muc-shj-gridsearch/finegsearch_nbanks_final')
 
 
 # ranges = ([torch.arange(.4, 2.1, .2),
@@ -248,7 +247,22 @@ if nbanks and not finegsearch:
           torch.tensor([.3]),
           torch.tensor([.7])]
           )
-
+elif nbanks and finegsearch:
+    ranges = ([torch.arange(.4, .9, .1),  # added .4
+              # torch.arange(1., 1.251, .125),  # or just stick to 1.125
+              torch.arange(.75, 1.251, .125), #  2 more than above
+              torch.arange(.8, 2.2, .25),  # 10 rather than 6
+              torch.arange(.55, .81, .05),
+              torch.tensor([.3]),
+              torch.tensor([.5, .7]),
+    
+              torch.arange(1.7, 2.2, .1), # 6 rather than 8
+              torch.arange(2, 3.1, .25),  # 5 as before
+              torch.tensor([.001]), # 1 instead of 2
+              torch.tensor([.01]),  # 1 instead of 3
+              torch.tensor([.3]),
+              torch.tensor([.5, .7])]
+              )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -288,14 +302,14 @@ for iset in sets:  # range(n_sets):
     elif nbanks and not finegsearch:
         fn = os.path.join(
             resdir,
-            'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units, iset))
+            'shj_nbanks_gsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
+                                                              iset))
 
     elif nbanks and finegsearch:
-        pass
-    # fn = os.path.join(
-    #     resdir,
-    #     'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
-    #                                                           iset))
+        fn = os.path.join(
+            resdir,
+            'shj_nbanks_finegsearch_k{}_{}units_set{}.pkl'.format(k, n_units,
+                                                                  iset))
 
     # load - list: [nlls, pt_all, rec_all, seeds_all]
     open_file = open(fn, "rb")
@@ -326,7 +340,7 @@ nlls = torch.stack(nlls)
 # pts = torch.tensor(np.stack(pts))
 # nlls = torch.tensor(np.stack(nlls))
 
-# nbanks - just get full model output for now
+# nbanks - just get full model output
 if nbanks:
     pts_banks = pts[:, :, 1:]  # get banks
     pts = pts[:, :, 0]  # full model - so can keep script like orig
@@ -819,9 +833,6 @@ w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
 
 
 
-
-
-
 # # finegsearch - testing without 3 sets
 # # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
 #          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
@@ -834,6 +845,17 @@ w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
 # # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 # # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
 # # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
+
+# 2022
+# tensor([[6.0000e-01, 1.0000e+00, 8.0000e-01, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
+# tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+#          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
+# tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
+#          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd
 
 
 w = w / w.sum()
@@ -978,7 +1000,6 @@ else:
     plt.tight_layout()
     plt.show()
 
-# %%
     fig, ax = plt.subplots(1, 1)
     ax.plot(pts_banks[ind, :, 0].T.squeeze())
     ax.tick_params(axis='x', labelsize=fntsiz-3)
