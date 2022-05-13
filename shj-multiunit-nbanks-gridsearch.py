@@ -30,7 +30,7 @@ from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = True
+finegsearch = False
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -74,7 +74,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
                                        start_params=start_params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, 16, shuffle_seed=seeds[i], shj_order=True)
+            model, inputs, output, 16, shuffle_seed=seeds[i], shj_order=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         rec_all[problem].append(model.recruit_units_trl)
@@ -133,8 +133,8 @@ iset = 0
 if location == 'cluster':
     iset = int(sys.argv[-1])
 
-n_units = 2000
-k = .01
+n_units = 10000
+k = .005
 sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
@@ -363,12 +363,11 @@ ranges = ([torch.arange(.1, .7, .1),
 #           torch.tensor([.5, .8])]
 #           )
 
-# 2022
+# 2022 finegsearch
 # [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
 #  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
 # - 108000 params
 ranges = ([torch.arange(.4, .9, .1),  # added .4
-          # torch.arange(1., 1.251, .125),  # or just stick to 1.125
           torch.arange(.75, 1.251, .125), #  2 more than above
           torch.arange(.8, 2.2, .25),  # 10 rather than 6
           torch.arange(.55, .81, .05) / lr_scale,
@@ -413,7 +412,7 @@ rec_all = [[] for i in range(len(param_sets_curr))]
 # seeds_all = [[] for i in range(len(param_sets_curr))]
 
 # set seeds for niters of shj problem randomised - same seqs across params
-seeds = torch.arange(sim_info['niter'])*10
+seeds = torch.arange(1, sim_info['niter']+1)*10
 
 # fname to save to
 fn = os.path.join(datadir,

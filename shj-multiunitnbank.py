@@ -6,13 +6,13 @@ Created on Mon Jun 14 16:14:01 2021
 @author: robert.mok
 """
 
-
 import os
 import sys
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import itertools as it
+import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 
@@ -20,6 +20,7 @@ from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
+datadir = os.path.join(maindir, 'muc-results')
 
 # %%
 
@@ -46,7 +47,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 # set problem
-problem = 0
+problem = 5
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
@@ -214,7 +215,7 @@ params = {
 model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k, params=params)
 
 model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shj_order=True)
+    model, inputs, output, n_epochs, shj_order=False)
 
 # pr target
 plt.plot(1 - epoch_ptarget.T.detach())
@@ -251,9 +252,32 @@ plt.show()
 
 saveplots = False
 
+saveresults = True
+
 niter = 1
 
 n_banks = 2
+
+six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 1], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 0], [1, 1, 1, 0]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 0], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
+                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 0]],
+
+                [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 1, 0],
+                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]],
+
+                ]
+
 
 n_epochs = 16  # 32, 8 trials per block. 16 if 16 trials per block
 pt_all = torch.zeros([niter, 6, n_banks+1, n_epochs])
@@ -265,6 +289,10 @@ loss_type = 'cross_entropy'
 k = .01
 lr_scale = (n_units * k)
 
+
+rec_all =[[] for i in range(6)]
+nrec_all = torch.zeros([niter, 6, n_banks])
+
 # fc1 ws - list since diff ntrials (since it appends when recruit & upd)
 w_trace = [[] for i in range(6)]
 act_trace = [[] for i in range(6)]
@@ -274,7 +302,6 @@ attn_trace = [[] for i in range(6)]
 for i in range(niter):
 
     # six problems
-
     for problem in range(6):  # [0, 5]: #  np.array([4]):
 
         stim = six_problems[problem]
@@ -286,54 +313,6 @@ for i in range(niter):
         inputs = inputs.repeat(2, 1)
         output = output.repeat(2).T
         n_dims = inputs.shape[1]
-
-        # # not bad
-        # params = {
-        #     'r': 1,
-        #     'c': [.75, 2.6],  # c=.8/1. for type I. c=1. works better for II.
-        #     'p': 1,
-        #     'phi': [1.3, 1.1],  # 1.2/1.1 for latter atm
-        #     'beta': 1,
-        #     'lr_attn': [.2, .002],  # [.25, .02]
-        #     'lr_nn': [.05/lr_scale, .02/lr_scale],  # latter: .01. if latter: .02, type 6 larger fc1 weights than low c. otherwise smaller if lr_nn too small.
-        #     'lr_clusters': [.05, .05],
-        #     'lr_clusters_group': [.1, .1],
-        #     'k': k
-        #     }
-
-        # # try more - looking good
-        # params = {
-        #     'r': 1,
-        #     'c': [.75, 2.5],
-        #     'p': 1,
-        #     'phi': [1., 2.],
-        #     'beta': 1,
-        #     'lr_attn': [.2, .005],
-        #     'lr_nn': [.1/lr_scale, .002/lr_scale],
-        #     'lr_clusters': [.05, .05],
-        #     'lr_clusters_group': [.1, .1],
-        #     'k': k
-        #     }
-
-        # testing based on single bank finegridsearch results
-        # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
-        # params = {
-        #     'r': 1,
-        #     # 'c': [.2, 2.2],
-        #     'c': [.25, 2.],  # .2/.25; 2./2.5
-        #     # 'c': [.1, 2.2],  # 2.5
-        #     'p': 1,
-        #     # 'phi': [1.5, 1.5],
-        #     'phi': [1.8, 2.15],  # 1.9, 2.1
-        #     # 'phi': [2.5, 1.5],  # meh
-        #     'beta': 1,
-        #     'lr_attn': [1.5, .001],  # 1.5
-        #     # 'lr_attn': [2., .001],  # for 3rd c/phi, meh
-        #     'lr_nn': [.9/lr_scale, .01/lr_scale],  # .75/.85
-        #     'lr_clusters': [.3, .3],
-        #     'lr_clusters_group': [.8, .8],
-        #     'k': k
-        #     }
 
         # gridsearch + fgsearch
         # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
@@ -351,20 +330,57 @@ for i in range(niter):
             'k': k
             }
 
+        # gsearch + finegsearch 2022
+        # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+        #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+        params = {
+            'r': 1,
+            'c': [.7, 1.7],
+            'p': 1,
+            'phi': [.875, 2.25],
+            'beta': 1,
+            'lr_attn': [1.3, .001],
+            'lr_nn': [.8/lr_scale, .01/lr_scale],
+            'lr_clusters': [.3, .3],
+            'lr_clusters_group': [.5, .5],
+            'k': k
+            }
+
         model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k,
                                        params=params)
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-            model, inputs, output, n_epochs, shj_order=True)
+            model, inputs, output, n_epochs, shuffle_seed=1, shj_order=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
+
+        # don't save for big sim
         w_trace[problem].append(torch.stack(model.fc1_w_trace))
         act_trace[problem].append(torch.stack(model.fc1_act_trace))
         attn_trace[problem].append(torch.stack(model.attn_trace))
 
+        # save n clusters recruited
+        rec_all[problem].append(model.recruit_units_trl)  # saves the seq
+        # nclus recruited
+        nrec_all[i, problem] = torch.tensor([len(model.recruit_units_trl[0]),
+                                             len(model.recruit_units_trl[1])])
+
         print(model.recruit_units_trl)
         # print(model.recruit_units_trl[0] == model.recruit_units_trl[1])
         # print(np.unique(np.around(model.units_pos.detach().numpy()[model.active_units], decimals=1), axis=0))
+
+
+# save variables
+# - pt_all, nrec_all
+if saveresults:
+    fn = os.path.join(datadir,
+                      'shj_nbanks_results_pt_nrec_k{}_{}units.pkl'.format(
+                          k, n_units))
+    
+    shj_res = [pt_all, nrec_all]  # seeds_all
+    open_file = open(fn, "wb")
+    pickle.dump(shj_res, open_file)
+    open_file.close()
 
 
 import matplotlib.font_manager as font_manager

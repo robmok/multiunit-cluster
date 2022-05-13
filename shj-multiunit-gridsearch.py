@@ -31,7 +31,7 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = True
+finegsearch = False
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -74,7 +74,7 @@ def run_shj_muc(start_params, sim_info, six_problems, beh_seq,
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, 16, shuffle_seed=seeds[i],
-            shj_order=True)
+            shj_order=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
         rec_all[problem].append(model.recruit_units_trl)
@@ -135,8 +135,8 @@ iset = 0
 if location == 'cluster':
     iset = int(sys.argv[-1])
 
-n_units = 2000
-k = .01
+n_units = 10000
+k = .005
 sim_info = {
     'n_units': n_units,
     'attn_type': 'dimensional_local',
@@ -232,19 +232,20 @@ lr_scale = (n_units * k) / 1
 
 
 
-# 2022 new - shj_order now correct, do lr_attn > 1 possible, 25 iters (so 0.12-->0.06 for timing)
-# - first, just dist (not dist**2)
+# 2022 new - do lr_attn > 1 possible, 25 iters (so 0.12-->0.06 for timing)
 
 # 224000 params - 400 sets, 560psets per set; 560*.06=33.6=1.4 days
 # -350 sets, 640psets per set; 640*.06=38.4=1.59 days
+# redo with shj_order=False - more attn values - 336000 params
+# 400 sets, 840 psets, 2.1 days?
 ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
-          torch.arange(1., 2.76, .25),
+          # torch.arange(1., 2.76, .25),
+          torch.arange(1., 3.76, .25),  # more attn
           torch.arange(.05, .76, .1) / lr_scale,
           torch.arange(.05, 1., .1),
           torch.arange(.1, 1., .2)]
           )
-
 
 if finegsearch:
     # # dist**2 initial
@@ -324,7 +325,7 @@ if finegsearch:
           torch.arange(.7, 1., .2)]
           )
 
-    # 2022
+    # 2022 v1 shj_order
     # tensor([[0.6000, 5.0000, 1.5000, 0.0500, 0.0500, 0.9000]])
     # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.9000]])
     # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.7000]])
@@ -340,6 +341,9 @@ if finegsearch:
           torch.arange(.7, 1., .2)]
           )
 
+    # 2022 v2 shj_order=False
+
+
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -353,7 +357,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # 2022
 # - 224000 param sets
 # sets = torch.arange(0, len(param_sets), 560) # dist, 400 sets
-
+# - v2 - 336000
+sets = torch.arange(0, len(param_sets), 840) # dist, 400 sets
 
 # # finegsearch high attn
 # sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
@@ -369,7 +374,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 # 2022 finegsearch
 # - 80640 - 280 sets (288 psets within each sets)
-sets = torch.arange(0, len(param_sets), 288)
+if finegsearch:
+    sets = torch.arange(0, len(param_sets), 288)
 
 # not a great way to add final set on
 sets = torch.cat(
@@ -388,7 +394,7 @@ rec_all = [[] for i in range(len(param_sets_curr))]
 # seeds_all = [[] for i in range(len(param_sets_curr))]
 
 # set seeds for niters of shj problem randomised - same seqs across params
-seeds = torch.arange(sim_info['niter'])*10
+seeds = torch.arange(1, sim_info['niter']+1)*10
 
 # fname to save to
 fn = os.path.join(datadir,

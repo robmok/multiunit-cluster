@@ -186,6 +186,10 @@ class MultiUnitClusterNBanks(nn.Module):
             act = c * torch.exp(-c * dist)
         return act
 
+    def _norm_diff(self, a, b):
+        # return (a-b)/(a+b)
+        return a-b
+
 
 def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
           noise=None, shj_order=False):   # to add noise
@@ -364,7 +368,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                         )
 
                     # compute grad based on act of winners *minus* losers
-                    act_1 = (
+                    act_1 = model._norm_diff(
                         torch.sum(
                             model._compute_act(
                                 model._compute_dist(
@@ -372,9 +376,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                                     model.attn[:, ibank].squeeze(),
                                     model.params['r'], model.n_banks),
                                 model.params['c'][ibank],
-                                model.params['p']))
-
-                        - torch.sum(
+                                model.params['p'])),
+                        torch.sum(
                             model._compute_act(
                                 model._compute_dist(
                                     abs(x - model.units_pos[lose_ind]),
@@ -550,6 +553,53 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                     model.fc1.weight.grad[:, model.bmask[ibank].squeeze()] = 0
 
                 optimizer.step()
+
+                # attn
+                for ibank in rec_banks:
+
+                    win_ind_b = (model.winning_units
+                                 & model.bmask[ibank].squeeze())
+                    lose_ind = (
+                        (model.winning_units == 0)
+                        & model.active_units
+                        & model.bmask[ibank].squeeze()
+                        )
+
+                    # compute grad based on act of winners *minus* losers
+                    act_1 = model._norm_diff(
+                        torch.sum(
+                            model._compute_act(
+                                model._compute_dist(
+                                    abs(x - model.units_pos[win_ind_b]),
+                                    model.attn[:, ibank].squeeze(),
+                                    model.params['r'], model.n_banks),
+                                model.params['c'][ibank],
+                                model.params['p'])),
+                        torch.sum(
+                            model._compute_act(
+                                model._compute_dist(
+                                    abs(x - model.units_pos[lose_ind]),
+                                    model.attn[:, ibank].squeeze(),
+                                    model.params['r'], model.n_banks),
+                                model.params['c'][ibank],
+                                model.params['p']))
+                        )
+
+                    # compute gradient
+                    act_1.backward(retain_graph=True)
+                    # divide grad by n active units (scales to any n_units)
+                    model.attn.data[:, ibank] += (
+                        torch.tensor(model.params['lr_attn'][ibank])
+                        * (model.attn.grad[:, ibank]
+                            / model.active_units[
+                                model.bmask[ibank].squeeze()].sum()))
+
+                # ensure attention are non-negative
+                model.attn.data = torch.clamp(model.attn.data, min=0.)
+                # sum attention weights to 1
+                model.attn.data = (
+                    model.attn.data / torch.sum(model.attn.data, dim=0).T
+                    )
 
                 # save updated attn ws - save even if not update
                 model.attn_trace.append(model.attn.detach().clone())
