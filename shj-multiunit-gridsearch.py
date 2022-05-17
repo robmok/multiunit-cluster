@@ -237,7 +237,7 @@ lr_scale = (n_units * k) / 1
 # 224000 params - 400 sets, 560psets per set; 560*.06=33.6=1.4 days
 # -350 sets, 640psets per set; 640*.06=38.4=1.59 days
 # redo with shj_order=False - more attn values - 336000 params
-# 400 sets, 840 psets, 2.1 days?
+# - 400 sets, 840 psets, 2.1 days?
 ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
           # torch.arange(1., 2.76, .25),
@@ -341,7 +341,22 @@ if finegsearch:
           torch.arange(.7, 1., .2)]
           )
 
-    # 2022 v2 shj_order=False
+    # 2022 v2 shj_order=False - final
+    # best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+    # tensor([[ 0.2/.4, 5/7/13,  1.25/2./2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
+    ranges = ([torch.arange(.1, .7, .1),
+          torch.hstack([torch.arange(4., 9., 1), torch.arange(11., 15., 1)]),
+          torch.arange(.75, 3.01, .25),
+          torch.hstack([torch.arange(.025, .125, .025),
+                        torch.arange(.3, .39, .025)]) / lr_scale,  # could add more? maybe ok tho
+          torch.arange(.05, .7, .1),  # 1 less
+          torch.arange(.5, 1., .2)]  # 1 extra
+          )
+
+    # why more than above? double check numbers
+
+
+
 
 
 

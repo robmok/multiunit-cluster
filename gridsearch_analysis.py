@@ -17,11 +17,15 @@ import time
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-finegsearch = True
-nbanks = True
+finegsearch = False
+nbanks = False
 
 k = 0.01
 n_units = 2000
+
+# 2022 v2
+k = 0.005
+n_units = 10000
 
 # gsearch split into how many sets to load in
 # 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
@@ -32,20 +36,34 @@ n_units = 2000
 # 2022
 if not nbanks and not finegsearch:
     n_sets = 400  # gsearch
+    resdir = os.path.join(maindir,
+                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist_final'.format(
+    k, n_units))
+
 elif not nbanks and finegsearch:
     n_sets = 280  # finegsearch
+    resdir = os.path.join(maindir,
+                          'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
+        k, n_units))
+
 elif nbanks and not finegsearch:
     n_sets = 400
+    resdir = os.path.join(maindir, 'muc-shj-gridsearch/gsearch_nbanks_final')
+
 elif nbanks and finegsearch:
     n_sets = 400
+    resdir = os.path.join(
+        maindir, 'muc-shj-gridsearch/finegsearch_nbanks_final')
+
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units'.format(
 #     k, n_units))
 
-resdir = os.path.join(maindir,
-                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
-    k, n_units))
+
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist'.format(
+#     k, n_units))
 
 # resdir = os.path.join(maindir,
 #                       'muc-shj-gridsearch/gsearch_k{}_{}units_distsq'.format(
@@ -60,29 +78,15 @@ resdir = os.path.join(maindir,
 #     maindir, 'muc-shj-gridsearch/finegsearch_k{}_{}units_dist3_attn'.format(
 #         k, n_units))
 
-# large attn redo, shj order
-resdir = os.path.join(maindir,
-                      'muc-shj-gridsearch/gsearch_k{}_{}units_dist_final'.format(
-    k, n_units))
-# finegsearch
-resdir = os.path.join(maindir,
-                      'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
-    k, n_units))
-
-
-
-
-# nbanks
-if nbanks:
-    # resdir = os.path.join(
-    #     maindir, 'muc-shj-gridsearch/gsearch_nbanks')
-    
-    resdir = os.path.join(
-        maindir, 'muc-shj-gridsearch/gsearch_nbanks_final')
-
-    if finegsearch:
-        resdir = os.path.join(
-            maindir, 'muc-shj-gridsearch/finegsearch_nbanks_final')
+# # large attn redo, shj order
+# resdir = os.path.join(maindir,
+#                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist_final'.format(
+#     k, n_units))
+# # finegsearch
+# if finegsearch:
+#     resdir = os.path.join(maindir,
+#                           'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
+#         k, n_units))
 
 
 # ranges = ([torch.arange(.4, 2.1, .2),
@@ -183,11 +187,14 @@ ranges = ([torch.cat([torch.arange(.1, .35, .05),
 if not nbanks and not finegsearch:
     ranges = ([torch.arange(.2, 2.1, .2),
               torch.arange(1., 15., 2),
-              torch.arange(1., 2.76, .25),
+              # torch.arange(1., 2.76, .25),
+              torch.arange(1., 3.76, .25),  # more attn v2
               torch.arange(.05, .76, .1),  # / lr_scale,
               torch.arange(.05, 1., .1),
               torch.arange(.1, 1., .2)]
               )
+
+
 # finegsearch
 elif not nbanks and finegsearch:
     ranges = ([torch.arange(.2, .8, .1),
@@ -269,17 +276,17 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 sets = torch.arange(n_sets)
 
 # TMP
-# sets = sets[(sets != 80) & (sets != 109)]  # TMP remove sets 80 and 109
+sets = sets[(sets != 81) & (sets != 91)]  # TMP remove sets 80 and 109
 # sets = sets[(sets != 57)]
 # sets = sets[(sets != 156)]
 # sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
 
-# # TMP - remove some sets if incomplete
-# sets = torch.arange(0, len(param_sets)+1, 700)
-# ind = torch.ones(len(param_sets), dtype=torch.bool)
-# ind[sets[68]:sets[70]] = False
-# ind[sets[116]:sets[117]] = False
-# param_sets = param_sets[ind]
+# TMP - remove some from param_sets if incomplete
+sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets
+ind = torch.ones(len(param_sets), dtype=torch.bool)
+ind[sets_tmp[80]:sets_tmp[81]] = False
+ind[sets_tmp[90]:sets_tmp[91]] = False
+param_sets = param_sets[ind]
 
 # load in
 pts = []
@@ -760,102 +767,138 @@ w = torch.tensor([1/5, 1/5, 50/5, 50/5, 300/5]) # overall slower, but 2-345 sep 
 # tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
 # w = torch.tensor([1/5, 1/5, 10/5, 50/5, 300/5])  # as above, 3 slightly worse
 
-# finegsearch
-# tensor([[0.8000, 3.0000, 1.0000, 0.0750, 0.1750, 0.7000]]) - looks gd already
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# w = torch.tensor([1/5, 1/5, 5/5, 1/5, 1/5])  # all a bit slower (gd), more sep
-# best atm:
-# tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
-w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # best
-# # tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
-# w = torch.tensor([1/5, 1/5, 35/5, 1/5, 250/5])  # v sim , above 3-5 tighter
-# tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# w = torch.tensor([1/5, 1/5, 15/5, 1/5, 250/5])  # a bit faster (worse i tihnk)
-# type 4 a bit slower here - meh
-# tensor([[0.7000, 6.0000, 1.2500, 0.0250, 0.0250, 0.9000]])
-# w = torch.tensor([1/5, 1/5, 50/5, 1/5, 500/5])
 
-# RESULT: best params in order
-# - tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
-# - tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
-# - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# equal weights  also ok - gd but a bit tight together
-# - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
+# v2 - shj_order=False - FINAL hopefully
+# tensor([[0.4000, 7.0000, 1.0000, 0.0500, 0.2500, 0.9000]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already v gd
+# tensor([[0.2000, 5.0000, 3.7500, 0.3500, 0.2500, 0.9000]])
+w = torch.tensor([1/5, 1/5, 1/5, 10/5, 100/5])  # bit slower (gd), but type 3 close to 2 (bad)
+
+# best params
+# # tensor([[ 0.2000, 13.0000,  2.0000,  0.0500,  0.3500,  0.7000]])
+w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1000/5])  # like orig but better
+# tensor([[ 0.2000, 13.0000,  2.0000,  0.0500,  0.3500,  0.9000]])
+w = torch.tensor([1/5, 1/5, 100/5, 50/5, 1000/5])  # 3 ever so slightly closer to rulexes
+# tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
+# tensor([[0.2000, 5.0000, 2.7500, 0.3500, 0.4500, 0.5000]])
+# w = torch.tensor([1/5, 1/5, 100/5, 15/5, 1000/5]) # now  touching but 6 slighlty closer again
+
+# tensor([[0.4000, 7.0000, 1.2500, 0.0500, 0.4500, 0.9000]]) - from here, same
+# w = torch.tensor([1/5, 1/5, 100/5, 10/5, 1000/5])  # all 3 rulexes together but overall faster (6 is closer to rulexes)
+# w = torch.tensor([1/5, 1/5, 100/5, 1/5, 50/5])
+
+# # # tensor([[0.2000, 5.0000, 3.7500, 0.3500, 0.2500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 10/5, 10/5, 100/5])
+
+# to search
+# best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+
+# tensor([[ 0.2/.4, 5/7/13,  2/1.25/2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
 
 
 
 
 
-# # nbanks
 
-# # just type 1 and 6 - flipped and should be faster across banks
-# # tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
-# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already OK
 
-# # similar, but shift up  bit - lines a little more different, type 6 bank 2-1 difference slightly more
-# # tensor([[5.0000e-01, 1.5000e+00, 2.0100e+00, 4.6000e-01, 3.0000e-01, 8.0000e-01,
-# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
-# # w = torch.tensor([1/5, 1/5, 500/5, 500/5, 1/5])
 
-# # final and works - include rulex types - should be faster in bank 2
-# # - standard OK except 345 and 6 too close
-# # tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 8.0000e-01,
-# #          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # finegsearch
+# # tensor([[0.8000, 3.0000, 1.0000, 0.0750, 0.1750, 0.7000]]) - looks gd already
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# # tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# # w = torch.tensor([1/5, 1/5, 5/5, 1/5, 1/5])  # all a bit slower (gd), more sep
+# # best atm:
+# # tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
+# w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # best
+# # # tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
+# # w = torch.tensor([1/5, 1/5, 35/5, 1/5, 250/5])  # v sim , above 3-5 tighter
+# # tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# # w = torch.tensor([1/5, 1/5, 15/5, 1/5, 250/5])  # a bit faster (worse i tihnk)
+# # type 4 a bit slower here - meh
+# # tensor([[0.7000, 6.0000, 1.2500, 0.0250, 0.0250, 0.9000]])
+# # w = torch.tensor([1/5, 1/5, 50/5, 1/5, 500/5])
+
+# # RESULT: best params in order
+# # - tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
+# # - tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
+# # - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# # equal weights  also ok - gd but a bit tight together
+# # - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# # --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
+
+
+
+
+
+# # # nbanks
+
+# # # just type 1 and 6 - flipped and should be faster across banks
+# # # tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
+# # #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already OK
+
+# # # similar, but shift up  bit - lines a little more different, type 6 bank 2-1 difference slightly more
+# # # tensor([[5.0000e-01, 1.5000e+00, 2.0100e+00, 4.6000e-01, 3.0000e-01, 8.0000e-01,
+# # #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # # w = torch.tensor([1/5, 1/5, 500/5, 500/5, 1/5])
+
+# # # final and works - include rulex types - should be faster in bank 2
+# # # - standard OK except 345 and 6 too close
+# # # tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 8.0000e-01,
+# # #          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+
+# # # a bit more separated than above
+# # # tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
+# #          # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
+# # # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
+
+
+# # 2022
+# # tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 7.0000e-01,
+# #          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 
-# # a bit more separated than above
-# # tensor([[5.0000e-01, 1.1250e+00, 2.0100e+00, 7.6000e-01, 3.0000e-01, 8.0000e-01,
-#          # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 8.0000e-01]])
-# # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])  # from 150
+# # tensor([[5.0000e-01, 1.1250e+00, 2.4100e+00, 7.6000e-01, 3.0000e-01, 7.0000e-01,
+# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1100/5, 1/5])  # pretty good
+# # - different variations of above gd one
+# # tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 6.1000e-01, 3.0000e-01, 7.0000e-01,
+# #          1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
 
+# w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
 
-# 2022
-# tensor([[6.0000e-01, 1.1250e+00, 8.1000e-01, 6.1000e-01, 3.0000e-01, 7.0000e-01,
-#          2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-
-# tensor([[5.0000e-01, 1.1250e+00, 2.4100e+00, 7.6000e-01, 3.0000e-01, 7.0000e-01,
-#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1100/5, 1/5])  # pretty good
-# - different variations of above gd one
-# tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 6.1000e-01, 3.0000e-01, 7.0000e-01,
-#          1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
-
-w = torch.tensor([1/5, 1/5, 1/5, 1000/5, 1/5])
-
-# params to check:
-# [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
-#  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
+# # params to check:
+# # [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
+# #  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
 
 
 
-# # finegsearch - testing without 3 sets
-# # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-#          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
-# # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+# # # finegsearch - testing without 3 sets
+# # # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+# #          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
+# # # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+# # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
+
+# # # with type II as 2nd slower in bank 2
+# # # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# # # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
+# # # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
+
+# # 2022
+# # tensor([[6.0000e-01, 1.0000e+00, 8.0000e-01, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
+# # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
 # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
-
-# # with type II as 2nd slower in bank 2
-# # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
-# # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
-
-# 2022
-# tensor([[6.0000e-01, 1.0000e+00, 8.0000e-01, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
-# tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-#          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
-# tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
-#          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd
+# w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
+# # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
+# #          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# # w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd
 
 
 w = w / w.sum()
