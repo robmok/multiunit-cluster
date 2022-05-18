@@ -31,7 +31,7 @@ from MultiUnitCluster import (MultiUnitCluster, train)
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = False
+finegsearch = True
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -337,28 +337,22 @@ if finegsearch:
           torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
           torch.arange(.75, 3.01, .25),
           torch.arange(.025, .4, .05) / lr_scale,
-          torch.arange(.025, .4, .05) ,
+          torch.arange(.025, .4, .05),
           torch.arange(.7, 1., .2)]
           )
 
     # 2022 v2 shj_order=False - final
     # best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
     # tensor([[ 0.2/.4, 5/7/13,  1.25/2./2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
-    ranges = ([torch.arange(.1, .7, .1),
-          torch.hstack([torch.arange(4., 9., 1), torch.arange(11., 15., 1)]),
+    # 147000 sets
+    ranges = ([torch.arange(.1, .71, .1),
+          torch.hstack([torch.arange(3., 9., 1), torch.arange(11., 15., 1)]),
           torch.arange(.75, 3.01, .25),
           torch.hstack([torch.arange(.025, .125, .025),
-                        torch.arange(.3, .39, .025)]) / lr_scale,  # could add more? maybe ok tho
+                        torch.arange(.3, .43, .025)]) / lr_scale,  # 2 more
           torch.arange(.05, .7, .1),  # 1 less
           torch.arange(.5, 1., .2)]  # 1 extra
           )
-
-    # why more than above? double check numbers
-
-
-
-
-
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
@@ -389,8 +383,10 @@ sets = torch.arange(0, len(param_sets), 840) # dist, 400 sets
 
 # 2022 finegsearch
 # - 80640 - 280 sets (288 psets within each sets)
+# - 147000 - 350 sets, (420 psets)
 if finegsearch:
-    sets = torch.arange(0, len(param_sets), 288)
+    # sets = torch.arange(0, len(param_sets), 288)
+    sets = torch.arange(0, len(param_sets), 420)
 
 # not a great way to add final set on
 sets = torch.cat(

@@ -275,18 +275,18 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
 
-# TMP
-sets = sets[(sets != 81) & (sets != 91)]  # TMP remove sets 80 and 109
-# sets = sets[(sets != 57)]
-# sets = sets[(sets != 156)]
-# sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
+# # - remove some from sets if incomplete
+# sets = sets[(sets != 81) & (sets != 91)]  # TMP remove sets 80 and 109
+# # sets = sets[(sets != 57)]
+# # sets = sets[(sets != 156)]
+# # sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
 
-# TMP - remove some from param_sets if incomplete
-sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets
-ind = torch.ones(len(param_sets), dtype=torch.bool)
-ind[sets_tmp[80]:sets_tmp[81]] = False
-ind[sets_tmp[90]:sets_tmp[91]] = False
-param_sets = param_sets[ind]
+# # - remove some from param_sets if incomplete
+# sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets
+# ind = torch.ones(len(param_sets), dtype=torch.bool)
+# ind[sets_tmp[80]:sets_tmp[81]] = False
+# ind[sets_tmp[90]:sets_tmp[91]] = False
+# param_sets = param_sets[ind]
 
 # load in
 pts = []
@@ -793,7 +793,6 @@ w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
 
 # to search
 # best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
-
 # tensor([[ 0.2/.4, 5/7/13,  2/1.25/2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
 
 
