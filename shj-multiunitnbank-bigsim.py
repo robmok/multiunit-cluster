@@ -10,10 +10,7 @@ Short version of shj-multiunitnbank.py - to run SHJ with many units and save res
 
 import os
 import sys
-import numpy as np
 import torch
-import matplotlib.pyplot as plt
-import itertools as it
 import pickle
 
 location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
@@ -79,9 +76,8 @@ pt_all = torch.zeros([niter, 6, n_banks+1, n_epochs])
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
 n_units = 34000000  # 2000
 loss_type = 'cross_entropy'
-k = .01
+k = 0.0005 / n_banks
 lr_scale = (n_units * k)
-
 
 rec_all =[[] for i in range(6)]
 nrec_all = torch.zeros([niter, 6, n_banks])
