@@ -18,10 +18,10 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 finegsearch = False
-nbanks = False
+nbanks = True
 
-k = 0.01
-n_units = 2000
+# k = 0.01
+# n_units = 2000
 
 # 2022 v2
 k = 0.005
@@ -41,7 +41,7 @@ if not nbanks and not finegsearch:
     k, n_units))
 
 elif not nbanks and finegsearch:
-    n_sets = 280  # finegsearch
+    n_sets = 350  # finegsearch
     resdir = os.path.join(maindir,
                           'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
         k, n_units))
@@ -197,13 +197,22 @@ if not nbanks and not finegsearch:
 
 # finegsearch
 elif not nbanks and finegsearch:
-    ranges = ([torch.arange(.2, .8, .1),
-          torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
+    # ranges = ([torch.arange(.2, .8, .1),
+    #       torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
+    #       torch.arange(.75, 3.01, .25),
+    #       torch.arange(.025, .4, .05),  # / lr_scale,
+    #       torch.arange(.025, .4, .05) ,
+    #       torch.arange(.7, 1., .2)]
+    #       )
+    ranges = ([torch.arange(.1, .71, .1),
+          torch.hstack([torch.arange(3., 9., 1), torch.arange(11., 15., 1)]),
           torch.arange(.75, 3.01, .25),
-          torch.arange(.025, .4, .05),  # / lr_scale,
-          torch.arange(.025, .4, .05) ,
-          torch.arange(.7, 1., .2)]
+          torch.hstack([torch.arange(.025, .125, .025),
+                        torch.arange(.3, .43, .025)]), # / lr_scale,  # 2 more
+          torch.arange(.05, .7, .1),  # 1 less
+          torch.arange(.5, 1., .2)]  # 1 extra
           )
+
 
 # nbanks
 # ranges = ([torch.arange(.1, .7, .1),
@@ -275,18 +284,31 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 sets = torch.arange(n_sets)
 
-# # - remove some from sets if incomplete
+# - remove some from sets if incomplete
 # sets = sets[(sets != 81) & (sets != 91)]  # TMP remove sets 80 and 109
-# # sets = sets[(sets != 57)]
-# # sets = sets[(sets != 156)]
-# # sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
+# sets = sets[(sets != 81)]
+sets = sets[(sets != 50)]
+
+# sets = sets[(sets != 57)]
+# sets = sets[(sets != 156)]
+# sets = sets[(sets != 68) & (sets != 69) & (sets != 116)]
 
 # # - remove some from param_sets if incomplete
-# sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets
+# sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets gsearch
+# sets_tmp = torch.arange(0, len(param_sets), 270)  # 400 sets nbanks gsearch
+# sets_tmp = torch.arange(0, len(param_sets), 420)  # 350 sets fgsearch
 # ind = torch.ones(len(param_sets), dtype=torch.bool)
-# ind[sets_tmp[80]:sets_tmp[81]] = False
-# ind[sets_tmp[90]:sets_tmp[91]] = False
+# # ind[sets_tmp[80]:sets_tmp[81]] = False
+# # ind[sets_tmp[90]:sets_tmp[91]] = False
+# ind[sets_tmp[57]:sets_tmp[58]] = False
 # param_sets = param_sets[ind]
+
+# sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets gsearch
+sets_tmp = torch.arange(0, len(param_sets), 270)  # 400 sets nbanks gsearch
+ind = torch.ones(len(param_sets), dtype=torch.bool)
+# ind[sets_tmp[80]:sets_tmp[81]] = False
+ind[sets_tmp[50]:sets_tmp[51]] = False
+param_sets = param_sets[ind]
 
 # load in
 pts = []
@@ -798,11 +820,7 @@ w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
 
 
 
-
-
-
-
-# # finegsearch
+# # finegsearch 2022
 # # tensor([[0.8000, 3.0000, 1.0000, 0.0750, 0.1750, 0.7000]]) - looks gd already
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
 # # tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
@@ -827,6 +845,17 @@ w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
 # # --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
 
 
+# # fingsearch v2
+# # tensor([[0.2000, 5.0000, 3.0000, 0.4000, 0.2500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])   # ok but type 3 fast
+
+# # tensor([[ 0.2000, 14.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+# w = torch.tensor([1/5, 1/5, 3/5, 1/5, 1/5])  # best - all v sim to this from 3/5 for 3rd one
+# # tensor([[ 0.2000, 14.0000,  2.7500,  0.0500,  0.3500,  0.7000]])
+# w = torch.tensor([1/5, 1/5, 10/5, 1/5, 1/5])  # - v sim to above (lr_group=.7), type 3 *tiny* bit slower here
+
+# # tensor([[0.2000, 5.0000, 3.0000, 0.4000, 0.4500, 0.5000]])
+# w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # gd but type 6 a bit faster
 
 
 

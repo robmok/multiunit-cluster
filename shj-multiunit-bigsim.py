@@ -170,7 +170,7 @@ if saveresults:
 
 niter = 5  # do a few so can select a good one for figures (this is the seed)
 
-saveplots = False  # 3d plots
+saveplots = True  # 3d plots
 
 plot3d = True
 plot_seq = 'trls'  # 'epoch'=plot whole epoch in sections. 'trls'=1st ntrials
