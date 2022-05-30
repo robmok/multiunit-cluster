@@ -983,26 +983,79 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
+# %% load in SHJ results
+
+saveplots = True
+
+figdir = os.path.join(maindir, 'multiunit-cluster_figs')
+
+k = .0005
+n_units = 3400000
+niter = 25
+
+resdir = os.path.join(maindir, 'muc-shj-gridsearch/')
+fn = os.path.join(resdir,
+    'shj_results_pt_nrec_k{}_{}units.pkl'.format(k, n_units))
+
+# load [pt_all, nrec_all]
+open_file = open(fn, "rb")
+shj_res = pickle.load(open_file)
+open_file.close()
+pt_all = shj_res[0]
+nrec_all = shj_res[1]
+
+# plot
+fntsiz = 15
+ylims = (0., .55)
+
+import matplotlib.font_manager as font_manager
+# for roman numerals
+font = font_manager.FontProperties(family='Tahoma',
+                                   style='normal', size=fntsiz-2)
+
+# best params by itself
+fig, ax = plt.subplots(1, 1)
+ax.plot(np.nanmean(pt_all, axis=0).T)
+ax.tick_params(axis='x', labelsize=fntsiz-3)
+ax.tick_params(axis='y', labelsize=fntsiz-3)
+ax.set_ylim(ylims)
+ax.set_xlabel('Learning Block', fontsize=fntsiz)
+ax.set_ylabel('Probability of Error', fontsize=fntsiz)
+ax.legend(('I', 'II', 'III', 'IV', 'V', 'VI'), prop=font)
+plt.tight_layout()
+if saveplots:
+    figname = os.path.join(figdir,
+                            'shj_gsearch_result_{}units_k{}_{}iters'.format(
+                                n_units, k, niter))
+    plt.savefig(figname + '.pdf')
+    plt.savefig(figname + '.png', dpi=500)
+plt.show()
+
+# # n_rec
+# plt.boxplot(nrec_all.T)
+# plt.show()
+
+
 # %% plotting weights to compare to nbank model
 
-# i = 0
-# problem = 5
+# # i = 0
+# # problem = 5
 
-# ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
-ylims = (-.06, .06)
+# # ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+# ylims = (-.06, .06)
 
-for problem in range(6):
-    w = w_trace[problem][i]
-    w0 = torch.reshape(w, (w.shape[0], w.shape[1] * w.shape[2]))
-    plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
-    plt.ylim(ylims)
-    plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c']))
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                         'shj_assocw_type{}_c{}_k{}_{}units.pdf'.format(
-                             problem+1, params['c'], k, n_units))
-        )
-        plt.savefig(figname)
-    plt.show()
+# for problem in range(6):
+#     w = w_trace[problem][i]
+#     w0 = torch.reshape(w, (w.shape[0], w.shape[1] * w.shape[2]))
+#     plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+#     plt.ylim(ylims)
+#     plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c']))
+#     if saveplots:
+#         figname = (
+#             os.path.join(figdir,
+#                          'shj_assocw_type{}_c{}_k{}_{}units.pdf'.format(
+#                              problem+1, params['c'], k, n_units))
+#         )
+#         plt.savefig(figname)
+#     plt.show()
 

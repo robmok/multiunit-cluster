@@ -16,7 +16,7 @@ import torch
 import matplotlib.pyplot as plt
 import pickle
 
-location = 'mbp'  # 'mbp' or 'cluster' (cbu cluster - unix)
+location = 'cluster'  # 'mbp' or 'cluster' (cbu cluster - unix)
 
 if location == 'mbp':
     maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
@@ -28,8 +28,6 @@ elif location == 'cluster':
     # torch.set_num_threads(1)
 
 from MultiUnitCluster import (MultiUnitCluster, train)
-
-maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 
 # TODO - create dirs if not yet on cluster
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
@@ -254,7 +252,21 @@ for isim in range(niter):
             'lr_clusters_group': .7,
             'k': k
             }
-        
+
+        # gridsearch final
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .2,
+            'p': 1,
+            'phi': 14.,
+            'beta': 1.,
+            'lr_attn': .275,  # /(n_units*k), # 3., # maybe should scale here..!
+            'lr_nn': .05/lr_scale,  # .075/0.3750
+            'lr_clusters': .35,
+            'lr_clusters_group': .9,
+            'k': k
+            }
+
         # lesioning
         lesions = None  # if no lesions
         
@@ -322,7 +334,7 @@ for isim in range(niter):
                       plot_seq, problem+1, n_units, k, params['lr_clusters'],
                       params['lr_clusters_group'], params['c'], params['phi'],
                       params['lr_attn'], params['lr_nn'], noise['update1'][1],
-                      noise['recruit'][1], seeds[isim])
+                      noise['recruit'][1], isim)
                   )
         
             if not os.path.exists(os.path.join(figdir, dn)):
@@ -354,12 +366,13 @@ for isim in range(niter):
         
                 # save
                 if saveplots:
-                    figname = os.path.join(figdir, dn, 'trial{}_sim{}'.format(isim))
+                    figname = os.path.join(figdir, dn, 'trial{}_sim{}'.format(i, isim))
+                    print(figname)
                     plt.savefig(figname + '.png')
                     plt.savefig(figname + '.pdf')
 
                 if not location == 'cluster':  # no need to pause if cluster
                     plt.pause(.2)
 
-                # clear some RAM
-                del results, plot_trials
+        # clear some RAM
+        del results, plot_trials

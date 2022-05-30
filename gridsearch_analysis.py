@@ -777,19 +777,19 @@ w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks gd already
 
 
 # 2022 redo, shj order
-# tensor([[0.6000, 5.0000, 1.5000, 0.0500, 0.0500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 100/5])  # 10/5, 100/5, same
+# # tensor([[0.6000, 5.0000, 1.5000, 0.0500, 0.0500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 100/5])  # 10/5, 100/5, same
 
-# tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 1/5, 10/5, 100/5])  # type 3 a bit slower
-# tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.7000]])
-w = torch.tensor([1/5, 1/5, 10/5, 10/5, 200/5])  # type 3 a bit slower - but faster than above
+# # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.9000]])
+# w = torch.tensor([1/5, 1/5, 1/5, 10/5, 100/5])  # type 3 a bit slower
+# # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.7000]])
+# w = torch.tensor([1/5, 1/5, 10/5, 10/5, 200/5])  # type 3 a bit slower - but faster than above
 
-# tensor([[ 0.2000, 13.0000,  1.7500,  0.0500,  0.0500,  0.9000]])
-w = torch.tensor([1/5, 1/5, 50/5, 50/5, 300/5]) # overall slower, but 2-345 sep not great
-# tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
-# w = torch.tensor([1/5, 1/5, 10/5, 50/5, 300/5])  # as above, 3 slightly worse
+# # tensor([[ 0.2000, 13.0000,  1.7500,  0.0500,  0.0500,  0.9000]])
+# w = torch.tensor([1/5, 1/5, 50/5, 50/5, 300/5]) # overall slower, but 2-345 sep not great
+# # tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
+# # w = torch.tensor([1/5, 1/5, 10/5, 50/5, 300/5])  # as above, 3 slightly worse
 
 
 # v2 - shj_order=False - FINAL hopefully
