@@ -301,6 +301,8 @@ sets = sets[(sets != 50)]
 # # ind[sets_tmp[80]:sets_tmp[81]] = False
 # # ind[sets_tmp[90]:sets_tmp[91]] = False
 # ind[sets_tmp[57]:sets_tmp[58]] = False
+# ind[sets_tmp[50]:sets_tmp[51]] = False
+
 # param_sets = param_sets[ind]
 
 # sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets gsearch

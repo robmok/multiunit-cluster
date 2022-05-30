@@ -320,6 +320,7 @@ ranges = ([torch.arange(.1, .7, .1),
 
 
 
+
 # finegsearch nbanks
 
 # [0.6, 1.125, 0.81, 0.61, .3, .8,
@@ -367,33 +368,34 @@ ranges = ([torch.arange(.1, .7, .1),
 # [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
 #  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
 # - 108000 params
-ranges = ([torch.arange(.4, .9, .1),  # added .4
-          torch.arange(.75, 1.251, .125), #  2 more than above
-          torch.arange(.8, 2.2, .25),  # 10 rather than 6
-          torch.arange(.55, .81, .05) / lr_scale,
-          torch.tensor([.3]),
-          torch.tensor([.5, .7]),
-
-          torch.arange(1.7, 2.2, .1), # 6 rather than 8
-          torch.arange(2, 3.1, .25),  # 5 as before
-          torch.tensor([.001]), # 1 instead of 2
-          torch.tensor([.01]) / lr_scale,  # 1 instead of 3
-          torch.tensor([.3]),
-          torch.tensor([.5, .7])]
-          )
-
+if finegsearch:
+    ranges = ([torch.arange(.4, .9, .1),  # added .4
+              torch.arange(.75, 1.251, .125), #  2 more than above
+              torch.arange(.8, 2.2, .25),  # 10 rather than 6
+              torch.arange(.55, .81, .05) / lr_scale,
+              torch.tensor([.3]),
+              torch.tensor([.5, .7]),
+    
+              torch.arange(1.7, 2.2, .1), # 6 rather than 8
+              torch.arange(2, 3.1, .25),  # 5 as before
+              torch.tensor([.001]), # 1 instead of 2
+              torch.tensor([.01]) / lr_scale,  # 1 instead of 3
+              torch.tensor([.3]),
+              torch.tensor([.5, .7])]
+              )
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
-# sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
-# sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks - 2022 using this
-# sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks - initially used this as cluster not enough free nodes to run
-
-# sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
-
-# finegsearch 2022
-sets = torch.arange(0, len(param_sets), 270)  # 2022 - 400 sets
+if not finegsearch:
+    # sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
+    sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks - 2022 using this
+    # sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks - initially used this as cluster not enough free nodes to run
+    
+    # sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
+    # finegsearch 2022
+else:
+    sets = torch.arange(0, len(param_sets), 270)  # 2022 - 400 sets
 
 # not a great way to add final set on
 sets = torch.cat(
