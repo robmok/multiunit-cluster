@@ -16,7 +16,7 @@ from scipy.stats import binned_statistic_dd
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import imageio
+# import imageio
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
 import scores   # grid cell scorer from Banino
@@ -319,7 +319,7 @@ plt.show()
 
 # %% plot actmaps and xcorrs
 
-saveplots = True
+saveplots = False
 
 # old notes
 # - 0.26 is 3, making a line, can remove
@@ -334,7 +334,7 @@ params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
           [.0075, .01],  # just .0075 for now
           [.6, .8, 1.]]  # just .8, 1. for now
 
-k = .3
+k = .12
 lr = params[1][0]
 lr_group = params[2][2]
 
@@ -351,7 +351,7 @@ f = torch.load(fn)
 act_maps = f['act_map']
 
 # act_map and autocorrelogram
-isim = 13
+isim = 23
 
 # check which have gd gscores
 np.nonzero(df_gscore[k].values>.4)
