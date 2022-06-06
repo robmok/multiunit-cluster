@@ -287,7 +287,8 @@ sets = torch.arange(n_sets)
 # - remove some from sets if incomplete
 # sets = sets[(sets != 81) & (sets != 91)]  # TMP remove sets 80 and 109
 # sets = sets[(sets != 81)]
-sets = sets[(sets != 50)]
+# sets = sets[(sets != 50)]
+# sets = sets[(sets != 16)]
 
 # sets = sets[(sets != 57)]
 # sets = sets[(sets != 156)]
@@ -305,12 +306,15 @@ sets = sets[(sets != 50)]
 
 # param_sets = param_sets[ind]
 
-# sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets gsearch
-sets_tmp = torch.arange(0, len(param_sets), 270)  # 400 sets nbanks gsearch
-ind = torch.ones(len(param_sets), dtype=torch.bool)
-# ind[sets_tmp[80]:sets_tmp[81]] = False
-ind[sets_tmp[50]:sets_tmp[51]] = False
-param_sets = param_sets[ind]
+
+# # sets_tmp = torch.arange(0, len(param_sets), 840)  # 400 sets gsearch
+# sets_tmp = torch.arange(0, len(param_sets), 882)  # 400 sets nbanks gsearch
+# # sets_tmp = torch.arange(0, len(param_sets), 270)  # 400 sets nbanks finegsearch
+# ind = torch.ones(len(param_sets), dtype=torch.bool)
+# # ind[sets_tmp[80]:sets_tmp[81]] = False
+# # ind[sets_tmp[50]:sets_tmp[51]] = False
+# ind[sets_tmp[16]:sets_tmp[17]] = False
+# param_sets = param_sets[ind]
 
 # load in
 pts = []
@@ -904,6 +908,15 @@ w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
 # # [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
 # #  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
 
+#v2
+# tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 6.1000e-01, 3.0000e-01, 7.0000e-01,
+         # 2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks pretty gd already, 3-5 too close to 6
+
+# tensor([[5.0000e-01, 1.1250e+00, 8.1000e-01, 7.6000e-01, 3.0000e-01, 7.0000e-01,
+         # 1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 20/5, 1/5])  # better separation - best -  if param 4 goes up, stays the same
+
 
 
 # # # finegsearch - testing without 3 sets
@@ -925,7 +938,7 @@ w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
 # # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
 # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
+w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
 # # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
 # #          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
 # # w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd

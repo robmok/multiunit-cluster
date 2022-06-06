@@ -351,7 +351,7 @@ f = torch.load(fn)
 act_maps = f['act_map']
 
 # act_map and autocorrelogram
-isim = 23
+isim = 43
 
 # check which have gd gscores
 np.nonzero(df_gscore[k].values>.4)

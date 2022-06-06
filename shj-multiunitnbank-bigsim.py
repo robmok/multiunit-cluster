@@ -74,7 +74,7 @@ pt_all = torch.zeros([niter, 6, n_banks+1, n_epochs])
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 34000000  # 2000
+n_units = 34000000 // n_banks  # 2000
 loss_type = 'cross_entropy'
 k = 0.0005 / n_banks
 lr_scale = (n_units * k)
@@ -122,6 +122,7 @@ for i in range(niter):
         # gsearch + finegsearch 2022
         # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
         #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+
         params = {
             'r': 1,
             'c': [.7, 1.7],
@@ -140,7 +141,7 @@ for i in range(niter):
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, n_epochs, shuffle_seed=seeds[i],
-            shj_order=True)
+            shj_order=False)
 
         pt_all[i, problem] = 1 - epoch_ptarget.detach()
 

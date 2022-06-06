@@ -30,7 +30,7 @@ from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
 datadir = os.path.join(maindir, 'muc-shj-gridsearch')
 
-finegsearch = False
+finegsearch = True
 
 def negloglik(model_pr, beh_seq):
     return -np.sum(stats.norm.logpdf(beh_seq, loc=model_pr))
@@ -368,6 +368,11 @@ ranges = ([torch.arange(.1, .7, .1),
 # [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
 #  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
 # - 108000 params
+
+# v2 - pretty much same as above, so can keep the finegsearch i ran before
+# tensor([[5.0000e-01, 1.1250e+00, 8.1000e-01, 7.6000e-01, 3.0000e-01, 7.0000e-01,
+         # 1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+
 if finegsearch:
     ranges = ([torch.arange(.4, .9, .1),  # added .4
               torch.arange(.75, 1.251, .125), #  2 more than above
