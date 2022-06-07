@@ -172,6 +172,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
     # lesion units during learning
     if lesions:
+        les_units = []  # initialize
         model.lesion_units = []  # save which units were lesioned
         if lesions['gen_rand_lesions_trials']:  # lesion at randomly timepoints
             lesion_trials = (
@@ -217,11 +218,41 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 if torch.any(itrl == lesion_trials):
                     # find active ws, randomly turn off n units (n_lesions)
                     w_ind = np.nonzero(model.active_units)
-                    les = w_ind[torch.randint(w_ind.numel(),
-                                              (lesions['n_lesions'],))]
-                    model.lesion_units.append(les)
+
+                    # if lesions > active units, sel fewer
+                    if lesions['n_lesions'] > len(w_ind):
+                        les = w_ind  # all active units
+
+                        # if nles > active units, also lesion inactive units
+                        n_more_lesions = lesions['n_lesions'] - len(w_ind)
+                        # inactive units
+                        w_ind_inact = np.nonzero(~model.active_units)
+                        # if nmlesions > inactive units, set to ninactive units
+                        # if inactive units > nmlesions, set to nmlesions
+                        n_lesions_inact = min([len(w_ind_inact),
+                                               n_more_lesions])
+
+                        les_inact = np.random.choice(w_ind_inact.flatten(),
+                                                     n_lesions_inact,
+                                                     replace=False)
+
+                        # append
+                        les = torch.vstack([les,
+                                            torch.tensor([les_inact, ]).T])
+                    else:
+                        les = np.random.choice(w_ind.flatten(),
+                                               lesions['n_lesions'],
+                                               replace=False)
+                        les = torch.tensor(les)
+
+                    # note: making these 'active' so won't recruit them
+                    model.active_units[les] = False
                     with torch.no_grad():
                         model.fc1.weight[:, les] = 0
+
+                    model.lesion_units.append(les.flatten())
+                    # note to check which not to recruit
+                    les_units = torch.hstack(model.lesion_units)
 
             # find winners:largest acts that are connected (model.active_units)
             dim_dist = abs(x - model.units_pos)
@@ -398,8 +429,9 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
             trial_ptarget[itrl] = pr[target]
 
             # Recruit cluster, and update model
-            if (torch.tensor(recruit) and
-                    torch.sum(model.fc1.weight == 0) > 0):  # if no units, stop
+            if (torch.tensor(recruit)
+                    and torch.sum(model.fc1.weight == 0) > 0
+                    and len(les_units) < model.n_units):  # if no more units, stop
 
                 # 1st trial - select closest k inactive units
                 if itrl == 0:
@@ -417,16 +449,20 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
                 # recruit and REPLACE k units that mispredicted
                 else:
-                    mispred_units = (
-                        torch.argmax(model.fc1.weight[:, win_ind].detach(),
-                                     dim=0) != target
-                        )
+                    if len(win_ind):  # else all lesioned
+                        mispred_units = (
+                            torch.argmax(model.fc1.weight[:, win_ind].detach(),
+                                         dim=0) != target
+                            )
+                    else:
+                        mispred_units = torch.tensor(0)
 
                     # select closest n_mispredicted inactive units
                     n_mispred_units = mispred_units.sum()
                     act = model._compute_act(
                         dist, model.params['c'], model.params['p'])
                     act[model.active_units] = 0  # REMOVE all active units
+                    act[les_units] = 0  # REMOVE all lesioned units
                     # find closest units excluding the active units to recruit
                     _, recruit_ind = (
                         torch.topk(act, n_mispred_units))
@@ -441,7 +477,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 model.winning_units[:] = 0  # clear
                 model.winning_units[recruit_ind] = True
                 # keep units that predicted correctly
-                if itrl > 0:
+                if itrl > 0 and len(win_ind):  # else all lesioned
                     model.winning_units[win_ind[~mispred_units]] = True
                 model.units_pos[recruit_ind] = x  # place at curr stim
                 model.recruit_units_trl.append(itrl)
@@ -578,6 +614,12 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
         epoch_ptarget[epoch] = trial_ptarget[itrl-len(inputs):itrl].mean()
+
+        # epoch_acc[epoch] = torch.tensor(
+        #     np.nanmean(trial_acc[itrl-len(inputs):itrl].detach()))
+        # epoch_ptarget[epoch] = torch.tensor(
+        #     np.nanmean(trial_ptarget[itrl-len(inputs):itrl].detach()))
+
 
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget
 

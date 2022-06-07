@@ -158,14 +158,14 @@ for i in range(niter):
 
         # print(model.recruit_units_trl)
 
-# save variables
-# - pt_all, nrec_all
-if saveresults:
-    fn = os.path.join(datadir,
-                      'shj_nbanks_results_pt_nrec_k{}_{}units.pkl'.format(
-                          k, n_units))
-    
-    shj_res = [pt_all, nrec_all]  # seeds_all
-    open_file = open(fn, "wb")
-    pickle.dump(shj_res, open_file)
-    open_file.close()
+    # save variables - EDITED to save after each iter
+    # - pt_all, nrec_all
+    if saveresults:
+        fn = os.path.join(datadir,
+                          'shj_nbanks_results_pt_nrec_k{}_{}units.pkl'.format(
+                              k, n_units))
+        
+        shj_res = [pt_all, nrec_all]  # seeds_all
+        open_file = open(fn, "wb")
+        pickle.dump(shj_res, open_file)
+        open_file.close()

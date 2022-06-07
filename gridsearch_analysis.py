@@ -938,7 +938,7 @@ w = torch.tensor([1/5, 1/5, 1/5, 20/5, 1/5])  # better separation - best -  if p
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
 # # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
 # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
+# w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
 # # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
 # #          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
 # # w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd

@@ -47,9 +47,9 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 saveplots = False
 
-n_sims = 20
+n_sims = 10
 
-problem = 1
+problem = 0
 
 stim = six_problems[problem]
 stim = torch.tensor(stim, dtype=torch.float)
@@ -66,12 +66,12 @@ loss_type = 'cross_entropy'
 
 n_epochs = 16
 
-lesions = {
-    'n_lesions': 10,  # n_lesions per event
-    'gen_rand_lesions_trials': False,  # generate lesion events at random times
-    'pr_lesion_trials': .01,  # if True, set this
-    'lesion_trials': torch.tensor([20])  # if False, set lesion trials
-    }
+# lesions = {
+#     'n_lesions': 10,  # n_lesions per event
+#     'gen_rand_lesions_trials': False,  # generate lesion events at random times
+#     'pr_lesion_trials': .01,  # if True, set this
+#     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
+#     }
 
 # for All: need 1 simulation with lesions vs no lesions - w same shuffled seq
 # - feed in a random number for seed: shuffle_seed = torch.randperm(n_sims)
@@ -100,6 +100,7 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 #  - with 5000/8000 recovers - actually even better (recruit extra cluster so
 # higher act... feature/bug? could be feature: learning, hpc synpase overturn)
 n_units = [20, 100, 1000, 10000]  # [20, 100, 500]
+n_units = [20, 500, 1000, 10000]
 k = [.05]
 n_lesions = [0, 25, 50]
 lesion_trials = np.array([[60]])  # [60]]  # 1 per lesion, but do at diff times
@@ -172,6 +173,20 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
         #     'k': sim_prms[1]
         #     }
 
+        # 2022 results
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .2,
+            'p': 1,
+            'phi': 14.,
+            'beta': 1.,
+            'lr_attn': .275,  # /(n_units*k), # 3., # maybe should scale here..!
+            'lr_nn': .05/(sim_prms[0] * sim_prms[1]),  # lr_scale
+            'lr_clusters': .35,
+            'lr_clusters_group': .9,
+            'k': sim_prms[1]
+            }
+
         model = MultiUnitCluster(sim_prms[0], n_dims, attn_type, sim_prms[1],
                                  params=params)
 
@@ -184,7 +199,7 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
 
         model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
             model, inputs, output, n_epochs, shuffle_seed=shuffle_seeds[isim],
-            lesions=lesions)
+            lesions=lesions, shj_order=False)
 
         pt.append(1 - epoch_ptarget.detach())
         recruit_trial.append(model.recruit_units_trl)
