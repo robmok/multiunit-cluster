@@ -47,7 +47,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 saveplots = False
 
-n_sims = 10
+n_sims = 25
 
 problem = 0
 
@@ -159,21 +159,21 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
             'k': sim_prms[1]
             }
 
-        # # gridsearch params (2nd one)
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .8,  # w/ attn grad normalized, c can be large now
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.,
-        #     'beta': 1.,
-        #     'lr_attn': .8,  # this scales at grad computation now
-        #     'lr_nn': .65/(sim_prms[0] * sim_prms[1]),
-        #     'lr_clusters': .5,  # .075/.1
-        #     'lr_clusters_group': .5,
-        #     'k': sim_prms[1]
-        #     }
+        # gridsearch params (2nd one)
+        params = {
+            'r': 1,  # 1=city-block, 2=euclid
+            'c': .8,  # w/ attn grad normalized, c can be large now
+            'p': 1,  # p=1 exp, p=2 gauss
+            'phi': 1.,
+            'beta': 1.,
+            'lr_attn': .8,  # this scales at grad computation now
+            'lr_nn': .65/(sim_prms[0] * sim_prms[1]),
+            'lr_clusters': .5,  # .075/.1
+            'lr_clusters_group': .5,
+            'k': sim_prms[1]
+            }
 
-        # 2022 results
+        # 2022 gsearch results - saved with _v2 at the end
         params = {
             'r': 1,  # 1=city-block, 2=euclid
             'c': .2,
@@ -256,7 +256,7 @@ ax[0].set_box_aspect(1)
 #     plt.savefig(figname, dpi=100)
 # plt.show()
 
-pt_plot = [pts[ind_sims[i]].mean(axis=0) for i in range(len_p, len_p*2)]
+pt_plot = [np.nanmean(pts[ind_sims[i]], axis=0) for i in range(len_p, len_p*2)]
 ax[1].plot(pt_plot[0], linestyle='-', color=col[problem])
 ax[1].plot(pt_plot[1], linestyle=(0, (5, 2.5)), color=col[problem])
 ax[1].plot(pt_plot[2], linestyle='dotted', color=col[problem])
@@ -294,7 +294,7 @@ plt.tight_layout()
 if saveplots:
     figname = os.path.join(figdir,
                            'lesion_pt_subplot_k{}_type{}_trl{}_{}-{}-{}-{}'
-                           'units_{}sims'.format(
+                           'units_{}sims_v2'.format(
                                sim_prms[1], problem+1, lesion_trials[0, 0],
                                n_units[0],  n_units[1], n_units[2], n_units[3],
                                n_sims))
@@ -302,76 +302,78 @@ if saveplots:
     plt.savefig(figname + '.pdf')
 plt.show()
 
-# recruit clusters
-# plt.style.use('seaborn-darkgrid')
-recr_n = torch.tensor(
-    [len(recruit_trial[i]) for i in range(len(recruit_trial))],  # count
-    dtype=torch.float)
+# # recruit clusters
+# # plt.style.use('seaborn-darkgrid')
+# recr_n = torch.tensor(
+#     [len(recruit_trial[i]) for i in range(len(recruit_trial))],  # count
+#     dtype=torch.float)
 
-recr_avgs = torch.tensor(
-    [[recr_n[ind_sims[i]].mode() for i in range(0, len_p)],
-     [recr_n[ind_sims[i]].mode() for i in range(len_p, len_p*2)],
-     [recr_n[ind_sims[i]].mode() for i in range(len_p*2, len_p*3)],
-     [recr_n[ind_sims[i]].mode() for i in range(len_p*3, len_p*4)]])
+# recr_avgs = torch.tensor(
+#     [[recr_n[ind_sims[i]].mode() for i in range(0, len_p)],
+#      [recr_n[ind_sims[i]].mode() for i in range(len_p, len_p*2)],
+#      [recr_n[ind_sims[i]].mode() for i in range(len_p*2, len_p*3)],
+#      [recr_n[ind_sims[i]].mode() for i in range(len_p*3, len_p*4)]])
 
-ylims = (0, recr_avgs[:, :, 0].max() + .5)  # index since mode gives indices..
+# ylims = (0, recr_avgs[:, :, 0].max() + .5)  # index since mode gives indices..
 
-mrksiz = 4
+# mrksiz = 4
 
-fig, ax, = plt.subplots(1, 4)
-recr_plot = torch.stack(
-    [recr_n[ind_sims[i]].mode().values for i in range(0, len_p)])
-ax[0].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
-           markersize=mrksiz)
-ax[0].set_title('{} units'.format(n_units[0]), fontsize=fntsiz-5)
-ax[0].tick_params(axis='x', labelsize=fntsiz-5)
-ax[0].tick_params(axis='y', labelsize=fntsiz-5)
-ax[0].set_ylabel('No. of recruitments', fontsize=fntsiz-3)
-ax[0].set_ylim(ylims)
-ax[0].set_box_aspect(1)
+# fig, ax, = plt.subplots(1, 4)
+# recr_plot = torch.stack(
+#     [recr_n[ind_sims[i]].mode().values for i in range(0, len_p)])
+# ax[0].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
+#            markersize=mrksiz)
+# ax[0].set_title('{} units'.format(n_units[0]), fontsize=fntsiz-5)
+# ax[0].tick_params(axis='x', labelsize=fntsiz-5)
+# ax[0].tick_params(axis='y', labelsize=fntsiz-5)
+# ax[0].set_ylabel('No. of recruitments', fontsize=fntsiz-3)
+# ax[0].set_ylim(ylims)
+# ax[0].set_box_aspect(1)
 
-recr_plot = torch.stack(
-    [recr_n[ind_sims[i]].mode().values for i in range(len_p, len_p*2)])
-ax[1].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
-           markersize=mrksiz)
-ax[1].set_title('{} units'.format(n_units[1]), fontsize=fntsiz-5)
-ax[1].tick_params(axis='x', labelsize=fntsiz-5)
-ax[1].set_yticklabels([])  # remove ticklables
-ax[1].set_ylim(ylims)
-ax[1].set_xlabel('                    No. of lesions', fontsize=fntsiz-3)
-ax[1].set_box_aspect(1)
+# recr_plot = torch.stack(
+#     [recr_n[ind_sims[i]].mode().values for i in range(len_p, len_p*2)])
+# ax[1].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
+#            markersize=mrksiz)
+# ax[1].set_title('{} units'.format(n_units[1]), fontsize=fntsiz-5)
+# ax[1].tick_params(axis='x', labelsize=fntsiz-5)
+# ax[1].set_yticklabels([])  # remove ticklables
+# ax[1].set_ylim(ylims)
+# ax[1].set_xlabel('                    No. of lesions', fontsize=fntsiz-3)
+# ax[1].set_box_aspect(1)
 
-recr_plot = torch.stack(
-    [recr_n[ind_sims[i]].mode().values for i in range(len_p*2, len_p*3)])
-ax[2].plot(['0', '10', '20'], recr_plot, 'o--',
-           color=col[problem], markersize=mrksiz)
-ax[2].set_title('{} units'.format(n_units[2]), fontsize=fntsiz-5)
-ax[2].tick_params(axis='x', labelsize=fntsiz-5)
-ax[2].set_yticklabels([])  # remove ticklables
-ax[2].set_ylim(ylims)
-ax[2].set_box_aspect(1)
+# recr_plot = torch.stack(
+#     [recr_n[ind_sims[i]].mode().values for i in range(len_p*2, len_p*3)])
+# ax[2].plot(['0', '10', '20'], recr_plot, 'o--',
+#            color=col[problem], markersize=mrksiz)
+# ax[2].set_title('{} units'.format(n_units[2]), fontsize=fntsiz-5)
+# ax[2].tick_params(axis='x', labelsize=fntsiz-5)
+# ax[2].set_yticklabels([])  # remove ticklables
+# ax[2].set_ylim(ylims)
+# ax[2].set_box_aspect(1)
 
-recr_plot = torch.stack(
-    [recr_n[ind_sims[i]].mode().values for i in range(len_p*3, len_p*4)])
-ax[3].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
-           markersize=mrksiz)
-ax[3].set_title('{} units'.format(n_units[3]), fontsize=fntsiz-5)
-ax[3].tick_params(axis='x', labelsize=fntsiz-5)
-ax[3].set_yticklabels([])  # remove ticklables
-ax[3].set_ylim(ylims)
-ax[3].set_box_aspect(1)
-plt.tight_layout()
+# recr_plot = torch.stack(
+#     [recr_n[ind_sims[i]].mode().values for i in range(len_p*3, len_p*4)])
+# ax[3].plot(['0', '10', '20'], recr_plot, 'o--', color=col[problem],
+#            markersize=mrksiz)
+# ax[3].set_title('{} units'.format(n_units[3]), fontsize=fntsiz-5)
+# ax[3].tick_params(axis='x', labelsize=fntsiz-5)
+# ax[3].set_yticklabels([])  # remove ticklables
+# ax[3].set_ylim(ylims)
+# ax[3].set_box_aspect(1)
+# plt.tight_layout()
 
-if saveplots:
-    figname = os.path.join(figdir,
-                           'lesion_recruit_k{}_type{}_trl{}_{}-{}-{}-{}units_'
-                           '{}sims'.format(
-                               sim_prms[1], problem+1, lesion_trials[0, 0],
-                               n_units[0], n_units[1], n_units[2], n_units[3],
-                               n_sims))
-    plt.savefig(figname + '.png', dpi=100)
-    plt.savefig(figname + '.pdf')
-plt.show()
+# if saveplots:
+#     figname = os.path.join(figdir,
+#                            'lesion_recruit_k{}_type{}_trl{}_{}-{}-{}-{}units_'
+#                            '{}sims'.format(
+#                                sim_prms[1], problem+1, lesion_trials[0, 0],
+#                                n_units[0], n_units[1], n_units[2], n_units[3],
+#                                n_sims))
+#     plt.savefig(figname + '.png', dpi=100)
+#     plt.savefig(figname + '.pdf')
+# plt.show()
+
+
 # # back to defaults
 # plt.rcdefaults()
 
