@@ -919,30 +919,44 @@ w = torch.tensor([1/5, 1/5, 1/5, 20/5, 1/5])  # better separation - best -  if p
 
 
 
-# # # finegsearch - testing without 3 sets
-# # # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-# #          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
-# # # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-# # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# # w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
-
-# # # with type II as 2nd slower in bank 2
-# # # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# # # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
-# # # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
-
-# # 2022
-# # tensor([[6.0000e-01, 1.0000e+00, 8.0000e-01, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-# #          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
-# # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+# # finegsearch - testing without 3 sets
+# # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+#          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
+# # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
 # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
-# # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
-# #          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+# w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
+
+# # with type II as 2nd slower in bank 2
+# # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
+# # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
+# # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
+
+# 2022
+# tensor([[6.0000e-01, 1.0000e+00, 8.0000e-01, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
+# tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
+#          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
+# tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
+#          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
 # # w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd
 
+# v2
+# tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 8.0000e-01, 3.0000e-01, 7.0000e-01,
+         # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # ok, 345-6 a bit close
+# tensor([[7.0000e-01, 1.0000e+00, 1.3000e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
+         # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # before best, nt as gd?
+# tensor([[6.0000e-01, 1.2500e+00, 8.0000e-01, 6.5000e-01, 3.0000e-01, 7.0000e-01,
+#          1.7000e+00, 2.7500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 250/5, 1/5]) # gd
+
+# tensor([[5.0000e-01, 1.2500e+00, 8.0000e-01, 7.0000e-01, 3.0000e-01, 7.0000e-01,
+#          1.8000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+w = torch.tensor([1/5, 1/5, 1/5, 30/5, 1/5])  # ever so slightly better
 
 w = w / w.sum()
 sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
