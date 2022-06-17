@@ -17,7 +17,7 @@ import time
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
-finegsearch = False
+finegsearch = True
 nbanks = True
 
 # k = 0.01

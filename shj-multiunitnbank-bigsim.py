@@ -26,11 +26,7 @@ elif location == 'cluster':
 
 from MultiUnitClusterNBanks import (MultiUnitClusterNBanks, train)
 
-maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
-
-maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
-# figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-results')
 
 # %% SHJ
