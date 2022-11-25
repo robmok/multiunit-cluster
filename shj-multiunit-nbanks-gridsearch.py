@@ -146,156 +146,6 @@ lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group x 2
 
-# n-banks model - run something bigger, like 10k units, k=.01
-# - with ~ 4 values per param, 5,308,416 param sets, 5.308m
-# ranges = ([torch.arange(.1, 1.1, .3),
-#           torch.arange(1., 15., 6),
-#           torch.arange(.05, 1., .25),
-#           torch.arange(.05, 1., .25) / lr_scale,
-#           torch.arange(.05, 1., .25),
-#           torch.arange(.2, 1., .3),
-
-#           torch.arange(1.8, 3., .3),
-#           torch.arange(1., 15., 6),
-#           torch.arange(.05, 1., .25),
-#           torch.arange(.05, 1., .25) / lr_scale,
-#           torch.arange(.05, 1., .25),
-#           torch.arange(.2, 1., .3)])
-
-# 5308416/350000 - 15.16x of orig params
-# orig took ~ 2 days for 700 sets. max is 7 days per job
-# - (2200psets*.0656)/24=6.013 days
-# - (2250psets*.0656)/24=6.15 days
-# - (2400psets*.0656)/24=6.56 days
-# - (2500*.0656)/24=6.833 days
-# 5308416/2200 = 2412.916 sets to run
-# - currently running 450 sets/cores at a time, ~2 days
-# - 2412.916/450 = 5.362 - run 2200 psets 5.36 times
-# - 2200 sets takes 6 days. so 6*5.36=32.16 days
-
-# # cut lrs, +1 more phi 746496 psets
-# ranges = ([torch.arange(.1, 1.1, .3),
-#           torch.arange(1., 15., 4),
-#           torch.arange(.05, 1., .4),
-#           torch.arange(.05, 1., .4) / lr_scale,
-#           torch.arange(.05, 1., .4),
-#           torch.arange(.4, 1., .4),
-
-#           torch.arange(2.1, 3.1, .3),
-#           torch.arange(1., 15., 4),
-#           torch.arange(.05, 1., .4),
-#           torch.arange(.05, 1., .4) / lr_scale,
-#           torch.arange(.05, 1., .4),
-#           torch.arange(.4, 1., .4)]
-#           )
-
-# 746496/2200=339.31 sets to run - could run all in 1 go < 7 days
-# 746496/1700= 439.115 # - even better, quicker
-
-# or could do sth midway between above, run 2 weeks. aim for ~3.15m psets
-# - more attn and nn lr's, same lr_clus
-# - 2,359,296 psets
-ranges = ([torch.arange(.1, 1.1, .3),
-          torch.arange(1., 15., 4),
-          torch.arange(.05, 1., .25),
-          torch.arange(.05, 1., .25) / lr_scale,
-          torch.arange(.05, 1., .35),
-          torch.arange(.4, 1., .4),
-
-          torch.arange(2.1, 3.1, .3),
-          torch.arange(1., 15., 4),
-          torch.arange(.05, 1., .25),
-          torch.arange(.05, 1., .25) / lr_scale,
-          torch.arange(.05, 1., .35),
-          torch.arange(.4, 1., .4)]
-          )
-# # 2359296/2200sets=1072.407
-# # 1072.407/450=2.383
-# # 6*2.383=14.298 days - 2 weeks
-
-# RECALCULATE - based on slower to run nbanks
-
-# prob no need to test all params.
-# - c is key - 5 values each
-# - phi can be lower, esp since 2 models now - but might be useful. .5 steps
-# - lr_clus and lr_group can keep same
-# - attn no need to go to 1. 2nd bank can be lower - bt should i enforce ths?
-
-# # 360000
-# ranges = ([torch.arange(.2, 1.2, .2),
-#           torch.arange(1., 4., .5),
-#           torch.arange(.01, 1., .25),
-#           torch.arange(.01, .7, .15) / lr_scale,
-#           torch.tensor([.3]),
-#           torch.tensor([.9]),
-
-#           torch.arange(2., 3., .2),
-#           torch.arange(1., 4., .5),
-#           torch.arange(.01, 1., .25),
-#           torch.arange(.01, .7, .15) / lr_scale,
-#           torch.tensor([.3]),
-#           torch.tensor([.9])]
-#           )
-
-# new calc -
-# finalized (for now) single bank gsearch gd params (high attn)
-# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
-# tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])
-# tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])
-# - main update is lr_clus maybe need 2 vals (.3, .5)?, and group - could keep to .8...
-
-# tested nbanks some ok gd patterns
-# - c/phi values pretty sensitive, need small-ish steps
-# - attn bank 2 always small..
-# - nn bank 1 needs large range, bank 2 small
-# params = {
-#     # 'c': [.2, 2.2],
-#     'c': [.25, 2.],  # .2/.25; 2./2.5
-#     # 'c': [.1, 2.2],  # 2.5
-#     # 'phi': [1.5, 1.5],
-#     'phi': [1.8, 2.15],  # 1.9, 2.1
-#     'lr_attn': [1.5, .001],  # 1.5
-#     # 'lr_attn': [2., .001],  # for 3rd c/phi, meh
-#     'lr_nn': [.9/lr_scale, .01/lr_scale],  # .75/.85
-#     }
-
-# 352800
-# - 352800/2000 psets = 176.4 sets
-# - 352800/1000 psets = 352.8 sets
-# - 352800/800 = 441 sets
-# - 352800/784 = 450 sets
-
-# 358s / 5.9667 min / 0.09944 hours per set
-# 0.09944*800=79.552 hours = 3.3146 days. seems doable.
-# if assume cores a bit slower e.g. 8-10 mins (.133/.166 hours):
-# .1333*800=106.64 hrs, 4.44 days
-# .1666*800=133.28 hrs, 5.55 days
-# 784 sets
-# 0.09944*784=77.96/24=3.24 days
-# 0.1333*784=104.51/24=4.35 days
-# 0.1666*784=130.6/24=5.442 days
-
-# test this first, see everything ok, script up analysis
-# - should be able to see how off these are, and which params need to extend
-
-# 352800 params,784 sets, 784*5=3920/60=65.4hrs=2.72 days
-# 352800/400=882 sets. 882*5=4410/60/24=3.06 days
-# 352800/360=980 sets. 980*5=4900/60/24=3.40277 days
-ranges = ([torch.arange(.1, .7, .1),
-          torch.arange(.75, 2.5, .375),
-          torch.arange(.01, 3., .4),
-          torch.arange(.01, 1., .15) / lr_scale,
-          torch.tensor([.3]),
-          torch.tensor([.8]),
-
-          torch.arange(1.8, 2.5, .1),
-          torch.arange(.75, 2.5, .375),
-          torch.arange(.001, .1, .05),  # 2 vals only
-          torch.arange(.01, .4, .15) / lr_scale,
-          torch.tensor([.3]),
-          torch.tensor([.8])]
-          )
-
 # 2022 - slightly edited based on single-bank gsearch results
 # single bank: ([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
 # - 352800 as before, 400 sets, just over 3 days? --> 2 days 12 hours.
@@ -317,52 +167,6 @@ ranges = ([torch.arange(.1, .7, .1),
 # params to check if re-run:
 # - bank 1:attn go up to / over 3, as single bank 3 is gd (might check this for single bank too - go >3)
 # - cluster lr - maybe check .5, .8/,9?
-
-
-
-
-# finegsearch nbanks
-
-# [0.6, 1.125, 0.81, 0.61, .3, .8,
-#  2, 2.25, 0.001, 0.01, .3, .8]
-
-# [0.5, 1.125, 2.01, 0.76, .3, .8,
-#  1.8, 2.25, 0.001, 0.01, .3, .8]
-
-# 12960 params
-# 12960/128 = 102 sets. 5 min per set, 102*5=510/60=8.5 hours
-# ranges = ([torch.arange(.5, .9, .1),
-#           torch.arange(1., 1.251, .125),  # or just stick to 1.125
-#           torch.arange(.8, 2.2, .25),  # 6 rather than 8
-#           torch.arange(.55, .81, .05) / lr_scale,  # 6 rather than 7
-#           torch.tensor([.3]),
-#           torch.tensor([.8]),
-
-#           torch.arange(1.7, 2.2, .1), # 6 rather than 8
-#           torch.arange(2, 3.1, .25),  # 5 as before
-#           torch.tensor([.001]), # 1 instead of 2
-#           torch.tensor([.01]) / lr_scale,  # 1 instead of 3
-#           torch.tensor([.3]),
-#           torch.tensor([.8])]
-#           )
-
-# # more
-# # 86400 params
-# # 86400/128=675*5=3375/60=56.25/24=2.34 days - run thurs night, done sunday.
-# ranges = ([torch.arange(.5, .9, .1),
-#           torch.arange(.75, 1.251, .125), #  2 more than above
-#           torch.arange(.8, 2.2, .25),
-#           torch.arange(.55, .81, .05) / lr_scale,  #
-#           torch.tensor([.3]),
-#           torch.tensor([.5, .8]),  # group lr
-
-#           torch.arange(1.7, 2.2, .1),
-#           torch.arange(2, 3.1, .25),
-#           torch.tensor([.001]),
-#           torch.tensor([.01]) / lr_scale,
-#           torch.tensor([.3]),
-#           torch.tensor([.5, .8])]
-#           )
 
 # 2022 finegsearch
 # [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
@@ -393,12 +197,10 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 
 # set up which subset of param_sets to run on a given run
 if not finegsearch:
-    # sets = torch.arange(0, len(param_sets), 784)  # 450 sets for nbanks
     sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks - 2022 using this
     # sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks - initially used this as cluster not enough free nodes to run
     
     # sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
-    # finegsearch 2022
 else:
     sets = torch.arange(0, len(param_sets), 270)  # 2022 - 400 sets
 

@@ -9,7 +9,7 @@ Created on Mon Jun 14 16:12:07 2021
 import torch
 import torch.nn as nn
 import torch.optim as optim
-# import warnings
+import warnings
 
 
 class MultiUnitClusterNBanks(nn.Module):
@@ -119,7 +119,6 @@ class MultiUnitClusterNBanks(nn.Module):
         self.units_act_trace.append(
             units_output[self.active_units].detach().clone())
 
-        # output
         # output across all banks / full model
         out_b = []
         pr_b = []
@@ -153,7 +152,7 @@ class MultiUnitClusterNBanks(nn.Module):
     def _compute_dist(self, dim_dist, attn_w, r, n_banks):
         # since sqrt of 0 returns nan for gradient, need this bit
         # e.g. euclid, can't **(1/2)
-        if r > 1:
+        if r > 1:  # leave for now
             # d = torch.zeros(len(dim_dist))
             # ind = torch.sum(dim_dist, axis=1) > 0
             # dim_dist_tmp = dim_dist[ind]
@@ -171,7 +170,7 @@ class MultiUnitClusterNBanks(nn.Module):
                         )
             else:
                 d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-        return d  # **2  # squared dist
+        return d
 
     def _compute_act(self, dist, c, p):
         """
@@ -213,7 +212,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
     trial_ptarget = torch.zeros([model.n_banks + 1, n_trials])
     epoch_ptarget = torch.zeros([model.n_banks + 1, n_epochs])
 
-    # # lesion units during learning
+    # # lesion units during learning - not tested for nbanks
     # if lesions:
     #     model.lesion_units = []  # save which units were lesioned
     #     if lesions['gen_rand_lesions_trials']:  # lesion at randomly timepoints
@@ -604,26 +603,26 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 # save updated attn ws - save even if not update
                 model.attn_trace.append(model.attn.detach().clone())
 
-                # NOTE: TEMPORARILY COMMENTED OUT for gridsearch
+                # NOTE: was TEMPORARILY COMMENTED OUT for gridsearch
 
                 # update units pos w multiple banks - double update rule
                 # - no need since on the stim - unless noise
-                # for ibank in rec_banks:
-                #     units_ind = (model.winning_units
-                #                  & model.bmask[ibank].squeeze())
-                #     update = (
-                #         (x - model.units_pos[units_ind])
-                #         * model.params['lr_clusters'][ibank]
-                #         )
-                #     model.units_pos[units_ind] += update
+                for ibank in rec_banks:
+                    units_ind = (model.winning_units
+                                  & model.bmask[ibank].squeeze())
+                    update = (
+                        (x - model.units_pos[units_ind])
+                        * model.params['lr_clusters'][ibank]
+                        )
+                    model.units_pos[units_ind] += update
 
-                #     # - step 2 - winners update towards self
-                #     winner_mean = torch.mean(
-                #         model.units_pos[units_ind], axis=0)
-                #     update = (
-                #         (winner_mean - model.units_pos[units_ind])
-                #         * model.params['lr_clusters_group'][ibank])
-                #     model.units_pos[units_ind] += update
+                    # - step 2 - winners update towards self
+                    winner_mean = torch.mean(
+                        model.units_pos[units_ind], axis=0)
+                    update = (
+                        (winner_mean - model.units_pos[units_ind])
+                        * model.params['lr_clusters_group'][ibank])
+                    model.units_pos[units_ind] += update
 
                 # save updated unit positions
                 model.units_pos_trace.append(model.units_pos.detach().clone())
@@ -631,8 +630,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
             itrl += 1
 
             # TMP removed
-            # if torch.sum(model.fc1.weight == 0) == 0:  # no units to recruit
-            #     warnings.warn("No more units to recruit")
+            if torch.sum(model.fc1.weight == 0) == 0:  # no units to recruit
+                warnings.warn("No more units to recruit")
 
         # save epoch acc (itrl needs to be -1, since it was updated above)
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()

@@ -41,7 +41,7 @@ class MultiUnitCluster(nn.Module):
         # free params
         if params:
             self.params = params
-        else:  # some defaults - not really using
+        else:  # some defaults - not using now
             self.params = {
                 'r': 1,  # 1=city-block, 2=euclid
                 'c': 2,  # node specificity
@@ -78,10 +78,6 @@ class MultiUnitCluster(nn.Module):
         self.attn.data = (
                     self.attn.data / torch.sum(self.attn.data))
 
-        # # testing sustain's lambda
-        # self.attn = (torch.nn.Parameter(
-        #         torch.ones(n_dims, dtype=torch.float)))
-
         # network to learn association weights for classification
         n_classes = 2  # n_outputs
         self.fc1 = nn.Linear(n_units, n_classes, bias=False)
@@ -108,7 +104,6 @@ class MultiUnitCluster(nn.Module):
         units_output = act * self.winning_units
 
         # save cluster positions and activations
-        # self.units_pos_trace.append(self.units_pos.detach().clone())
         self.units_act_trace.append(
             units_output[self.active_units].detach().clone())
 
@@ -136,7 +131,7 @@ class MultiUnitCluster(nn.Module):
             d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
         else:
             d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-        return d  # **2  # squared dist
+        return d
 
     def _compute_act(self, dist, c, p):
         return c * torch.exp(-c * dist)  # sustain-like
@@ -154,6 +149,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
+    # # if learn by GD from error - removed now
     # if model.attn_type[-5:] != 'local':
     #     p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
     #     prms = [p_fc1, p_attn]
@@ -207,7 +203,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
         for x, target in zip(inputs_, output_):
 
-            # testing
+            # # testing
             # x=inputs_[np.mod(itrl-8, 8)]
             # target=output_[np.mod(itrl-8, 8)]
             # x=inputs_[itrl]
@@ -221,8 +217,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
                     # if lesions > active units, sel fewer
                     if lesions['n_lesions'] > len(w_ind):
-                        les = w_ind  # all active units
-
+                        # index all active units
+                        les = w_ind
                         # if nles > active units, also lesion inactive units
                         n_more_lesions = lesions['n_lesions'] - len(w_ind)
                         # inactive units
@@ -236,7 +232,6 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                                                      n_lesions_inact,
                                                      replace=False)
 
-                        # append
                         les = torch.vstack([les,
                                             torch.tensor([les_inact, ]).T])
                     else:
@@ -245,7 +240,7 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                                                replace=False)
                         les = torch.tensor(les)
 
-                    # note: making these 'active' so won't recruit them
+                    # note: making les units 'active' so won't re-recruit them
                     model.active_units[les] = False
                     with torch.no_grad():
                         model.fc1.weight[:, les] = 0
@@ -311,28 +306,6 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                     win_ind = model.winning_units
                     lose_ind = (model.winning_units == 0) & model.active_units
 
-                    # compute gradient based on activation of winners *minus*
-                    # losing units.
-                    # act_1 = (
-                    #     torch.sum(
-                    #         model._compute_act(
-                    #             model._compute_dist(
-                    #                 abs(x - model.units_pos[win_ind]),
-                    #                 model.attn, model.params['r']
-                    #                 ),
-                    #             model.params['c'], model.params['p']
-                    #             ))
-
-                    #     - torch.sum(
-                    #         model._compute_act(
-                    #             model._compute_dist(
-                    #                 abs(x - model.units_pos[lose_ind]),
-                    #                 model.attn, model.params['r']
-                    #                 ),
-                    #             model.params['c'], model.params['p']
-                    #             ))
-                    #     )
-
                     act_1 = model._norm_diff(
                         torch.sum(
                             model._compute_act(
@@ -360,19 +333,12 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                         # * model.attn.grad)  # scale above
                         * (model.attn.grad / model.active_units.sum()))  # scale here but edit norm_diff to just be a-b
 
-                    # if itrl < 10:
-                    #     print(act_1)
-                    #     print(model.attn.grad)
-
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
                 # sum attention weights to 1
                 model.attn.data = (
                     model.attn.data / torch.sum(model.attn.data)
                     )
-
-                # # testing sustain's lambda
-                # model.attn.data = torch.clamp(model.attn.data, min=1.)
 
                 # save updated attn ws
                 model.attn_trace.append(model.attn.detach().clone())
@@ -535,12 +501,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
                 # divide grad by n active units (scales to any n_units)
                 model.attn.data += (
                     model.params['lr_attn']
-                    # * model.attn.grad)  # scale above
+                    # * model.attn.grad)  # if scale above
                     * (model.attn.grad / model.active_units.sum()))
-
-                # if itrl < 10:
-                #     print(act_1)
-                #     print(model.attn.grad)
 
                 # ensure attention are non-negative
                 model.attn.data = torch.clamp(model.attn.data, min=0.)
@@ -615,12 +577,6 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
         epoch_acc[epoch] = trial_acc[itrl-len(inputs):itrl].mean()
         epoch_ptarget[epoch] = trial_ptarget[itrl-len(inputs):itrl].mean()
 
-        # epoch_acc[epoch] = torch.tensor(
-        #     np.nanmean(trial_acc[itrl-len(inputs):itrl].detach()))
-        # epoch_ptarget[epoch] = torch.tensor(
-        #     np.nanmean(trial_ptarget[itrl-len(inputs):itrl].detach()))
-
-
     return model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget
 
 
@@ -691,22 +647,6 @@ def train_unsupervised(model, inputs, n_epochs, batch_upd=None, noise=None):
                 if model.params['lr_attn'] > 0:
                     win_ind = model.winning_units
                     lose_ind = (model.winning_units == 0) & model.active_units
-
-                    # act_1 = (
-                    #     torch.sum(
-                    #         model._compute_act(
-                    #             model._compute_dist(
-                    #                 abs(x - model.units_pos[win_ind]),
-                    #                 model.attn, model.params['r']),
-                    #             model.params['c'], model.params['p']))
-
-                    #     - torch.sum(
-                    #         model._compute_act(
-                    #             model._compute_dist(
-                    #                 abs(x - model.units_pos[lose_ind]),
-                    #                 model.attn, model.params['r']),
-                    #             model.params['c'], model.params['p']))
-                    #     )
 
                     act_1 = model._norm_diff(
                         torch.sum(
@@ -990,14 +930,6 @@ def train_unsupervised_k(model, inputs, n_epochs, batch_upd=None):
                 (winner_mean - model.units_pos[win_ind])
                 * model.params['lr_clusters_group'])
 
-            # maybe rather than batch update the group - which will be just the mean of the unit
-            # positions at the start of the batch - just batch update first one
-
-            # for second update - could save which units won
-            # n times, then move them toward each other AFTER the batch update
-            # of 1st update..
-            # - but all update.. can't update toward mean - that's just centre.
-
             if batch_upd is None:
                 model.units_pos[win_ind] += update
                 # save updated unit positions
@@ -1021,29 +953,3 @@ def train_unsupervised_k(model, inputs, n_epochs, batch_upd=None):
         model.units_pos += upd_pos_mean
         # save updated unit positions
         model.units_pos_trace.append(model.units_pos.detach().clone())
-
-
-# def _compute_dist(dim_dist, attn_w, r):
-#     # since sqrt of 0 returns nan for gradient, need this bit
-#     # e.g. euclid, can't **(1/2)
-#     # dim_dist, attn_w, r = (
-#     #         dim_dist, attn_w, r
-#     #         )
-#     if r > 1:
-#         d = torch.zeros(len(dim_dist))
-#         ind = (torch.sum(dim_dist, axis=1) > 0)
-#         dim_dist_tmp = dim_dist[ind]
-#         d[ind] = torch.sum(attn_w * (dim_dist_tmp ** r), axis=1)**(1/r)
-#     else:
-#         d = torch.sum(attn_w * (dim_dist**r), axis=1) ** (1/r)
-#     return d
-
-
-# def _compute_act(dist, c, p)):
-#     """ c = 1  # ALCOVE - specificity of the node - free param
-#         p = 2  # p=1 exp, p=2 gauss
-#     """
-#     # dist, c, p = dist, c, p
-
-#     # return torch.exp(-c * (dist**p))
-#     return c * torch.exp(-c * dist)  # sustain-like

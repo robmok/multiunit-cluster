@@ -148,90 +148,6 @@ lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 
-# whole range of lrs, added group lr too
-# ranges = ([torch.arange(.8, 2.1, .2),
-#           torch.arange(1., 19., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
-
-# # edit - -2 phi (all gd params were 1!), and 2+ lower c values
-# ranges = ([torch.arange(.4, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
-
-# # add 1 more c value - dist
-# ranges = ([torch.arange(.2, 2.1, .2),
-#           torch.arange(1., 15., 2),
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.05, 1., .1) / lr_scale,
-#           torch.arange(.05, 1., .1),
-#           torch.arange(.1, 1., .2)]
-#           )
-
-# # when changing dist**2, changing c to start from .3, which loses one c value
-# # ranges = ([torch.arange(.3, 2.1, .2),
-# #           torch.arange(1., 15., 2),
-# #           torch.arange(.05, 1., .1),
-# #           torch.arange(.05, 1., .1) / lr_scale,
-# #           torch.arange(.05, 1., .1),
-# #           torch.arange(.1, 1., .2)]
-# #           )
-
-
-# # dist - with attn lr > 1., with fewer params - 33600 params
-# ranges = ([torch.arange(.2, 1.1, .2),
-#           torch.arange(1., 11., 2),
-#           torch.arange(1., 2.76, .25),
-#           torch.arange(.05, .76, .1) / lr_scale,
-#           torch.arange(.15, .76, .1),
-#           torch.arange(.5, 1., .2)]
-#           )
-
-
-# timing
-# - 160 sets in 8.5 or 11.5 hours
-# - 160/8.5=18.8235 or 160/10.5=15.2381 sets per hour. Let's say 15 per hour.
-# - 8.5/160=0.0531 or 10.5/160=0.0656 hours per set
-
-# NEW - decided to test full range of lr's coarser - 315000 sets
-# - 315000/500=630*.0656=41.328/24=1.72 days
-# ah, but i want lopri to be ~300, so has to be less
-# - 315000/450=700*.0656=45.92=1.91 days. 322 lopri sets
-# - 315000/400=787.5*.0656=51.66/24=2.1525 days. 272 lopri sets, def OK.
-# --> 450
-
-# added 2 lower c's, removed 2 higher phi's
-
-# added another lower c val
-# 350000/450=777.77*.0656=51.02/24=2.125 days
-
-# **newer estimate of time: 0.12 hours per param (max)
-
-# for finer gridsearch
-# 63648 params - 400 sets, 160 psets per set; 160*.12=19.2/24=.8 days
-# 63648 params - 420 sets, 152 psets per set; 152*.12=18.24/24=.76
-# 95472 params - 420 sets, 228 psets per set: 228*.12=27.36/24=1.14
-# 95472 params - 440 sets, 217 psets per set: 217*.12=26.04/24=1.085
-# 95472 params - 450 sets, 213 psets per set: 213*.12=25.56/24=1.065
-# - do 440 sets so slightly less likely gets kicked off. just 30 min diff.
-
-# dist
-# 17010 params - 300 sets, 56 psets per set; 56*.12=6.72 hours
-# 17010 params - 350 sets, 49 psets per set; 49*.12=5.88 hours
-# 21870 params - 350 sets, 63 psets per set; 63*.12=7.56 hours
-
-# dist**2 second go
-# 47040 params - 350 sets, 135 psets per set; 135*.12=16.2 hours
-
-
-
 # 2022 new - do lr_attn > 1 possible, 25 iters (so 0.12-->0.06 for timing)
 
 # 224000 params - 400 sets, 560psets per set; 560*.06=33.6=1.4 days
@@ -248,98 +164,6 @@ ranges = ([torch.arange(.2, 2.1, .2),
           )
 
 if finegsearch:
-    # # dist**2 initial
-    # ranges = ([torch.arange(.2, .45, 1/30),
-    #           torch.arange(1., 5.1, .25),
-    #           torch.arange(.15, .66, .1),
-    #           torch.arange(.15, .8, .05),  # 3 more vals for the low c's
-    #           torch.arange(.25, .5, .1),  # 3 vals
-    #           torch.arange(.8, 1.01, .1)]  # 3 vals
-    #           )
-
-    # dist
-    # c=.2/1.2, phi=3/1, lr_attn=.75/.95/, lr_nn=.35/.85, lr_clus=.35/.45, group=.9
-    ranges = ([torch.cat([torch.arange(.1, .35, .05),
-                          torch.arange(1.05, 1.25, .05)]),
-              torch.arange(.75, 5.1, .25),
-              torch.arange(.55, .96, .1),
-              torch.cat([torch.arange(.25, .5, .05),
-                         torch.arange(.8, .96, .05)]),
-              torch.tensor([.25, .35, .45]),
-              torch.tensor([.9])]
-              )
-
-    # dist**2 second go
-    # c=0.3/~.1, phi=1/3/5, lr_attn=.05/.15/.35, lr_nn=.05/.15/.25, lr_clus=.15/.45. lr_group .3/.9
-    ranges = ([torch.arange(.1, .45, .05),
-              torch.arange(.75, 5.6, .25),  # many
-              torch.arange(.05, .41, .05),
-              torch.arange(.05, .36, .05),
-              torch.tensor([.15, .35, .45]),
-              torch.tensor([.3, .9])]
-              )
-
-    # dist**2 - 3
-    # c = .4-1.2/4, phi=.5:.25:2.,
-    # attn=.15-.65, nn=.25/3-.75
-    # clus=.35-.8, group=.1-.5
-    # 36960 params
-    ranges = ([torch.arange(.4, 1.2, .2),
-              torch.arange(.25, 2., .25),
-              torch.arange(.15, .66, .1),
-              torch.arange(.25, .76, .05),
-              torch.arange(.35, .8, .1),
-              torch.arange(.1, .5, .1)]
-              )
-
-    # dist 2
-    # c = .2-.6/8, phi=.75:.25:3.,
-    # attn=.25-.95, nn=.15-.65
-    # clus=.15-.55/65, group=.5:.1:.9
-    # 40320 params
-    ranges = ([torch.arange(.2, .8, .1),
-               torch.arange(.75, 3., .25),
-               torch.arange(.25, .96, .1),
-               torch.arange(.15, .65, .1),
-               torch.arange(.25, .56, .1),
-               torch.arange(.6, 1., .1)]
-              )
-
-    # dist**2
-    # tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
-    # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
-    # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
-
-    # dist1
-    # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
-
-
-    # high attn  - 35280 sets. 350 ets
-    # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
-    # tensor([[1.0000, 3.0000, 2.7500, 0.0500, 0.2500, 0.7000]])  - this was meh but not too bad. get a range
-    ranges = ([torch.arange(.2, .8, .1),
-          torch.arange(3., 10., 1),
-          torch.arange(2., 4.01, .25),
-          torch.arange(.005, .15, .02) / lr_scale,
-          torch.arange(.25, .66, .1),
-          torch.arange(.7, 1., .2)]
-          )
-
-    # 2022 v1 shj_order
-    # tensor([[0.6000, 5.0000, 1.5000, 0.0500, 0.0500, 0.9000]])
-    # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.9000]])
-    # tensor([[0.2000, 5.0000, 2.5000, 0.3500, 0.3500, 0.7000]])
-    # tensor([[ 0.2000, 13.0000,  1.7500,  0.0500,  0.0500,  0.9000]])
-    # tensor([[ 0.2000, 13.0000,  1.0000,  0.0500,  0.0500,  0.9000]])
-    # - 0.2 / 0.6; 5 / 13; 1, 1.5, 2.5, 1.75; .05, .35; .05, .35; .7, .9
-    # 80640 sets
-    ranges = ([torch.arange(.2, .8, .1),
-          torch.hstack([torch.arange(3., 7., 1), torch.arange(10., 15., 1)]),
-          torch.arange(.75, 3.01, .25),
-          torch.arange(.025, .4, .05) / lr_scale,
-          torch.arange(.025, .4, .05),
-          torch.arange(.7, 1., .2)]
-          )
 
     # 2022 v2 shj_order=False - final
     # best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
@@ -356,30 +180,12 @@ if finegsearch:
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
-# set up which subset of param_sets to run on a given run
-# sets = torch.arange(0, len(param_sets), 778) # dist, 450 sets
-# sets = torch.arange(0, len(param_sets), 700) # dist**2, 450 sets
-# testing attn lr's > 1.0
-# sets = torch.arange(0, len(param_sets), 96)  # 350 sets. 96*.12=11.52 hours
-
-
 # 2022
-# - 224000 param sets
-# sets = torch.arange(0, len(param_sets), 560) # dist, 400 sets
-# - v2 - 336000
+# - 336000
 sets = torch.arange(0, len(param_sets), 840) # dist, 400 sets
 
 # # finegsearch high attn
 # sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
-
-# finer gsearch
-# sets = torch.arange(0, len(param_sets), 217)
-# sets = torch.arange(0, len(param_sets), 63)  # dist
-# sets = torch.arange(0, len(param_sets), 135)  # distsq
-
-# 106*.12=12.72 hours
-# sets = torch.arange(0, len(param_sets), 106)  # distsq 3 - 350 sets
-# sets = torch.arange(0, len(param_sets), 101)  # dist 2 - 400 sets
 
 # 2022 finegsearch
 # - 80640 - 280 sets (288 psets within each sets)

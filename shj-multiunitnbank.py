@@ -75,130 +75,6 @@ n_epochs = 16
 # new local attn - scaling lr
 lr_scale = (n_units * k) / 1
 
-# merged - some kept same across banks
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': [1.5, 3.5],  # flips works with this even w same phi! prev [.8, 3.5]
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': [1.5, 1.5],  # can flip work if phi is same - so 2 banks are competiting at the outputs. yes
-    'beta': 1,
-    'lr_attn': [.25, .002],  # [.15, .02] also works
-    'lr_nn': .025/lr_scale,  # scale by n_units*k - keep the same for now
-    'lr_clusters': [.01, .01],
-    'lr_clusters_group': [.1, .1],
-    'k': k
-    }
-
-# testing type 1 vs 6
-# - flips for type 1
-params = {
-    'r': 1,
-    'c': [1.5, 2.5],  # [1.5, 2.5] / [1.5, 3.5]
-    'p': 1,
-    'phi': [1.5, 1.5],
-    'beta': 1,
-    'lr_attn': [.25, .02],  # [.25, .02]
-    'lr_nn': .025/lr_scale,
-    'lr_clusters': [.01, .01],
-    'lr_clusters_group': [.1, .1],
-    'k': k
-    }
-
-
-# high c / low c from SHJ testing
-# - changing lr_attn and lr_nn, keeping phi constant
-params = {
-    'r': 1,
-    'c': [1., 3.],  # c=.8/1. for type I. c=1. works better for type II.
-    'p': 1,
-    'phi': [1.5, 1.5],
-    'beta': 1,
-    'lr_attn': [.35, .002],  # [.25, .02]  # .35 so type 2 wins (if shuffle)
-    'lr_nn': [.15/lr_scale, .025/lr_scale],
-    'lr_clusters': [.01, .01],
-    'lr_clusters_group': [.1, .1],
-    'k': k
-    }
-
-# # testing - when low c overtakes high c for type 1
-# # - attn matters here - this is why type 1 wins. i guess point is if high c
-# # and low attn, can't win
-# # - can even have it equiv lr_nn
-# params = {
-#     'r': 1,
-#     'c': [.8, 2.5],  # .8/.9
-#     'p': 1,
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.15, .002],
-#     'lr_nn': [.15/lr_scale, .05/lr_scale],
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
-# # keeping lr_nn same
-# params = {
-#     'r': 1,
-#     'c': [1.35, 2.5],
-#     'p': 1,
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.15, .002],
-#     'lr_nn': [.15/lr_scale, .15/lr_scale],
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
-
-# testing - when high c overtakes low c for type 6
-# - attn doesn't matter here
-# - point is that high c should win - same attn, same lr_nn.
-# - of course higher lr_nn, low c wins, but that's forcing it
-# params = {
-#     'r': 1,
-#     'c': [1.01, 2.55],
-#     'p': 1,
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.15, .15],  # attn doesn't matter here
-#     'lr_nn': [.05/lr_scale, .05/lr_scale],
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
-
-
-# testing other types, 2-5
-# type 2: c=[1.25, 2.5],lr_attn=[.5, .002], lr_nn=[.15, .05]
-# type 3/4: c=[1.25, 2.5],lr_attn=[.5, .002], lr_nn=[.2, .05]
-# type 5: ... turns out recruits 4 clus only. lr_nn>.5 then recruits 5!?
-# - interaction between the two models is affecting recruitment?
-# - need to look further into this. but maybe need recruitment in separate
-# banks...
-# - OR this is interesting. having 2 banks allows you to solve the problem
-# differently. e.g. type 5 with a rulex like representation.
-
-# - hmm, when shuffle, 6 clus is more typical. and sometimes 1+.. CHECK
-# - plus, when shuffle, above params for type 3/4 also work
-
-
-# - seems attn doesn't matter much.. main lr_nn. 
-# i guess this might be because type I is only one when attn really drives acc
-# since in other cases, placing a cluster on them does a lot...?
-# params = {
-#     'r': 1,
-#     'c': [1.25, 2.5],
-#     'p': 1,
-#     'phi': [1.5, 1.5],
-#     'beta': 1,
-#     'lr_attn': [.005, .005],
-#     'lr_nn': [.2/lr_scale, .05/lr_scale],
-#     'lr_clusters': [.01, .01],
-#     'lr_clusters_group': [.1, .1],
-#     'k': k
-#     }
-
-# new after fixed phi
 params = {
     'r': 1,
     'c': [.75, 2.5],  # c=.8/1. for type I. c=1. works better for II.
@@ -236,7 +112,6 @@ if saveplots:
                                problem+1, p[0], p[1], p[2], p[3], p[4], p[5]))
     plt.savefig(figname + '.png', dpi=100)
 plt.show()
-
 
 # # attention weights
 # fig, ax = plt.subplots(1, 2)
@@ -313,22 +188,6 @@ for i in range(niter):
         inputs = inputs.repeat(2, 1)
         output = output.repeat(2).T
         n_dims = inputs.shape[1]
-
-        # gridsearch + fgsearch
-        # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-#                  1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-        params = {
-            'r': 1,
-            'c': [.6, 1.7],
-            'p': 1,
-            'phi': [1., 2.25],
-            'beta': 1,
-            'lr_attn': [1.55, .001],
-            'lr_nn': [.7/lr_scale, .01/lr_scale],
-            'lr_clusters': [.3, .3],
-            'lr_clusters_group': [.8, .5],
-            'k': k
-            }
 
         # gsearch + finegsearch 2022
         # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,

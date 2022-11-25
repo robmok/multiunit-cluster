@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import itertools as it
-# import imageio
+import imageio
 import time
 # from scipy import stats
 # from scipy import optimize as opt
@@ -88,163 +88,6 @@ n_epochs = 16
 # new local attn - scaling lr
 lr_scale = (n_units * k) / 1
 
-# new shj pattern - with phi in the model now
-# - editing to show double update effect - mainly lr_group
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .75,
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 9.,
-    'beta': 1.,
-    'lr_attn': .35,  # this scales at grad computation now
-    'lr_nn': .0075/lr_scale,  # scale by n_units*k
-    'lr_clusters': .1,
-    'lr_clusters_group': .12,
-    'k': k
-    }
-
-# plotting to compare with nbank model
-# low c
-# params = {
-#     'r': 1,
-#     'c': 1.,
-#     'p': 1,
-#     'phi': 1.5,
-#     'beta': 1.,
-#     'lr_attn': .35,
-#     'lr_nn': .15/lr_scale,
-#     'lr_clusters': .05,
-#     'lr_clusters_group': .3,
-#     'k': k
-#     }
-# # high c
-# params = {
-#     'r': 1,
-#     'c': 3.,
-#     'p': 1,
-#     'phi': 1.5,
-#     'beta': 1.,
-#     'lr_attn': .005,
-#     'lr_nn': .025/lr_scale,
-#     'lr_clusters': .01,
-#     'lr_clusters_group': .1,
-#     'k': k
-#     }
-
-# new after trying out gridsearch
-# tensor([[1.6000, 1.0000, 0.4550, 0.2050, 0.3050, 0.7000]])
-# tensor([[0.8000, 1.0000, 0.8000, 0.6500, 0.5000, 0.5000]]) - better
-
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 1.6,  # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1.,
-#     'beta': 1.,
-#     'lr_attn': .455,  # this scales at grad computation now
-#     'lr_nn': .205/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .305,  # .075/.1
-#     'lr_clusters_group': .7,
-#     'k': k
-#     }
-
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .8,  # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1.,
-#     'beta': 1.,
-#     'lr_attn': .8,  # this scales at grad computation now
-#     'lr_nn': .65/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .5,  # .075/.1
-#     'lr_clusters_group': .5,
-#     'k': k
-#     }
-# # tensor([[0.8000, 1.0000, 0.8500, 0.6500, 0.4500, 0.9000]])
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .8,  # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 1.,
-#     'beta': 1.,
-#     'lr_attn': .85,  # this scales at grad computation now
-#     'lr_nn': .65/lr_scale,  # scale by n_units*k
-#     # 'lr_nn': .15*k,  # scale by k
-#     'lr_clusters': .45,  # .075/.1
-#     'lr_clusters_group': .9,
-#     'k': k
-#     }
-
-# # testing for noise plots
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .75,
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 9.,
-#     'beta': 1.,
-#     'lr_attn': .35,  # this scales at grad computation now
-#     'lr_nn': .0075/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .2,
-#     'lr_clusters_group': .4,
-#     'k': k
-#     }
-
-# best params, slower lr_clus
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .8,  # w/ attn grad normalized, c can be large now
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 1.,
-    'beta': 1.,
-    'lr_attn': .8,  # this scales at grad computation now
-    'lr_nn': .65/lr_scale,  # scale by n_units*k
-    'lr_clusters': .15,  # .075/.1
-    'lr_clusters_group': .5,
-    'k': k
-    }
-
-# # tensor([ 2.0000, 17.0000,  0.9500,  0.9500,  0.9500,  0.9000])
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': 2.,  # w/ attn grad normalized, c can be large now
-#     'p': 1,  # p=1 exp, p=2 gauss
-#     'phi': 17.,
-#     'beta': 1.,
-#     'lr_attn': .95,  # this scales at grad computation now
-#     'lr_nn': .95/lr_scale,  # scale by n_units*k
-#     'lr_clusters': .95,  # .075/.1
-#     'lr_clusters_group': .9,
-#     'k': k
-#     }
-
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .4,
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 7.,
-    'beta': 1.,
-    'lr_attn': .95,  # this scales at grad computation now
-    'lr_nn': .05/lr_scale,  # scale by n_units*k
-    # 'lr_nn': .15*k,  # scale by k
-    'lr_clusters': .35,  # .075/.1
-    'lr_clusters_group': .9,
-    'k': k
-    }
-
-# editing one of gsearch results, looks ok
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .3,
-    'p': 1,  # p=1 exp, p=2 gauss
-    'phi': 3.5,
-    'beta': 1.,
-    'lr_attn': .95,  # this scales at grad computation now
-    'lr_nn': .25/lr_scale,  # scale by n_units*k
-    'lr_clusters': .35,  # .075/.1
-    'lr_clusters_group': .9,
-    'k': k
-            }
-
 # 2022 gridsearch results
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -274,7 +117,6 @@ params = {
 #     'lr_clusters_group': .7,
 #     'k': k
 #     }
-
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid
@@ -418,7 +260,7 @@ if plot3d:
 
 # %% make gifs
 
-savegif = True
+savegif = False
 
 plot_seq = 'trls'  # epoch/trls
 
@@ -537,127 +379,6 @@ for i in range(niter):
         # scale lrs - params determined by n_units=100, k=.01. n_units*k=1
         lr_scale = (n_units * k) / 1
 
-        # new shj pattern - with phi in the model now
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .7,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 9.,
-            'beta': 1.,
-            'lr_attn': .35,  # this scales at grad computation now
-            'lr_nn': .0075/lr_scale,  # scale by n_units*k
-            'lr_clusters': .075,  # .075/.1
-            'lr_clusters_group': .12,
-            'k': k
-            }
-
-        # # high c
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 3.,
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.5,
-        #     'beta': 1.,
-        #     'lr_attn': .002,
-        #     'lr_nn': .025/lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .01,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # # comparing with n_banks model
-        # # low c
-        # params = {
-        #     'r': 1,
-        #     'c': .75,
-        #     'p': 1,
-        #     'phi': 1.3,
-        #     'beta': 1,
-        #     'lr_attn': .2,
-        #     'lr_nn': .1/lr_scale,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # # high c
-        # params = {
-        #     'r': 1,
-        #     'c': 2.6,
-        #     'p': 1,
-        #     'phi': 1.1,
-        #     'beta': 1,
-        #     'lr_attn': .002,
-        #     'lr_nn': .02/lr_scale,  # .01/.02
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # # v2
-        # # low c
-        # params = {
-        #     'r': 1,
-        #     'c': .75,
-        #     'p': 1,
-        #     'phi': 1.,
-        #     'beta': 1,
-        #     'lr_attn': .2,
-        #     'lr_nn': .1/lr_scale,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # # high c
-        # params = {
-        #     'r': 1,
-        #     'c': 2.5,
-        #     'p': 1,
-        #     'phi': 2.,
-        #     'beta': 1,
-        #     'lr_attn': .005,
-        #     'lr_nn': .002/lr_scale,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .1,
-        #     'k': k
-        #     }
-
-        # new after trying out gridsearch
-
-        # tensor([[1.8000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]]) # mse
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.8,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.,
-            'beta': 1.,
-            'lr_attn': .55,  # this scales at grad computation now
-            'lr_nn': .15/lr_scale,  # scale by n_units*k
-            # 'lr_nn': .15*k,  # scale by k
-            'lr_clusters': .15,  # .075/.1
-            'lr_clusters_group': .9,
-            'k': k
-            }
-        # tensor([[0.4000, 7.0000, 0.9500, 0.0500, 0.3500, 0.9000]])# sse- seems more stable with recruited clusters
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .4,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 7.,
-            'beta': 1.,
-            'lr_attn': .95,  # this scales at grad computation now
-            'lr_nn': .05/lr_scale,  # scale by n_units*k
-            # 'lr_nn': .15*k,  # scale by k
-            'lr_clusters': .35,  # .075/.1
-            'lr_clusters_group': .9,
-            'k': k
-            }
-
-
-        # testing with k=0.0001
-
-
         # new gridsearch
         # tensor([[0.4000, 3.0000, 0.4500, 0.2500, 0.3500, 0.9000]])
         # tensor([[0.4000, 7.0000, 0.5500, 0.0500, 0.4500, 0.9000]])
@@ -666,187 +387,22 @@ for i in range(niter):
         # tensor([[0.4000, 7.0000, 0.9500, 0.0500, 0.3500, 0.9000]])
         # tensor([[2.0000, 1.0000, 0.5500, 0.1500, 0.1500, 0.9000]])
 
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .4,
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 3.,
-            'beta': 1.,
-            'lr_attn': .45,  # this scales at grad computation now
-            'lr_nn': .25/lr_scale,  # scale by n_units*k
-            'lr_clusters': .35,  # .075/.1
-            'lr_clusters_group': .9,
-            'k': k
-            }
-
-        # tensor([[0.3000, 0.7500, 0.9500, 0.3500, 0.4500, 0.9000]])  # finegsearrch dist - same as before type 3 fast
-        # tensor([[0.3000, 0.7500, 0.9500, 0.2500, 0.4500, 0.9000]])  # finegsearch dist, slightly slower
-        
-        # tensor([[0.7000, 1.0000, 0.1500, 0.6500, 0.7500, 0.1000/0.3000]])  # gsearch dist**2 - slower, gd pattern
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .3,
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 2.5,
-        #     'beta': 1.,
-        #     'lr_attn': .95,  # this scales at grad computation now
-        #     'lr_nn': .35,  # /lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .45,
-        #     'lr_clusters_group': .9,
-        #     'k': k
-        #     }
-
-        # finegridsearch
-
-        # distsq2
-        # tensor([[0.8000, 0.2500, 0.2500, 0.5000, 0.5500, 0.2000]])
-        # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.6500, 0.1000]])
-        # tensor([[0.4000, 0.5000, 0.5500, 0.3500, 0.7500, 0.2000]])
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .8,
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': .25,
-        #     'beta': 1.,
-        #     'lr_attn': .25,  # this scales at grad computation now
-        #     'lr_nn': .5,   # /lr_scale,  # did notscale in gridsearch
-        #     'lr_clusters': .55,
-        #     'lr_clusters_group': .2,
-        #     'k': k
-        #     }
-
-        # dist1
-        # tensor([[0.4000, 0.7500, 0.9500, 0.1500, 0.5500, 0.8000]])
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .4,
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': .75,
-        #     'beta': 1.,
-        #     'lr_attn': 2.75,  # .95,  # this scales at grad computation now
-        #     'lr_nn': .15,   # /lr_scale,  # did notscale in gridsearch
-        #     'lr_clusters': .55,
-        #     'lr_clusters_group': .8,
-        #     'k': k
-        #     }
-
-        # testing based on nbanks gd results from bank 1
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .2,  # .15/.2
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 2.5,  # 1.8
-        #     'beta': 1.,
-        #     'lr_attn': 1.5,  # .95,  # this scales at grad computation now
-        #     'lr_nn': .7/lr_scale,  # did notscale in gridsearch
-        #     'lr_clusters': .3,
-        #     'lr_clusters_group': .8,
-        #     'k': k
-        #     }
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .1,  # .2
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 6.5,  # 1.8
-            'beta': 1.,
-            'lr_attn': 2.,  # .95,  # this scales at grad computation now
-            'lr_nn': .7/lr_scale,  # did notscale in gridsearch?
-            'lr_clusters': .3,
-            'lr_clusters_group': .8,
-            'k': k
-            }
-
-        # testing sustain lambda value
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .5,
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 2.,
-        #     'beta': 1.,
-        #     'lr_attn': 3.,  # this scales at grad computation now
-        #     'lr_nn': .75/lr_scale,  # scale by n_units*k
-        #     'lr_clusters': .15,  # .075/.1
-        #     'lr_clusters_group': .5,
-        #     'k': k
-        #     }
-
-        # high attn gridsearch
-        # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .4,  # .2
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 7.,  # 1.8
-            'beta': 1.,
-            'lr_attn': 2.75,  # .95,  # this scales at grad computation now
-            'lr_nn': .05/lr_scale,  # did notscale in gridsearch?
-            'lr_clusters': .15,
-            'lr_clusters_group': .5,
-            'k': k
-            }
-
-        # attn finegsearch
-        # tensor([[0.2000, 8.0000, 3.7500, 0.1450, 0.5500, 0.9000]])  # 20/5 - type 3 pops down a little
-        # tensor([[0.2000, 8.0000, 3.2500, 0.1450, 0.6500, 0.7000]])  # 35/5.
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .2,  # .2
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 8.,  # 1.8
-            'beta': 1.,
-            'lr_attn': 3.75,  # .95,  # this scales at grad computation now
-            'lr_nn': .145/lr_scale,  # did notscale in gridsearch?
-            'lr_clusters': .55,
-            'lr_clusters_group': .9,
-            'k': k
-            }
-
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .2,  # .2
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 8.,  # 1.8
-        #     'beta': 1.,
-        #     'lr_attn': 3.25,  # .95,  # this scales at grad computation now
-        #     'lr_nn': .145/lr_scale,  # did notscale in gridsearch?
-        #     'lr_clusters': .65,
-        #     'lr_clusters_group': .7,
-        #     'k': k
-        #     }
-
-
-        # 2022 - gsearch planning for fgsearch
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .2,  # .2
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 8.,  # 1.8
-            'beta': 1.,
-            'lr_attn': 2,  # .95,  # this scales at grad computation now
-            'lr_nn': .225/lr_scale,  # did notscale in gridsearch?
-            'lr_clusters': .255,
-            'lr_clusters_group': .9,
-            'k': k
-            }
-
-
+        # 2022
         # final - for plotting
         # tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
 
-        # - type 3 bit faster, but separation with 6 better, overall slower
-        # and i think more canonical sustain recruitments. choose this?
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .2,
-            'p': 1,
-            'phi': 5.,  # 5/11
-            'beta': 1.,
-            'lr_attn': 3.,  # .95,  # this scales at grad computation now
-            'lr_nn': .375/lr_scale,  # .075/0.3750
-            'lr_clusters': .325,
-            'lr_clusters_group': .7,
-            'k': k
-            }
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .2,
+        #     'p': 1,
+        #     'phi': 5.,  # 5/11
+        #     'beta': 1.,
+        #     'lr_attn': 3.,  # .95,  # this scales at grad computation now
+        #     'lr_nn': .375/lr_scale,  # .075/0.3750
+        #     'lr_clusters': .325,
+        #     'lr_clusters_group': .7,
+        #     'k': k
+        #     }
         # OR
         # params = {
         #     'r': 1,  # 1=city-block, 2=euclid
@@ -860,7 +416,6 @@ for i in range(niter):
         #     'lr_clusters_group': .7,
         #     'k': k
         #     }
-
 
         # fixing attn - scale here now
         params = {

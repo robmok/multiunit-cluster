@@ -114,81 +114,6 @@ n_epochs = 1
 n_trials = 500000
 attn_type = 'dimensional_local'
 
-# params to test
-# k:  .08 (12 clus), .1 (9), .13 (7), .28 (3)
-# - remove .25, v bad - straight line. 3/5
-# - .2 is 4 clus,
-# - NEW TO ADD: .18 (5 clus).
-
-# orig_lr: .001, .0025, .005
-# lr_group: .5, .85, 1
-
-# params = [[.08, .1, .13, .26, .28],
-#           [.001, .0025, .005],
-#           [.85, 1]]
-# 20 to run, 7 (0-6) sets. 3 in each set, except last has 2.
-# params = [[.08, .1, .13, .26, .28],
-#           [.0075, .001],  # mistake - should'e been .01...
-#           [.85, 1]]
-
-# new
-# params = [[.08, .1, .13, .18, .28],
-#           [.0075, .01],
-#           [.6, .8, 1.]]
-
-# # test in between values  - better/worse?
-# params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
-#           [.0075],  # for now
-#           [.8, 1.]]  # for now
-
-# params = [[.12, .2, .24, .26],
-#           [.0075],  # for now
-#           [.8, 1.]]  # for now
-
-# # run rest of odds (mostly)
-# # .11, .15, .17, .19, .21, .23
-# params = [[.11, .15, .17, .19, .21, .23],
-#           [.0075],  # for now
-#           [.8, 1.]]  # for now
-
-# # run more lrs
-# params = [[.09, .11, .12, .14, .15, .16, .17, .19],
-#           [.01],
-#           [.8, 1.]]
-
-# lr_group=.6. 22 sets
-# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-#           [.0075, .01],
-#           [.6]]
-
-# faster lr's - 12 sets
-# params = [[.08, .1, .12, .14, .16, .18],  # test for now if faster starting lr's better
-#           [.015, .02],  # faster
-#           [1.]]  # probably 1 is best, but check 0.6 results above first
-
-# # odds and more - 17 sets
-# params = [[.09, .11, .13, .15, .16, .19, .2, .21, .22, .23, .24, .25, .26,
-#            .27, .28, .29, 3.],
-#           [.015],  # faster
-#           [1.]]
-
-# # then - lr=0.015, group_lr=.8
-# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2,
-#             .21, .22, .23, .24, .25, .26, .27, .28, .29, 3.],
-#           [.015],
-#           [.8]]
-
-# # 1m trials
-# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
-#           [.01],
-#           [1.]]
-
-# test different annealing rates w 1m trials- before 100
-# ann_rate = 50  # this with 1m trials is same as 100 for 500k trials
-# params = [[.11],
-#           [.015],
-#           [1.]]
-
 # 500k trial, 350 ann rte
 ann_rate = 350  # best
 # params = [[.11],
@@ -232,8 +157,6 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
 params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.02],
           [.6]]
-
-# NEXT: or .2-3 for group=0.8/6?
 
 param_sets = torch.tensor(list(it.product(*params)))
 
@@ -379,10 +302,6 @@ for pset, p in enumerate(param_sets_curr):
                              n_units, p[0], p[1], p[2], n_trials//1000,
                              n_sims, ann_rate))
             )
-
-        # open_file = open(fn1, "wb")
-        # pickle.dump(score_60, open_file)
-        # open_file.close()
 
         # unit pos, act map (no act_trace - huge)
         torch.save({"gscore": score_60,

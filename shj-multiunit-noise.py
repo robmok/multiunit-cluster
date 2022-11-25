@@ -90,20 +90,6 @@ for s_cnt, sim_prms in enumerate(it.product(n_units, k, lr_group, noise_upd1)):
 
         sim_ps.append(sim_prms)
 
-        # shj params
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 12.5,
-            'beta': 1.,
-            'lr_attn': .15,  # this scales at grad computation now
-            'lr_nn': .015/(sim_prms[0] * sim_prms[1]),  # scale by n_units*k
-            'lr_clusters': .01,
-            'lr_clusters_group': sim_prms[2],
-            'k': sim_prms[1],
-            }
-
         # from above shj i used
         params = {
             'r': 1,  # 1=city-block, 2=euclid

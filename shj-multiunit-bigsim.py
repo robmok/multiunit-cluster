@@ -226,32 +226,6 @@ for isim in range(niter):
         
         # new local attn - scaling lr
         lr_scale = (n_units * k) / 1
-        
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .2,
-        #     'p': 1,
-        #     'phi': 7.,  # 5/11
-        #     'beta': 1.,
-        #     'lr_nn': .175/lr_scale,  # .075/0.3750
-        #     'lr_attn': .4,
-        #     'lr_clusters': .05,
-        #     'lr_clusters_group': .25,
-        #     'k': k
-        #     }
-        
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .2,
-            'p': 1,
-            'phi': 5.,  # 5/11
-            'beta': 1.,
-            'lr_attn': .4,  # /(n_units*k), # 3., # maybe should scale here..!
-            'lr_nn': .375/lr_scale,  # .075/0.3750
-            'lr_clusters': .325,
-            'lr_clusters_group': .7,
-            'k': k
-            }
 
         # gridsearch final
         params = {
