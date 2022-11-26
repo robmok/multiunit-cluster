@@ -100,7 +100,6 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 #  - with 5000/8000 recovers - actually even better (recruit extra cluster so
 # higher act... feature/bug? could be feature: learning, hpc synpase overturn)
 n_units = [20, 100, 1000, 10000]  # [20, 100, 500]
-n_units = [20, 500, 1000, 10000]
 k = [.05]
 n_lesions = [0, 25, 50]
 lesion_trials = np.array([[60]])  # [60]]  # 1 per lesion, but do at diff times

@@ -167,8 +167,8 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
     epoch_ptarget = torch.zeros(n_epochs)
 
     # lesion units during learning
+    les_units = []  # initialize
     if lesions:
-        les_units = []  # initialize
         model.lesion_units = []  # save which units were lesioned
         if lesions['gen_rand_lesions_trials']:  # lesion at randomly timepoints
             lesion_trials = (
