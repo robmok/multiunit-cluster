@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import itertools as it
-import imageio
+# import imageio
 import time
 # from scipy import stats
 # from scipy import optimize as opt
@@ -426,7 +426,7 @@ for i in range(niter):
             'beta': 1.,
             'lr_nn': .175/lr_scale,  # .075/0.3750
             'lr_attn': 3.,
-            'lr_attn': .2,
+            # 'lr_attn': .2,
             'lr_clusters': .15,
             'lr_clusters_group': .25,
             'k': k
