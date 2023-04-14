@@ -228,11 +228,24 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 #           [.02],  #
 #           [.8, 1.]] # just 1 for most
 
-
 # plot over k first
 # - set lr's for now
 lr = params[1][3]
 lr_group = params[2][1]
+
+
+
+
+# control, no flocking
+n_sims = 10
+n_trials = 50000
+params = [[.08, .1, .12, .14, .16, .18],
+          [.02],
+          [.0]]
+lr = params[1][0]
+lr_group = params[2][0]
+
+
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
@@ -488,7 +501,7 @@ print(score_60_)
 # [0.13, 0.01, 0.8]  # 7 clus - 500k trials. plotted arange(0, 8000, 100) trials
 
 
-saveplots = False
+saveplots = True
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -636,7 +649,7 @@ orig_lr = .0075
 lr_group = 1.
 
 n_units = 1000
-n_trials = 500000
+n_trials = 50000
 
 # plot_trials = torch.arange(0, 2000, 100, dtype=torch.long)
 plot_trials = torch.arange(0, 8000, 100, dtype=torch.long)

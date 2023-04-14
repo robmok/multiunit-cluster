@@ -47,7 +47,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
 
 saveplots = False
 
-n_sims = 25
+n_sims = 1
 
 problem = 0
 
@@ -99,10 +99,14 @@ shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 # things to manipulate
 #  - with 5000/8000 recovers - actually even better (recruit extra cluster so
 # higher act... feature/bug? could be feature: learning, hpc synpase overturn)
-n_units = [20, 100, 1000, 10000]  # [20, 100, 500]
+n_units = [20, 500, 1000, 10000]  # [20, 100, 500]
 k = [.05]
 n_lesions = [0, 25, 50]
 lesion_trials = np.array([[60]])  # [60]]  # 1 per lesion, but do at diff times
+
+# n_units = 100
+# n_lesions = 50
+
 
 sim_ps = []
 pt = []
@@ -182,7 +186,7 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
             'lr_attn': .275,  # /(n_units*k), # 3., # maybe should scale here..!
             'lr_nn': .05/(sim_prms[0] * sim_prms[1]),  # lr_scale
             'lr_clusters': .35,
-            'lr_clusters_group': .9,
+            'lr_clusters_group':.9,
             'k': sim_prms[1]
             }
 

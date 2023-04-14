@@ -335,7 +335,7 @@ six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
                 ]
 
 
-niter = 25
+niter = 1
 
 # set seeds for niters of shj problem randomised - same seqs across params
 if set_seeds:
@@ -404,33 +404,33 @@ for i in range(niter):
         #     'k': k
         #     }
         # OR
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .2,
-        #     'p': 1,
-        #     'phi': 11.,  # 5/11
-        #     'beta': 1.,
-        #     'lr_attn': 3.,  # .95,  # this scales at grad computation now
-        #     'lr_nn': .075/lr_scale,  # .075/0.3750
-        #     'lr_clusters': .325,
-        #     'lr_clusters_group': .7,
-        #     'k': k
-        #     }
-
-        # fixing attn - scale here now
         params = {
             'r': 1,  # 1=city-block, 2=euclid
             'c': .2,
             'p': 1,
-            'phi': 7.,  # 5/11
+            'phi': 11.,  # 5/11
             'beta': 1.,
-            'lr_nn': .175/lr_scale,  # .075/0.3750
-            'lr_attn': 3.,
-            # 'lr_attn': .2,
-            'lr_clusters': .15,
-            'lr_clusters_group': .25,
+            'lr_attn': 3.,  # .95,  # this scales at grad computation now
+            'lr_nn': .075/lr_scale,  # .075/0.3750
+            'lr_clusters': .325,
+            'lr_clusters_group': .7,
             'k': k
             }
+
+        # # fixing attn - scale here now
+        # params = {
+        #     'r': 1,  # 1=city-block, 2=euclid
+        #     'c': .2,
+        #     'p': 1,
+        #     'phi': 7.,  # 5/11
+        #     'beta': 1.,
+        #     'lr_nn': .175/lr_scale,  # .075/0.3750
+        #     'lr_attn': 3.,
+        #     # 'lr_attn': .2,
+        #     'lr_clusters': .15,
+        #     'lr_clusters_group': .25,
+        #     'k': k
+        #     }
 
         model = MultiUnitCluster(n_units, n_dims, attn_type, k, params=params)
 

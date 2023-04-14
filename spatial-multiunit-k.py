@@ -111,7 +111,7 @@ save_sims = True
 
 n_dims = 2
 n_epochs = 1
-n_trials = 500000
+n_trials = 50000 # 500000
 attn_type = 'dimensional_local'
 
 # 500k trial, 350 ann rte
@@ -158,6 +158,11 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
           [.02],
           [.6]]
 
+# control, no flocking
+params = [[.08, .1, .12, .14, .16, .18],
+          [.02],
+          [.0]]
+
 param_sets = torch.tensor(list(it.product(*params)))
 
 # split sets
@@ -184,7 +189,7 @@ param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 
 n_units = 1000
 
-n_sims = 100
+n_sims = 10  # 100
 
 for pset, p in enumerate(param_sets_curr):
 
