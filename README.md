@@ -14,3 +14,16 @@ Python packages:
 - scipy
 - pandas
 - itertools
+- imageio (plotting gifs)
+
+
+## Scripts
+
+Simulations
+-
+
+Plot and inspect results
+- 
+
+
+# Data on OSF
