@@ -53,7 +53,6 @@ stim = torch.tensor(stim, dtype=torch.float)
 inputs = stim[:, 0:-1]
 output = stim[:, -1].long()  # integer
 
-
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
 n_units = 500
@@ -68,7 +67,6 @@ k = .05
 n_banks = 2
 
 # SHJ
-
 # trials, etc.
 n_epochs = 16
 
@@ -82,7 +80,7 @@ params = {
     'phi': [1.3, 1.2],  # 1.2/1.1 for latter atm
     'beta': 1,
     'lr_attn': [.2, .002],  # [.25, .02]
-    'lr_nn': [.05/lr_scale, .01/lr_scale],  # latter also tried .0075, not as gd tho
+    'lr_nn': [.05/lr_scale, .01/lr_scale],
     'lr_clusters': [.05, .05],
     'lr_clusters_group': [.1, .1],
     'k': k
@@ -189,9 +187,6 @@ for i in range(niter):
         output = output.repeat(2).T
         n_dims = inputs.shape[1]
 
-        # gsearch + finegsearch 2022
-        # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-        #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
         params = {
             'r': 1,
             'c': [.7, 1.7],

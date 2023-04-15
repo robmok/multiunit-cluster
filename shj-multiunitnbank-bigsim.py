@@ -3,7 +3,8 @@
 """
 Created on Thu May 12 17:13:23 2022
 
-Short version of shj-multiunitnbank.py - to run SHJ with many units and save results
+Big simulation: short version of shj-multiunitnbank.py - to run SHJ with many
+units (hippocampus scale) and save results
 
 @author: robert.mok
 """
@@ -31,7 +32,7 @@ datadir = os.path.join(maindir, 'muc-results')
 
 # %% SHJ
 
-saveresults = True
+saveresults = False
 
 set_seeds = True
 
@@ -70,7 +71,7 @@ pt_all = torch.zeros([niter, 6, n_banks+1, n_epochs])
 
 # model details
 attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 34000000 // n_banks  # 2000
+n_units = 34000000 // n_banks  # note - this is HUGE now
 loss_type = 'cross_entropy'
 k = 0.0005 / n_banks
 lr_scale = (n_units * k)
@@ -100,40 +101,6 @@ for i in range(niter):
         n_dims = inputs.shape[1]
 
         # gridsearch + fgsearch
-        # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-#                  1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-        params = {
-            'r': 1,
-            'c': [.6, 1.7],
-            'p': 1,
-            'phi': [1., 2.25],
-            'beta': 1,
-            'lr_attn': [1.55, .001],
-            'lr_nn': [.7/lr_scale, .01/lr_scale],
-            'lr_clusters': [.3, .3],
-            'lr_clusters_group': [.8, .5],
-            'k': k
-            }
-
-        # gsearch + finegsearch 2022
-        # tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-        #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-        params = {
-            'r': 1,
-            'c': [.7, 1.7],
-            'p': 1,
-            'phi': [.875, 2.25],
-            'beta': 1,
-            'lr_attn': [1.3, .001],
-            'lr_nn': [.8/lr_scale, .01/lr_scale],
-            'lr_clusters': [.3, .3],
-            'lr_clusters_group': [.5, .5],
-            'k': k
-            }
-
-        # v2
-        # tensor([[5.0000e-01, 1.2500e+00, 8.0000e-01, 7.0000e-01, 3.0000e-01, 7.0000e-01,
-        #          1.8000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
         params = {
             'r': 1,
             'c': [.5, 1.8],

@@ -3,6 +3,8 @@
 """
 Created on Sat Aug 21 18:47:02 2021
 
+Noise simulations and plotting
+
 @author: robert.mok
 """
 
@@ -103,34 +105,6 @@ for s_cnt, sim_prms in enumerate(it.product(n_units, k, lr_group, noise_upd1)):
             'lr_clusters_group': sim_prms[2],
             'k': sim_prms[1]
             }
-
-        # # or gridsearch params (1st one)
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': 1.6,  # w/ attn grad normalized, c can be large now
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.,
-        #     'beta': 1.,
-        #     'lr_attn': .455,  # this scales at grad computation now
-        #     'lr_nn': .205/(sim_prms[0] * sim_prms[1]),
-        #     'lr_clusters': .305,  # .075/.1
-        #     'lr_clusters_group':  sim_prms[2],
-        #     'k': sim_prms[1]
-        #     }
-
-        # # gridsearch params (2nd one)
-        # params = {
-        #     'r': 1,  # 1=city-block, 2=euclid
-        #     'c': .8,  # w/ attn grad normalized, c can be large now
-        #     'p': 1,  # p=1 exp, p=2 gauss
-        #     'phi': 1.,
-        #     'beta': 1.,
-        #     'lr_attn': .8,  # this scales at grad computation now
-        #     'lr_nn': .65/(sim_prms[0] * sim_prms[1]),
-        #     'lr_clusters': .5,  # .075/.1
-        #     'lr_clusters_group': sim_prms[2],
-        #     'k': sim_prms[1]
-        #     }
 
         # noise - mean and sd of noise to be added
         noise = {'update1': [0, sim_prms[3]],

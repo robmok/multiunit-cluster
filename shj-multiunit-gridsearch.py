@@ -3,6 +3,8 @@
 """
 Created on Wed Jul  7 23:30:33 2021
 
+Run gridsearch to fit SHJ
+
 @author: robert.mok
 """
 
@@ -148,12 +150,7 @@ lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group
 
-# 2022 new - do lr_attn > 1 possible, 25 iters (so 0.12-->0.06 for timing)
-
-# 224000 params - 400 sets, 560psets per set; 560*.06=33.6=1.4 days
-# -350 sets, 640psets per set; 640*.06=38.4=1.59 days
-# redo with shj_order=False - more attn values - 336000 params
-# - 400 sets, 840 psets, 2.1 days?
+# 224000 params
 ranges = ([torch.arange(.2, 2.1, .2),
           torch.arange(1., 15., 2),
           # torch.arange(1., 2.76, .25),
@@ -164,10 +161,6 @@ ranges = ([torch.arange(.2, 2.1, .2),
           )
 
 if finegsearch:
-
-    # 2022 v2 shj_order=False - final
-    # best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
-    # tensor([[ 0.2/.4, 5/7/13,  1.25/2./2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
     # 147000 sets
     ranges = ([torch.arange(.1, .71, .1),
           torch.hstack([torch.arange(3., 9., 1), torch.arange(11., 15., 1)]),
@@ -180,18 +173,12 @@ if finegsearch:
 
 param_sets = torch.tensor(list(it.product(*ranges)))
 
-# 2022
 # - 336000
 sets = torch.arange(0, len(param_sets), 840) # dist, 400 sets
 
-# # finegsearch high attn
-# sets = torch.arange(0, len(param_sets), 101)  # 350 sets. 101*.12=12.12 hours
-
-# 2022 finegsearch
-# - 80640 - 280 sets (288 psets within each sets)
+# finegsearch
 # - 147000 - 350 sets, (420 psets)
 if finegsearch:
-    # sets = torch.arange(0, len(param_sets), 288)
     sets = torch.arange(0, len(param_sets), 420)
 
 # not a great way to add final set on
@@ -222,7 +209,6 @@ if finegsearch:
     fn = os.path.join(datadir,
                       'shj_finegsearch_k{}_{}units_set{}.pkl'.format(
                           k, n_units, iset))
-
 
 # on mbp testing
 # fn = os.path.join(datadir, 'gsearch_k0.05_1000units/'

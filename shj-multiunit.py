@@ -3,6 +3,9 @@
 """
 Created on Fri Jun 11 14:26:04 2021
 
+Main script to run Shepard et al., 1961's problems, including loading up and
+plotting a big simulation 
+
 @author: robert.mok
 """
 

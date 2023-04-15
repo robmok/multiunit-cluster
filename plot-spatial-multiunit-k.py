@@ -3,6 +3,8 @@
 """
 Created on Thu Aug 12 16:04:19 2021
 
+Load up and plot spatial results
+
 @author: robert.mok
 """
 
@@ -118,105 +120,6 @@ saveplots = False
 n_sims = 100
 n_units = 1000
 n_trials = 500000
-
-# params to test
-# k:  .08 (12 clus), .1 (9), .13 (7), .26 (5), .28 (3)
-# orig_lr: .001, .0025, .005
-# lr_group: .5, .85, 1
-
-# params = [[.08, .1, .13, .26, .28],
-#           [.001, .0025, .005, .0075],
-#           [.85, 1]]
-
-params = [[.08, .1, .13, .18, .28],
-          [.0075, .01],
-          [.6, .8, 1.]]
-
-# new k's
-# params = [[.09, .14, .16, .18, .22, .26, .3],  # 11.1, 7.14, 6.25, 5.88, 4.54,
-#           [.0075],  # for now
-#           [.8, 1.]]  # for now
-
-# combined
-# - .26 bad - probably 4; exclude
-# - .3 > . 28; now getting 3 properly
-# - .22 just ok, much around 0 or neg, but there are bunch of gd ones. prob 4 for bad, 5 for gd? check. could keep this.
-# - .16 (6) gd, prob a bit better than .~18 (5), but just a bit from a bi-modal distr. check.
-# - .14 same/better than .13 - check. both prob 7 - can swap?
-# - .09 v similar to .08
-params = [[.08, .09, .1, .13, .14, .16, .18, .22, .28, .3],
-          [.0075, .01],  # just .0075 for now
-          [.6, .8, 1.]]  # just .8, 1. for now
-
-#new again
-# params = [[.12, .2, .24, .26],
-#           [.0075],  # for now
-#           [.8, 1.]]  # for now
-
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
-           .22, .24, .26, .28, .3],
-          [.0075, .01],  # just .0075 for now
-          [.6, .8, 1.]]  # just .8, 1. for now
-
-# # even only
-# params = [[.08, .1, .12, .14, .16, .18, .2, .22, .26, .28, .3],
-#           [.0075, .01],
-#           [.6, .8, 1.]]  # just .8, 1. for now
-
-# low k values w more clus, since <10 clus pattern weirder.. (like '19 paper)
-# even
-params = [[.08, .1, .12, .14, .16, .18],
-          [.0075, .01],
-          [.6, .8, 1.]]  # just .8, 1. for now
-
-# .08-.18
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],  # .19
-          [.0075, .01],
-          [.6, .8, 1.]]  # just .8, 1. for now
-
-# faster lrs
-params = [[.08, .1, .12, .14, .16, .18],
-          [.015, 0.02],
-          [1.]]  # just 1.
-
-# .0075, .015
-# - .0075 more g>0.2 for group_lr=1.0. looks a bit better too
-# -
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .18, .19, .2, .21,
-           .22, .24, .26, .28],
-          [.0075, .015],
-          [.8, 1.]]
-
-# fewer - # .0075, .01, .015
-# grouplr=.8: .01 some higher .0075.. but latter more balanced so num's end up similar.
-# grouplr=1.0: all v sim. maybe .0075/.01 better
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
-          [.0075, .01, .015],
-          [.8, 1.]]
-
-# 1m trials - ran lr=.01, group_lr=1
-
-# testing ann rate, 500k / 1m trials. from 250+, just 500k
-# - atm, 350/400 best .350 slightly better
-ann_rate = 70  # orig=100. 50, 150, 200, 250, 300(? missed?), 400, 500, 600
-params = [[.11],
-          [.015],
-          [1.]]
-
-n_trials = 500000
-
-# # 400k trials
-# ann_rate = 280
-# # 350k trials
-# ann_rate = 245
-# # 250k trials
-# ann_rate = 175
-# # 150k trials
-# ann_rate = 105
-# # 100k trials
-# ann_rate = 70
-
-# in the end, 500k best.
 ann_rate = 350
 
 params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
@@ -233,19 +136,14 @@ params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
 lr = params[1][3]
 lr_group = params[2][1]
 
-
-
-
-# control, no flocking
-n_sims = 10
-n_trials = 50000
-params = [[.08, .1, .12, .14, .16, .18],
-          [.02],
-          [.0]]
-lr = params[1][0]
-lr_group = params[2][0]
-
-
+# # NEW - control, no flocking
+# n_sims = 10
+# n_trials = 50000
+# params = [[.08, .1, .12, .14, .16, .18],
+#           [.02],
+#           [.0]]
+# lr = params[1][0]
+# lr_group = params[2][0]
 
 df_gscore = pd.DataFrame(columns=params[0], index=range(n_sims))
 for k in params[0]:
@@ -273,8 +171,6 @@ for k in params[0]:
     df_gscore[k] = np.array(f['gscore'])
 
 # n gscores > threshold
-# - turns out lr doesn't change this that much - mainly the magnitude changes
-# if anything, slower has more...! faster has more high gscores maybe?
 thr = .2
 print('lr={}, lr_group={}: {} > {}'.format(
     lr, lr_group, (df_gscore > thr).sum().sum(), thr))
@@ -283,11 +179,9 @@ print((df_gscore > thr).sum().sum() / (len(params[0] * 100)))
 print(df_gscore.mean().mean())
 # print(df_gscore.mean())
 
-
 # gscore = f['gscore']
 # pos_trace = f['pos']
 # act_maps = f['act_map']
-
 
 # sns.set(font_scale = 1.5)
 # plt.style.use('seaborn-white')
@@ -333,15 +227,6 @@ plt.show()
 # %% plot actmaps and xcorrs
 
 saveplots = False
-
-# old notes
-# - 0.26 is 3, making a line, can remove
-# - .18 with lr_group=1. surpsingly bad
-
-# for lrgroup=.8/1.0, did .08, .09, then range(.1, .2, step=.2) so even ones.
-# - update: did .22 for lrgroup=.8 - either 4 clus, or gd ones mostly 3 with
-# 1 sticking to one clus.
-# NEXT: do odd ones, and finish .2-.3
 
 params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
           [.0075, .01],  # just .0075 for now
@@ -397,30 +282,6 @@ n_dims = 2
 n_epochs = 1
 n_trials = 500000
 attn_type = 'dimensional_local'
-
-# 1 / k gives slightly less than n clusters
-# - e.g. if k=.28, that's > 1/4 of the units. if update k each time, there will
-# be less than 4 clusters at the end - 4 will always be unstable (pulled apart)
-
-# - did .08, .18, .28 with lr_group=0
-# TODO -  get good examples for .08, .18 with lr_group > 0.
-
-# params = [[.08, .1, .13, .18, .28],
-#           [.0075, .01],
-#           [.6, .8, 1.]]
-
-# p = [0.13, 0.01, 1.]
-
-# got good .13 and .28's.
-# p = [0.08, 0.01, .8]
-
- # .12, .13, .14, .16
-# p = [0.14, 0.0075, 1.]  # DONE. given up on lr_group=.8
-# p = [0.16, 0.0075, .8]  # - got an OK one, given up on lr_group=1.
-# p = [0.2, 0.0075, .8]  # ~.25
-# p = [0.2, 0.0075, 1.] # ~.25
-
-# doing below - 2 consoles at a time:
 
 n_units = 1000
 
@@ -500,8 +361,7 @@ print(score_60_)
 # [0.28, 0.0075, .8]  250k trials
 # [0.13, 0.01, 0.8]  # 7 clus - 500k trials. plotted arange(0, 8000, 100) trials
 
-
-saveplots = True
+saveplots = False
 
 results = torch.stack(model.units_pos_trace, dim=0)
 
@@ -529,18 +389,6 @@ for i in plot_trials[0:-1]:  # range(20):  #
 
     fig = plt.figure(dpi=200)
     ax = fig.add_subplot(111)
-
-    # stimulus pos on trial i
-    # if np.mod(i, 2) == 0:
-    # m = '$S$'  # stim
-    # c = 'black'
-    # ax.scatter(path[i, 0], path[i, 1],
-    #            c=c, marker=m, s=1000, linewidth=.05, zorder=3)
-    # else:
-    #     m = '$c$'  # second update
-    #     c = 'black' # np.array([[.5, .5, .5],])
-    #     ax.scatter(results[i, :, 0].mean(), results[i, :, 1].mean(),c=c,
-    #                marker=m, edgecolor='black', s=1000, linewidth=.05, zorder=3)
 
     # unit pos on trial i
     ax.scatter(results[i, :, 0], results[i, :, 1],
@@ -641,7 +489,7 @@ plt.show()
 # [0.13, 0.01, 1.], 500k trials  # low-ish - no .png? convert and make gif?
 # - remember to use spatial_randomscatter_{}units_mrksiz{}_converted' to start
 
-savegif = True
+savegif = False
 
 # set params
 k = .14

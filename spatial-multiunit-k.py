@@ -3,6 +3,8 @@
 """
 Created on Sat Aug  7 00:06:10 2021
 
+Run spatial sims
+
 @author: robert.mok
 """
 import os
@@ -105,9 +107,9 @@ def _compute_act(dist, c, p):
     return c * torch.exp(-c * dist)  # sustain-like
 
 
-# %% unsupervised simple (no recruitment)
+# %% unsupervised spatial
 
-save_sims = True
+save_sims = False
 
 n_dims = 2
 n_epochs = 1
@@ -115,48 +117,12 @@ n_trials = 50000 # 500000
 attn_type = 'dimensional_local'
 
 # 500k trial, 350 ann rte
-ann_rate = 350  # best
-# params = [[.11],
-#           [.015],
-#           [1.]]
-
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.01, .015],
-          [1.]]
-
-# group_lr=.8 first
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.01, .015],
-          [.8]]
-
-
-# try faster lr, .02, .025
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.02, .025],
-          [1.]]
-
-# maybe do .2-.3 later? (for lr.01, .015. and/or gd ones above)
-# if lr=.02/.025 gd, could do group=.08 as well
-
-# .02 gd - do more or less
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.018, .022],
-          [1.]]
-
-# .02; .2-.3
-params = [[.2, .21, .22, .23, .24, .25, .26, .27, .28, .29, .3],
-          [.02],
-          [1.]]
-
-# .02; group=0.8
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.02],
-          [.8]]
+ann_rate = 350
 
 # NEXT: group .6
 params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19],
-          [.02],
-          [.6]]
+          [.02],  # .018, .022 also ok
+          [.6, .8, 1.]]
 
 # control, no flocking
 params = [[.08, .1, .12, .14, .16, .18],
@@ -173,13 +139,7 @@ sets = torch.cat(
 sets = torch.tensor(sets, dtype=torch.long)
 
 # set
-# - when i ran 1, it took ~ 6 hours for 1 param set
-# - testing running 8 in one go, but high RAM usage (4-6GB), so 8*5=40, over
-# the 32GB on love06. Started at 16:30 (Sat 7th Aug). most have 4 sets, iset=1
-# has 3 and iset=7 has 2. should all be done by 16:30 Sun if same speed.
-# - maybe do 6 in one go next time if slower?
-
-iset = 0  # 0-4 sets
+iset = 0  # 0-4 sets to run separately
 
 param_sets_curr = param_sets[sets[iset]:sets[iset+1]]
 

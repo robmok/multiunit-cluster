@@ -3,6 +3,8 @@
 """
 Created on Sat Aug 21 18:44:37 2021
 
+Lesion simulations and plotting
+
 @author: robert.mok
 """
 
@@ -73,26 +75,6 @@ n_epochs = 16
 #     'lesion_trials': torch.tensor([20])  # if False, set lesion trials
 #     }
 
-# for All: need 1 simulation with lesions vs no lesions - w same shuffled seq
-# - feed in a random number for seed: shuffle_seed = torch.randperm(n_sims)
-# or torch.randperm(n_sims*5)[:n_sims] to get more nums so diff over other sims
-# - HMMM you might also want the same shuffle over a set of sims, if randomly
-# lesioning units or random time points!
-
-
-# expt 1: n_lesions [single lesionevent] - number of units. and timing of event
-# - manipulation n_lesions
-# - manpulate k value and n_total units. will be affects by k most, but of course n_total interacts
-# - fix / manipulate: shuffle - seed the same num across a set of sims, then
-# seed another num for another set; run nset sims. this is to test same shuffle
-# different lesions (since they are random which units get lesioned)
-# - fix: lesion_trials at 1 time point (across a few sims, different time pt) 
-# save for each sim: model.recruit_units_trl, len(model.recruit_units_trl),
-# epoch_ptarget.detach(), model.attn_trace
-
-# expt 2: n lesion events, and timing
-# - first, do nlesions early, middle, late. then also do random.
-# e.g. [0:10 early, 0 mid, 0 late], then [0 early, 0:10 mid, 0 late], etc.
 
 shuffle_seeds = torch.randperm(n_sims*5)[:n_sims]
 
@@ -107,7 +89,6 @@ lesion_trials = np.array([[60]])  # [60]]  # 1 per lesion, but do at diff times
 # n_units = 100
 # n_lesions = 50
 
-
 sim_ps = []
 pt = []
 recruit_trial = []
@@ -120,63 +101,6 @@ for sim_prms in it.product(n_units, k, lesion_trials, n_lesions):
 
         sim_ps.append(sim_prms)
 
-        # shj params
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 12.5,
-            'beta': 1.,
-            'lr_attn': .15,  # this scales at grad computation now
-            'lr_nn': .015/(sim_prms[0] * sim_prms[1]),  # scale by n_units*k
-            'lr_clusters': .01,
-            'lr_clusters_group': .1,
-            'k': sim_prms[1],
-            }
-
-        # from above shj i used
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .7,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 9.,
-            'beta': 1.,
-            'lr_attn': .35,  # this scales at grad computation now
-            'lr_nn': .0075/(sim_prms[0] * sim_prms[1]),
-            'lr_clusters': .075,  # .075/.1
-            'lr_clusters_group': .12,
-            'k': sim_prms[1]
-            }
-
-        # or gridsearch params (1st one)
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': 1.6,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.,
-            'beta': 1.,
-            'lr_attn': .455,  # this scales at grad computation now
-            'lr_nn': .205/(sim_prms[0] * sim_prms[1]),
-            'lr_clusters': .305,  # .075/.1
-            'lr_clusters_group': .7,
-            'k': sim_prms[1]
-            }
-
-        # gridsearch params (2nd one)
-        params = {
-            'r': 1,  # 1=city-block, 2=euclid
-            'c': .8,  # w/ attn grad normalized, c can be large now
-            'p': 1,  # p=1 exp, p=2 gauss
-            'phi': 1.,
-            'beta': 1.,
-            'lr_attn': .8,  # this scales at grad computation now
-            'lr_nn': .65/(sim_prms[0] * sim_prms[1]),
-            'lr_clusters': .5,  # .075/.1
-            'lr_clusters_group': .5,
-            'k': sim_prms[1]
-            }
-
-        # 2022 gsearch results - saved with _v2 at the end
         params = {
             'r': 1,  # 1=city-block, 2=euclid
             'c': .2,

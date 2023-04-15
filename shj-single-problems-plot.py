@@ -3,6 +3,10 @@
 """
 Created on Sat Apr 15 18:28:33 2023
 
+Script to plot single problems including lesion and noise plots (Fig. S3, S4)
+
+And gifs of units learning positions - Fig. S2
+
 @author: robert.mok
 """
 
@@ -77,36 +81,6 @@ n_epochs = 16
 
 # new local attn - scaling lr
 lr_scale = (n_units * k) / 1
-
-# 2022 gridsearch results
-params = {
-    'r': 1,  # 1=city-block, 2=euclid
-    'c': .2,
-    'p': 1,
-    'phi': 5.,  # 5/11
-    'beta': 1.,
-    # 'lr_attn': 3., # this scales at grad computation now
-    # 'lr_attn': .01/n_units,
-    'lr_attn': .4,  # /(n_units*k), # 3., # maybe should scale here..!
-
-    'lr_nn': .375/lr_scale,  # .075/0.3750
-    'lr_clusters': .325,
-    'lr_clusters_group': .7,
-    'k': k
-    }
-# OR
-# params = {
-#     'r': 1,  # 1=city-block, 2=euclid
-#     'c': .2,
-#     'p': 1,
-#     'phi': 11.,  # 5/11
-#     'beta': 1.,
-#     'lr_attn': 3.,  # .95,  # this scales at grad computation now
-#     'lr_nn': .075/lr_scale,  # .075/0.3750
-#     'lr_clusters': .325,
-#     'lr_clusters_group': .7,
-#     'k': k
-#     }
 
 params = {
     'r': 1,  # 1=city-block, 2=euclid

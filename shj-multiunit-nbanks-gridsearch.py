@@ -3,6 +3,8 @@
 """
 Created on Fri Sep  3 12:03:23 2021
 
+Run gridsearch to fit SHJ
+
 @author: robert.mok
 """
 
@@ -146,9 +148,8 @@ lr_scale = (n_units * k) / 1
 
 # c, phi, lr_attn, lr_nn, lr_clusters, lr_clusters_group x 2
 
-# 2022 - slightly edited based on single-bank gsearch results
-# single bank: ([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
-# - 352800 as before, 400 sets, just over 3 days? --> 2 days 12 hours.
+# single bank
+# - 352800
 ranges = ([torch.arange(.1, .7, .1),
           torch.arange(.75, 2.5, .375),  # phi diff as 2 banks, no need so big
           torch.arange(.01, 3., .4),
@@ -164,19 +165,8 @@ ranges = ([torch.arange(.1, .7, .1),
           torch.tensor([.7])]
           )
 
-# params to check if re-run:
-# - bank 1:attn go up to / over 3, as single bank 3 is gd (might check this for single bank too - go >3)
-# - cluster lr - maybe check .5, .8/,9?
-
-# 2022 finegsearch
-# [.5/.6,      1.125, .81/1.61/2.4, .61/.76, .3,   .7,
-#  1.8/1.9/2,  2.25,  0.001,        .01,     .3, .7]
+# finegsearch
 # - 108000 params
-
-# v2 - pretty much same as above, so can keep the finegsearch i ran before
-# tensor([[5.0000e-01, 1.1250e+00, 8.1000e-01, 7.6000e-01, 3.0000e-01, 7.0000e-01,
-         # 1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-
 if finegsearch:
     ranges = ([torch.arange(.4, .9, .1),  # added .4
               torch.arange(.75, 1.251, .125), #  2 more than above
@@ -198,11 +188,8 @@ param_sets = torch.tensor(list(it.product(*ranges)))
 # set up which subset of param_sets to run on a given run
 if not finegsearch:
     sets = torch.arange(0, len(param_sets), 882)  # 400 sets for nbanks - 2022 using this
-    # sets = torch.arange(0, len(param_sets), 980)  # 360 sets for nbanks - initially used this as cluster not enough free nodes to run
-    
-    # sets = torch.arange(0, len(param_sets), 675)  # 128 sets for nbanks fine
 else:
-    sets = torch.arange(0, len(param_sets), 270)  # 2022 - 400 sets
+    sets = torch.arange(0, len(param_sets), 270)
 
 # not a great way to add final set on
 sets = torch.cat(

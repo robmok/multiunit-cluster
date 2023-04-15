@@ -3,10 +3,7 @@
 """
 Created on Mon Aug 23 23:26:09 2021
 
-Example place fields
-
-- currently just copy and pasted stuff from sim
-- can make it 'simpler' - just get activations of the gaussian...
+Plot example narrow vs wide place fields for fig 4
 
 @author: robert.mok
 """
@@ -65,7 +62,7 @@ def normalise_act_map(nbins, binnumber):
 
 saveplots = False
 
-act_func = 'gauss'  # laplace or gauss
+act_func = 'laplace'  # laplace or gauss
 
 # centres
 loc = [.25, .25]

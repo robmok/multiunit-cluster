@@ -3,7 +3,7 @@
 """
 Created on Fri Jun 11 14:12:04 2021
 
-Class for multi-unit hpcclustering  model
+Multi-unit clustering  model
 
 @author: robert.mok
 """
