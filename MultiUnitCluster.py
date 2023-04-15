@@ -12,8 +12,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-# import matplotlib.pyplot as plt
-# import itertools as it
 import warnings
 from scipy.stats import norm
 
@@ -65,7 +63,7 @@ class MultiUnitCluster(nn.Module):
                 'lr_nn': start_params[3],
                 'lr_clusters': start_params[4],
                 'lr_clusters_group': start_params[5],
-                'k': k,  # start_params[6],
+                'k': k,
                 }
 
         # randomly scatter units
@@ -137,9 +135,7 @@ class MultiUnitCluster(nn.Module):
         return c * torch.exp(-c * dist)  # sustain-like
 
     def _norm_diff(self, a, b):  # , n_active_units):
-        # return (a-b)/(a+b)  # scale by rel diff so scales by magnitude & nunits
-        # return (a-b)/n_active_units)  # might be equiv to before, scaling
-        return a-b  # no norm
+        return a-b  # no normalization
 
 
 def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
@@ -149,11 +145,6 @@ def train(model, inputs, output, n_epochs, shuffle_seed=None, lesions=None,
 
     # buid up model params
     p_fc1 = {'params': model.fc1.parameters()}
-    # # if learn by GD from error - removed now
-    # if model.attn_type[-5:] != 'local':
-    #     p_attn = {'params': [model.attn], 'lr': model.params['lr_attn']}
-    #     prms = [p_fc1, p_attn]
-    # else:
     prms = [p_fc1]
 
     optimizer = optim.SGD(prms, lr=model.params['lr_nn'])  # , momentum=0.)
