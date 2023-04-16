@@ -26,18 +26,12 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 finegsearch = False
-nbanks = True
+nbanks = False
 
 k = 0.005
 n_units = 10000
 
 # gsearch split into how many sets to load in
-# 450 sets. 440 for finegsearch distsq1. 348 for finegsearch dist. 349 distsq
-# new 2022: 400 sets
-# finegsearch distsq2 349 sets. finegsearch dist1 400 sets
-# nbanks 360, fine 128
-
-# 2022
 if not nbanks and not finegsearch:
     n_sets = 400  # gsearch
     resdir = os.path.join(maindir,
@@ -361,8 +355,7 @@ ind_sse_diff = sse_diff == sse_diff[ptn_criteria].min()
 
 # %%
 
-# # 2 sses weighted
-
+# 2 sses weighted
 
 # gsearch attn > 1 = looks great
 # tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
@@ -409,32 +402,10 @@ w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
 # tensor([[ 0.2/.4, 5/7/13,  2/1.25/2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
 
 
-# # finegsearch 2022
-# # tensor([[0.8000, 3.0000, 1.0000, 0.0750, 0.1750, 0.7000]]) - looks gd already
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# # tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# # w = torch.tensor([1/5, 1/5, 5/5, 1/5, 1/5])  # all a bit slower (gd), more sep
-# # best atm:
-# # tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
-# w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # best
-# # # tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
-# # w = torch.tensor([1/5, 1/5, 35/5, 1/5, 250/5])  # v sim , above 3-5 tighter
-# # tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# # w = torch.tensor([1/5, 1/5, 15/5, 1/5, 250/5])  # a bit faster (worse i tihnk)
-# # type 4 a bit slower here - meh
-# # tensor([[0.7000, 6.0000, 1.2500, 0.0250, 0.0250, 0.9000]])
-# # w = torch.tensor([1/5, 1/5, 50/5, 1/5, 500/5])
-
-# # RESULT: best params in order
-# # - tensor([[ 0.2000, 11.0000,  3.0000,  0.0750,  0.3250,  0.7000]])
-# # - tensor([[ 0.2000, 11.0000,  2.5000,  0.0750,  0.3250,  0.7000]])
-# # - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
-# # equal weights  also ok - gd but a bit tight together
-# # - tensor([[0.2000, 5.0000, 3.0000, 0.3750, 0.3250, 0.7000]])
+# # finegsearch
 # # --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
 
-
-# # fingsearch v2
+# # finegsearch v2
 # # tensor([[0.2000, 5.0000, 3.0000, 0.4000, 0.2500, 0.9000]])
 # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])   # ok but type 3 fast
 
@@ -507,7 +478,6 @@ if len(torch.nonzero(ind_sse_w)) > 1:
     ind_sse_w[torch.nonzero(ind_sse_w)[1]] = 0
 
 print(param_sets[ind_sse_w])
-
 
 # select which to use
 ind = ind_sse_w

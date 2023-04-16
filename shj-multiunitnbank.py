@@ -8,10 +8,8 @@ Created on Mon Jun 14 16:14:01 2021
 
 import os
 import sys
-import numpy as np
 import torch
 import matplotlib.pyplot as plt
-import itertools as it
 import pickle
 
 sys.path.append('/Users/robert.mok/Documents/GitHub/multiunit-cluster')
@@ -22,112 +20,13 @@ maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 datadir = os.path.join(maindir, 'muc-results')
 
-# %%
-
-saveplots = 0
-
-six_problems = [[[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0],
-                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
-
-                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 1], [0, 1, 1, 1],
-                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 0], [1, 1, 1, 0]],
-
-                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
-                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 1], [1, 1, 1, 1]],
-
-                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
-                 [1, 0, 0, 0], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 1]],
-
-                [[0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 1, 1, 1],
-                 [1, 0, 0, 1], [1, 0, 1, 1], [1, 1, 0, 1], [1, 1, 1, 0]],
-
-                [[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 1, 0],
-                 [1, 0, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [1, 1, 1, 1]],
-
-                ]
-
-# set problem
-problem = 5
-stim = six_problems[problem]
-stim = torch.tensor(stim, dtype=torch.float)
-inputs = stim[:, 0:-1]
-output = stim[:, -1].long()  # integer
-
-# model details
-attn_type = 'dimensional_local'  # dimensional, unit, dimensional_local
-n_units = 500
-# n_dims = inputs.shape[1]
-n_dims = 3
-loss_type = 'cross_entropy'
-
-# top k%. so .05 = top 5%
-k = .05
-
-# n banks of units
-n_banks = 2
-
-# SHJ
-# trials, etc.
-n_epochs = 16
-
-# new local attn - scaling lr
-lr_scale = (n_units * k) / 1
-
-params = {
-    'r': 1,
-    'c': [.75, 2.5],  # c=.8/1. for type I. c=1. works better for II.
-    'p': 1,
-    'phi': [1.3, 1.2],  # 1.2/1.1 for latter atm
-    'beta': 1,
-    'lr_attn': [.2, .002],  # [.25, .02]
-    'lr_nn': [.05/lr_scale, .01/lr_scale],
-    'lr_clusters': [.05, .05],
-    'lr_clusters_group': [.1, .1],
-    'k': k
-    }
-
-model = MultiUnitClusterNBanks(n_units, n_dims, n_banks, attn_type, k, params=params)
-
-model, epoch_acc, trial_acc, epoch_ptarget, trial_ptarget = train(
-    model, inputs, output, n_epochs, shj_order=False)
-
-# pr target
-plt.plot(1 - epoch_ptarget.T.detach())
-plt.ylim([0, .5])
-plt.title('Type {}'.format(problem+1))
-plt.gca().legend(('total output',
-                  'c = {}'.format(model.params['c'][0]),
-                  'c = {}'.format(model.params['c'][1])
-                  ))
-
-if saveplots:
-    p = [model.params['c'][0], model.params['c'][1],
-         model.params['lr_attn'][0], model.params['lr_attn'][1],
-         model.params['lr_nn'][0], model.params['lr_nn'][1]]
-
-    figname = os.path.join(figdir,
-                           'nbanks_SHJ_type{}_c{}_{}_attn{}_{}_nn{}_{}'.format(
-                               problem+1, p[0], p[1], p[2], p[3], p[4], p[5]))
-    plt.savefig(figname + '.png', dpi=100)
-plt.show()
-
-# # attention weights
-# fig, ax = plt.subplots(1, 2)
-# ax[0].plot(torch.stack(model.attn_trace, dim=0)[:, :, 0])
-# ax[0].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
-#                 torch.stack(model.attn_trace, dim=0).max()+.01])
-# ax[1].plot(torch.stack(model.attn_trace, dim=0)[:, :, 1])
-# ax[1].set_ylim([torch.stack(model.attn_trace, dim=0).min()-.01,
-#                 torch.stack(model.attn_trace, dim=0).max()+.01])
-# plt.show()
-
-# %% SHJ
+# %% SHJ 6 problems
 
 saveplots = False
 
-saveresults = True
+saveresults = False
 
-niter = 1
+niter = 1  # 25
 
 n_banks = 2
 
@@ -320,120 +219,120 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# %%
+# %% exploring  change in weights over learning
 
-saveplots = False
-# have to go through each iteration, since different ntrials if diff n recruit
+# saveplots = False
+# # have to go through each iteration, since different ntrials if diff n recruit
 
-# for i in range(niter):
-# print(w_trace[problem][i])
+# # for i in range(niter):
+# # print(w_trace[problem][i])
 
-i = 0
-problem = 5
-act = act_trace[problem][i]
+# i = 0
+# problem = 5
+# act = act_trace[problem][i]
 
-# output (pr / activations with phi)
-ylims = (0, 1)
+# # output (pr / activations with phi)
+# ylims = (0, 1)
 
-fig, ax = plt.subplots(1, 2)
-ax[0].plot(act[:, 1])
-ax[0].set_title('type {}, c = {}'.format(problem+1, params['c'][0]))
-ax[0].set_ylim(ylims)
-ax[1].plot(act[:, 2])
-ax[1].set_title('type {}, c = {}'.format(problem+1, params['c'][1]))
-ax[1].set_ylim(ylims)
+# fig, ax = plt.subplots(1, 2)
+# ax[0].plot(act[:, 1])
+# ax[0].set_title('type {}, c = {}'.format(problem+1, params['c'][0]))
+# ax[0].set_ylim(ylims)
+# ax[1].plot(act[:, 2])
+# ax[1].set_title('type {}, c = {}'.format(problem+1, params['c'][1]))
+# ax[1].set_ylim(ylims)
 
-if saveplots:
-    figname = (
-        os.path.join(figdir, 'shj_nbanks{}_act_type{}_k{}_{}units.pdf'.format(
-            problem+1, n_banks, k, n_units))
-    )
-    plt.savefig(figname)
-plt.show()
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'shj_nbanks{}_act_type{}_k{}_{}units.pdf'.format(
+#             problem+1, n_banks, k, n_units))
+#     )
+#     plt.savefig(figname)
+# plt.show()
 
-# change in activation magnitude over time
-# - if want do do this by block, need to only get activations / weights after
-# recruit. complication now since one bank can recruit and the other not.
-# - in a way, including recruit is fine too (since at forward func), sliding
-# win more flexible.
-
-
-def sliding_window(iterable, n):
-    iterables = it.tee(iterable, n)
-    for iterable, num_skipped in zip(iterables, it.count()):
-        for _ in range(num_skipped):
-            next(iterable, None)
-    return np.array(list((zip(*iterables))))
+# # change in activation magnitude over time
+# # - if want do do this by block, need to only get activations / weights after
+# # recruit. complication now since one bank can recruit and the other not.
+# # - in a way, including recruit is fine too (since at forward func), sliding
+# # win more flexible.
 
 
-winsize = 16  # ntrials to compute running average
-
-t1 = sliding_window(act[:, 1, 0], winsize)  # just 1 of the outputs
-t2 = sliding_window(act[:, 2, 0], winsize)
-
-fig, ax = plt.subplots(1, 2)
-ax[0].plot(np.diff(t1))
-ax[0].set_title('type {}, c = {}'.format(problem+1, params['c'][0]))
-ax[0].set_ylim(ylims)
-ax[1].plot(np.diff(t2))
-ax[1].set_title('type {}, c = {}'.format(problem+1, params['c'][1]))
-ax[1].set_ylim(ylims)
-if saveplots:
-    figname = (
-        os.path.join(figdir, 'shj_nbanks{}_actdiff_type{}_k{}_{}units.pdf'.format(
-            problem+1, n_banks, k, n_units))
-    )
-    plt.savefig(figname)
-plt.show()
+# def sliding_window(iterable, n):
+#     iterables = it.tee(iterable, n)
+#     for iterable, num_skipped in zip(iterables, it.count()):
+#         for _ in range(num_skipped):
+#             next(iterable, None)
+#     return np.array(list((zip(*iterables))))
 
 
-# weights
-for problem in range(6):
-    w = w_trace[problem][i]
-    
-    # ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
-    ylims = (-.06, .06)
-    
-    w0 = w[:, :, model.bmask[0]]
-    w0 = torch.reshape(w0, (w0.shape[0], w0.shape[1] * w0.shape[2]))
-    plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
-    plt.ylim(ylims)
-    plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c'][0]))
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                          'shj_nbanks{}_assocw_sep_type{}_c{}_k{}_{}units.pdf'.format(
-                              n_banks, problem+1, params['c'][0], k, n_units))
-        )
-        plt.savefig(figname)
-    plt.show()
-    
-    w1 = w[:, :, model.bmask[1]]
-    w1 = torch.reshape(w1, (w1.shape[0], w1.shape[1] * w1.shape[2]))
-    plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
-    plt.ylim(ylims)
-    plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c'][1]))
-    if saveplots:
-        figname = (
-            os.path.join(figdir,
-                          'shj_nbanks{}_assocw_sep_type{}_c{}_k{}_{}units.pdf'.format(
-                              n_banks, problem+1, params['c'][1], k, n_units))
-        )
-        plt.savefig(figname)
-    plt.show()
-
-
-# # weight change over time
 # winsize = 16  # ntrials to compute running average
 
-# t1 = sliding_window(torch.sum(w0.abs(), dim=1), winsize)
-# t2 = sliding_window(torch.sum(w1.abs(), dim=1), winsize)
+# t1 = sliding_window(act[:, 1, 0], winsize)  # just 1 of the outputs
+# t2 = sliding_window(act[:, 2, 0], winsize)
 
-# ylims = (0, torch.max(torch.tensor([np.diff(t1), np.diff(t2)])) + .01)
+# fig, ax = plt.subplots(1, 2)
+# ax[0].plot(np.diff(t1))
+# ax[0].set_title('type {}, c = {}'.format(problem+1, params['c'][0]))
+# ax[0].set_ylim(ylims)
+# ax[1].plot(np.diff(t2))
+# ax[1].set_title('type {}, c = {}'.format(problem+1, params['c'][1]))
+# ax[1].set_ylim(ylims)
+# if saveplots:
+#     figname = (
+#         os.path.join(figdir, 'shj_nbanks{}_actdiff_type{}_k{}_{}units.pdf'.format(
+#             problem+1, n_banks, k, n_units))
+#     )
+#     plt.savefig(figname)
+# plt.show()
 
-# plt.plot(np.diff(t1))
-# plt.ylim(ylims)
-# plt.show()
-# plt.plot(np.diff(t2))
-# plt.ylim(ylims)
-# plt.show()
+
+# # weights
+# for problem in range(6):
+#     w = w_trace[problem][i]
+    
+#     # ylims = (-torch.max(torch.abs(w)), torch.max(torch.abs(w)))
+#     ylims = (-.06, .06)
+    
+#     w0 = w[:, :, model.bmask[0]]
+#     w0 = torch.reshape(w0, (w0.shape[0], w0.shape[1] * w0.shape[2]))
+#     plt.plot(w0[:, torch.nonzero(w0.sum(axis=0)).squeeze()])
+#     plt.ylim(ylims)
+#     plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c'][0]))
+#     if saveplots:
+#         figname = (
+#             os.path.join(figdir,
+#                           'shj_nbanks{}_assocw_sep_type{}_c{}_k{}_{}units.pdf'.format(
+#                               n_banks, problem+1, params['c'][0], k, n_units))
+#         )
+#         plt.savefig(figname)
+#     plt.show()
+    
+#     w1 = w[:, :, model.bmask[1]]
+#     w1 = torch.reshape(w1, (w1.shape[0], w1.shape[1] * w1.shape[2]))
+#     plt.plot(w1[:, torch.nonzero(w1.sum(axis=0)).squeeze()])
+#     plt.ylim(ylims)
+#     plt.title('assoc ws, type {}, c = {}'.format(problem+1, params['c'][1]))
+#     if saveplots:
+#         figname = (
+#             os.path.join(figdir,
+#                           'shj_nbanks{}_assocw_sep_type{}_c{}_k{}_{}units.pdf'.format(
+#                               n_banks, problem+1, params['c'][1], k, n_units))
+#         )
+#         plt.savefig(figname)
+#     plt.show()
+
+
+# # # weight change over time
+# # winsize = 16  # ntrials to compute running average
+
+# # t1 = sliding_window(torch.sum(w0.abs(), dim=1), winsize)
+# # t2 = sliding_window(torch.sum(w1.abs(), dim=1), winsize)
+
+# # ylims = (0, torch.max(torch.tensor([np.diff(t1), np.diff(t2)])) + .01)
+
+# # plt.plot(np.diff(t1))
+# # plt.ylim(ylims)
+# # plt.show()
+# # plt.plot(np.diff(t2))
+# # plt.ylim(ylims)
+# # plt.show()
