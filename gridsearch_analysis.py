@@ -10,7 +10,6 @@ Analysis on grid search results
 - standard SHJ (nbanks=False); or simulation with two banks of units modelling
 anterior and posterior hpc (nbanks=True)
 
-
 @author: robert.mok
 """
 
@@ -38,7 +37,7 @@ if not nbanks and not finegsearch:
                       'muc-shj-gridsearch/gsearch_k{}_{}units_dist_final'.format(
     k, n_units))
 
-elif not nbanks and finegsearch:
+elif not nbanks and finegsearch:  # set57 not complete? get
     n_sets = 350  # finegsearch
     resdir = os.path.join(maindir,
                           'muc-shj-gridsearch/finegsearch_k{}_{}units_dist_final'.format(
@@ -57,8 +56,7 @@ elif nbanks and finegsearch:
 if not nbanks and not finegsearch:
     ranges = ([torch.arange(.2, 2.1, .2),
               torch.arange(1., 15., 2),
-              # torch.arange(1., 2.76, .25),
-              torch.arange(1., 3.76, .25),  # more attn v2
+              torch.arange(1., 3.76, .25),  # more attn
               torch.arange(.05, .76, .1),  # / lr_scale,
               torch.arange(.05, 1., .1),
               torch.arange(.1, 1., .2)]
@@ -70,7 +68,7 @@ elif not nbanks and finegsearch:
           torch.hstack([torch.arange(3., 9., 1), torch.arange(11., 15., 1)]),
           torch.arange(.75, 3.01, .25),
           torch.hstack([torch.arange(.025, .125, .025),
-                        torch.arange(.3, .43, .025)]), # / lr_scale,  # 2 more
+                        torch.arange(.3, .43, .025)]), # / lr_scale,
           torch.arange(.05, .7, .1),  # 1 less
           torch.arange(.5, 1., .2)]  # 1 extra
           )
@@ -353,122 +351,64 @@ ind_nll = nlls == nlls[ptn_criteria].min()
 ind_sse = sse == sse[ptn_criteria].min()
 ind_sse_diff = sse_diff == sse_diff[ptn_criteria].min()
 
-# %%
+# %% 2 sses weighted
 
-# 2 sses weighted
+if not nbanks and not finegsearch:
 
-# gsearch attn > 1 = looks great
-# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5, 1/5])  # v gd
-# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 100/5, 100/5])  # v sim
+    # gsearch
+    # tensor([[0.4000, 7.0000, 1.0000, 0.0500, 0.2500, 0.9000]])
+    w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already gd
+    # tensor([[0.2000, 5.0000, 3.7500, 0.3500, 0.2500, 0.9000]])
+    w = torch.tensor([1/5, 1/5, 1/5, 10/5, 100/5])
 
-# with just diffs and assume all 0s
-# tensor([[1.0000, 3.0000, 2.7500, 0.0500, 0.2500, 0.7000]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# tensor([[0.4000, 7.0000, 2.7500, 0.0500, 0.4500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 1/5, 3/5, 1/5])  # this is like above, gd
+    # best params
+    # # tensor([[ 0.2000, 13.0000,  2.0000,  0.0500,  0.3500,  0.7000]])
+    # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1000/5])  # like orig but better
+    # tensor([[ 0.2000, 13.0000,  2.0000,  0.0500,  0.3500,  0.9000]])
+    # w = torch.tensor([1/5, 1/5, 100/5, 50/5, 1000/5])  # 3 ever so slightly closer to rulexes
+    # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+    w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
+    # tensor([[0.4000, 7.0000, 1.2500, 0.0500, 0.4500, 0.9000]])
+    # w = torch.tensor([1/5, 1/5, 100/5, 10/5, 1000/5])  # all 3 rulexes together but overall faster (6 is closer to rulexes)
+    # w = torch.tensor([1/5, 1/5, 100/5, 1/5, 50/5])
+    # # tensor([[0.2000, 5.0000, 3.7500, 0.3500, 0.2500, 0.9000]])
+    # w = torch.tensor([1/5, 1/5, 10/5, 10/5, 100/5])
+    
+    # --> to search in finegsearch
+    # best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+    # tensor([[ 0.2/.4, 5/7/13,  2/1.25/2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
 
+elif not nbanks and finegsearch:
 
-# finegsearch attn
-
-# 2022
-
-# v2 - shj_order=False - FINAL hopefully
-# tensor([[0.4000, 7.0000, 1.0000, 0.0500, 0.2500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # already v gd
-# tensor([[0.2000, 5.0000, 3.7500, 0.3500, 0.2500, 0.9000]])
-w = torch.tensor([1/5, 1/5, 1/5, 10/5, 100/5])  # bit slower (gd), but type 3 close to 2 (bad)
-
-# best params
-# # tensor([[ 0.2000, 13.0000,  2.0000,  0.0500,  0.3500,  0.7000]])
-w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1000/5])  # like orig but better
-# tensor([[ 0.2000, 13.0000,  2.0000,  0.0500,  0.3500,  0.9000]])
-w = torch.tensor([1/5, 1/5, 100/5, 50/5, 1000/5])  # 3 ever so slightly closer to rulexes
-# tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
-w = torch.tensor([1/5, 1/5, 100/5, 25/5, 1000/5]) # best - just touching rulexes
-# tensor([[0.2000, 5.0000, 2.7500, 0.3500, 0.4500, 0.5000]])
-# w = torch.tensor([1/5, 1/5, 100/5, 15/5, 1000/5]) # now  touching but 6 slighlty closer again
-
-# tensor([[0.4000, 7.0000, 1.2500, 0.0500, 0.4500, 0.9000]]) - from here, same
-# w = torch.tensor([1/5, 1/5, 100/5, 10/5, 1000/5])  # all 3 rulexes together but overall faster (6 is closer to rulexes)
-# w = torch.tensor([1/5, 1/5, 100/5, 1/5, 50/5])
-
-# # # tensor([[0.2000, 5.0000, 3.7500, 0.3500, 0.2500, 0.9000]])
-# w = torch.tensor([1/5, 1/5, 10/5, 10/5, 100/5])
-
-# to search
-# best: # tensor([[ 0.2000, 13.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
-# tensor([[ 0.2/.4, 5/7/13,  2/1.25/2.75,  0.05/0.35,  .25/.35/.45,  [0.5?]/0.7/0.9]])
+    # finegsearch
+    # tensor([[ 0.2000, 14.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
+    w = torch.tensor([1/5, 1/5, 3/5, 1/5, 1/5])  # best - all v sim to this from 3/5 for 3rd one
 
 
-# # finegsearch
-# # --> tensor([[ 0.2000, 5/11,  3.0000,  0.0750/0.3750,  0.3250,  0.7000]])
+elif nbanks and not finegsearch:
 
-# # finegsearch v2
-# # tensor([[0.2000, 5.0000, 3.0000, 0.4000, 0.2500, 0.9000]])
-# w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])   # ok but type 3 fast
+    # tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 6.1000e-01, 3.0000e-01, 7.0000e-01,
+             # 2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+    # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks pretty gd already
+    
+    # tensor([[5.0000e-01, 1.1250e+00, 8.1000e-01, 7.6000e-01, 3.0000e-01, 7.0000e-01,
+             # 1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
+    w = torch.tensor([1/5, 1/5, 1/5, 20/5, 1/5])  # better separation - best -  if param 4 goes up, stays the same
 
-# # tensor([[ 0.2000, 14.0000,  2.7500,  0.0500,  0.3500,  0.9000]])
-# w = torch.tensor([1/5, 1/5, 3/5, 1/5, 1/5])  # best - all v sim to this from 3/5 for 3rd one
-# # tensor([[ 0.2000, 14.0000,  2.7500,  0.0500,  0.3500,  0.7000]])
-# w = torch.tensor([1/5, 1/5, 10/5, 1/5, 1/5])  # - v sim to above (lr_group=.7), type 3 *tiny* bit slower here
+elif nbanks and finegsearch:
 
-# # tensor([[0.2000, 5.0000, 3.0000, 0.4000, 0.4500, 0.5000]])
-# w = torch.tensor([1/5, 1/5, 20/5, 1/5, 250/5])  # gd but type 6 a bit faster
-
-
-# nbanks
-
-# 2022
-#v2
-# tensor([[6.0000e-01, 1.1250e+00, 1.6100e+00, 6.1000e-01, 3.0000e-01, 7.0000e-01,
-         # 2.0000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # looks pretty gd already, 3-5 too close to 6
-
-# tensor([[5.0000e-01, 1.1250e+00, 8.1000e-01, 7.6000e-01, 3.0000e-01, 7.0000e-01,
-         # 1.9000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 20/5, 1/5])  # better separation - best -  if param 4 goes up, stays the same
-
-
-# # finegsearch - testing without 3 sets
-# # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-#          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
-# # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
-# #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # shifted upm maybe a bit better - need get exact good numbers though. this is what's in the figure now
-
-# # with type II as 2nd slower in bank 2
-# # w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])
-# # w = torch.tensor([1/5, 1000/5, 1/5, 1/5, 1/5]) # no diff
-# # w = torch.tensor([1/5, 1/5, 100/5, 100/5, 1/5])  # meh
-
-# 2022
-# tensor([[6.0000e-01, 1.0000e+00, 8.0000e-01, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-#          1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # not great output, but ant-post modules patterns are gd
-# tensor([[7.0000e-01, 8.7500e-01, 1.3000e+00, 8.0000e-01, 3.0000e-01, 5.0000e-01,
-#          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # best atm - output better than below + post-hpc rulex better (visible faster than ant-hpc)
-# tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
-#          1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-# # w = torch.tensor([1/5, 1/5, 1/5, 100/5, 1/5])  # ok, not as gd
-
-# v2
-# tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 8.0000e-01, 3.0000e-01, 7.0000e-01,
-         # 1.8000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 1/5, 1/5])  # ok, 345-6 a bit close
-# tensor([[7.0000e-01, 1.0000e+00, 1.3000e+00, 7.0000e-01, 3.0000e-01, 7.0000e-01,
-         # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 7.0000e-01]])
-w = torch.tensor([1/5, 1/5, 250/5, 100/5, 1/5])  # before best, nt as gd?
-# tensor([[6.0000e-01, 1.2500e+00, 8.0000e-01, 6.5000e-01, 3.0000e-01, 7.0000e-01,
-#          1.7000e+00, 2.7500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 250/5, 1/5]) # gd
-
-# tensor([[5.0000e-01, 1.2500e+00, 8.0000e-01, 7.0000e-01, 3.0000e-01, 7.0000e-01,
-#          1.8000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
-w = torch.tensor([1/5, 1/5, 1/5, 30/5, 1/5])  # ever so slightly better
+    # # tensor([[6.0000e-01, 1.1250e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+    #          # 1.7000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+    # w = torch.tensor([1/5, 1/5, 1/5, 150/5, 1/5])
+    # # tensor([[6.0000e-01, 1.2500e+00, 8.0000e-01, 6.5000e-01, 3.0000e-01, 7.0000e-01,
+    # #          1.7000e+00, 2.7500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+    # w = torch.tensor([1/5, 1/5, 1/5, 250/5, 1/5]) # gd
+    # # tensor([[5.0000e-01, 1.2500e+00, 8.0000e-01, 7.0000e-01, 3.0000e-01, 7.0000e-01,
+    # #          1.8000e+00, 2.5000e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+    # w = torch.tensor([1/5, 1/5, 1/5, 30/5, 1/5])
+    # # tensor([[6.0000e-01, 1.0000e+00, 1.5500e+00, 7.0000e-01, 3.0000e-01, 8.0000e-01,
+    # #          1.7000e+00, 2.2500e+00, 1.0000e-03, 1.0000e-02, 3.0000e-01, 5.0000e-01]])
+    w = torch.tensor([1/5, 1/5, 350/5, 350/5, 1/5]) # good - this is what's in the figure now
 
 w = w / w.sum()
 sses_w = sse * w[0] + torch.sum(sse_diff * w[1:], axis=1)
