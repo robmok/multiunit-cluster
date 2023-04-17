@@ -28,8 +28,8 @@ from MultiUnitCluster import (MultiUnitCluster, train_unsupervised_k)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
-wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
-
+# wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_spatial_results'
+wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc-results-all/muc-spatial-results'
 
 # functions for spatial simulations, grid scores
 def generate_path(n_trials, n_dims, seed=None):
@@ -122,21 +122,20 @@ n_units = 1000
 n_trials = 500000
 ann_rate = 350
 
-params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
-          [.01, .015, .018, .02, .022, .025],  # .02 best .018 same. .22 almost as gd.
-          [.8, 1.]] # just 1 for most. 0.8 for [.01, .015]
+# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
+#           [.01, .015, .018, .02, .022],  # .02 best .018 same. .22 almost as gd.
+#           [.8, 1.]] # just 1 for most. 0.8 for [.01, .015]
 
-# params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18, .19, .2, .21,
-#            .22, .24, .26, .28, .29, .3],
-#           [.02],  #
-#           [.8, 1.]] # just 1 for most
+params = [[.08, .09, .1, .11, .12, .13, .14, .15, .16, .17, .18],
+          [.02],  #
+          [.8, 1.]] # just 1 for most
 
 # plot over k first
 # - set lr's for now
-lr = params[1][3]
+lr = params[1][0]
 lr_group = params[2][1]
 
-# # NEW - control, no flocking
+# # Control, no flocking
 # n_sims = 10
 # n_trials = 50000
 # params = [[.08, .1, .12, .14, .16, .18],
@@ -151,13 +150,6 @@ for k in params[0]:
     p = [k, lr, lr_group]
 
     # load
-    fn = (
-        os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
-                     'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
-                     '{:d}sims.pkl'.format(
-                          n_units, p[0], p[1], p[2], n_trials//1000, n_sims))
-        )
-
     fn = (
         os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
                       'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
@@ -212,36 +204,22 @@ if saveplots:
     plt.savefig(figname + '.pdf')
 plt.show()
 
-# swarm / univariate scatter
-# g = sns.swarmplot(size=3, data=df_gscore)
-g = sns.stripplot(size=3, data=df_gscore)
-g.set_ylim(-.5, 1.65)
-# if saveplots:
-#     figname = os.path.join(figdir,
-#                             'gscores_swarm.pdf')
-#     # plt.savefig(figname, dpi=100)
-#     plt.savefig(figname)
-plt.show()
-
-
-# %% plot actmaps and xcorrs
+# %% plot example actmaps and xcorrs
 
 saveplots = False
 
-params = [[.08, .09, .1, .12, .13, .14, .16, .18, .2, .22, .24, .26, .28, .3],
-          [.0075, .01],  # just .0075 for now
-          [.6, .8, 1.]]  # just .8, 1. for now
-
+# set params to plot
 k = .12
-lr = params[1][0]
-lr_group = params[2][2]
+lr = .02
+lr_group = 1.  # .8/1.
 
 # load
 fn = (
     os.path.join(wd, 'spatial_simple_ann_{:d}units_k{:.2f}_'
                  'startlr{:.4f}_grouplr{:.3f}_{:d}ktrls_'
-                 '{:d}sims.pkl'.format(
-                     n_units, k, lr, lr_group, n_trials//1000, n_sims))
+                 '{:d}sims_annrate{}.pkl'.format(
+                     n_units, k, lr, lr_group, n_trials//1000, n_sims,
+                     ann_rate))
     )
 f = torch.load(fn)
 
@@ -463,7 +441,7 @@ if saveplots:
     plt.savefig(figname)
 plt.show()
 
-# # plot random scatter for positions before training
+# # plot one initial random scatter for positions before training
 # mrksiz = 250
 # fig = plt.figure(dpi=200)
 # ax = fig.add_subplot(111)

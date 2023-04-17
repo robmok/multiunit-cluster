@@ -21,7 +21,7 @@ import pickle
 import itertools as it
 import time
 
-maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
+maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc-results-all'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
 
 finegsearch = False

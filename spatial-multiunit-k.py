@@ -22,7 +22,8 @@ from MultiUnitCluster import (MultiUnitCluster, train_unsupervised_k)
 
 maindir = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/'
 figdir = os.path.join(maindir, 'multiunit-cluster_figs')
-wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_results'
+# wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc_spatial_results'
+wd = '/Users/robert.mok/Documents/Postdoc_cambridge_2020/muc-results-all/muc-spatial-results'
 
 
 # functions for spatial simulations, grid scores
